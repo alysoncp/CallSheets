@@ -27,8 +27,8 @@ const allNavigation = [
   { name: "Vehicle Mileage", href: "/vehicle-mileage", icon: TrendingUp },
   { name: "GST/HST", href: "/gst-hst", icon: Calculator, requiresGst: true },
   { name: "Tax Calculator", href: "/tax-calculator", icon: Calculator },
-  { name: "Assets", href: "/assets", icon: Building2 },
-  { name: "Leases", href: "/leases", icon: CreditCard },
+  { name: "Assets", href: "/assets", icon: Building2, requiresPersonalOrCorporate: true },
+  { name: "Leases", href: "/leases", icon: CreditCard, requiresPersonalOrCorporate: true },
   { name: "Optimization", href: "/optimization", icon: PieChart, requiresCorporate: true },
   { name: "Profile", href: "/profile", icon: Settings },
 ];
@@ -118,6 +118,10 @@ export function Sidebar() {
       // Show Optimization only if user has corporate subscription
       if (item.requiresCorporate) {
         return userProfile?.subscriptionTier === "corporate";
+      }
+      // Show Assets and Leases only if user has personal or corporate subscription
+      if (item.requiresPersonalOrCorporate) {
+        return userProfile?.subscriptionTier === "personal" || userProfile?.subscriptionTier === "corporate";
       }
       // Show GST/HST only if user has GST number
       if (item.requiresGst) {

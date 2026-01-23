@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Upload } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
+import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
+import { DialogTrigger } from "@/components/ui/dialog";
 
 interface ReceiptRecord {
   id: string;
@@ -19,37 +21,12 @@ interface ReceiptRecord {
 
 interface ReceiptsGridProps {
   initialData: ReceiptRecord[];
+  onReceiptsUpdated?: () => void;
 }
 
-export function ReceiptsGrid({ initialData }: ReceiptsGridProps) {
+export function ReceiptsGrid({ initialData, onReceiptsUpdated }: ReceiptsGridProps) {
   const [receipts, setReceipts] = useState(initialData);
-  const [uploading, setUploading] = useState(false);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/api/receipts/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const newReceipt = await response.json();
-        setReceipts([newReceipt, ...receipts]);
-      }
-    } catch (error) {
-      console.error("Error uploading receipt:", error);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this receipt?")) {
@@ -63,53 +40,57 @@ export function ReceiptsGrid({ initialData }: ReceiptsGridProps) {
 
       if (response.ok) {
         setReceipts(receipts.filter((r) => r.id !== id));
+        if (onReceiptsUpdated) {
+          onReceiptsUpdated();
+        }
       }
     } catch (error) {
       console.error("Error deleting receipt:", error);
     }
   };
 
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open && onReceiptsUpdated) {
+      // Refresh receipts when dialog closes
+      fetch("/api/receipts", { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => setReceipts(data))
+        .catch(console.error);
+    }
+  };
+
   if (receipts.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-20 text-center">
-          <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground mb-4">No receipts uploaded yet.</p>
-          <label htmlFor="receipt-upload">
-            <Button asChild>
-              <span>Upload Your First Receipt</span>
-            </Button>
-          </label>
-          <input
-            id="receipt-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleUpload}
-            className="hidden"
-          />
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="py-20 text-center">
+            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-4">No receipts uploaded yet.</p>
+            <DialogTrigger asChild>
+              <Button onClick={() => setDialogOpen(true)}>
+                Upload Your First Receipt
+              </Button>
+            </DialogTrigger>
+          </CardContent>
+        </Card>
+        <ExpenseEntryDialog
+          open={dialogOpen}
+          onOpenChange={handleDialogClose}
+        />
+      </>
     );
   }
 
   return (
-    <div>
+    <>
       <div className="mb-4">
-        <label htmlFor="receipt-upload">
-          <Button disabled={uploading} asChild>
-            <span>
-              <Upload className="mr-2 h-4 w-4" />
-              {uploading ? "Uploading..." : "Upload Receipt"}
-            </span>
+        <DialogTrigger asChild>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Receipt
           </Button>
-        </label>
-        <input
-          id="receipt-upload"
-          type="file"
-          accept="image/*"
-          onChange={handleUpload}
-          className="hidden"
-        />
+        </DialogTrigger>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {receipts.map((receipt) => (
@@ -149,6 +130,10 @@ export function ReceiptsGrid({ initialData }: ReceiptsGridProps) {
           </Card>
         ))}
       </div>
-    </div>
+      <ExpenseEntryDialog
+        open={dialogOpen}
+        onOpenChange={handleDialogClose}
+      />
+    </>
   );
 }

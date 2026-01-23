@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Upload } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
+import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
+import { DialogTrigger } from "@/components/ui/dialog";
 
 interface PaystubRecord {
   id: string;
@@ -18,37 +20,12 @@ interface PaystubRecord {
 
 interface PaystubsGridProps {
   initialData: PaystubRecord[];
+  onPaystubsUpdated?: () => void;
 }
 
-export function PaystubsGrid({ initialData }: PaystubsGridProps) {
+export function PaystubsGrid({ initialData, onPaystubsUpdated }: PaystubsGridProps) {
   const [paystubs, setPaystubs] = useState(initialData);
-  const [uploading, setUploading] = useState(false);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/api/paystubs/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const newPaystub = await response.json();
-        setPaystubs([newPaystub, ...paystubs]);
-      }
-    } catch (error) {
-      console.error("Error uploading paystub:", error);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this paystub?")) {
@@ -62,53 +39,57 @@ export function PaystubsGrid({ initialData }: PaystubsGridProps) {
 
       if (response.ok) {
         setPaystubs(paystubs.filter((p) => p.id !== id));
+        if (onPaystubsUpdated) {
+          onPaystubsUpdated();
+        }
       }
     } catch (error) {
       console.error("Error deleting paystub:", error);
     }
   };
 
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open && onPaystubsUpdated) {
+      // Refresh paystubs when dialog closes
+      fetch("/api/paystubs", { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => setPaystubs(data))
+        .catch(console.error);
+    }
+  };
+
   if (paystubs.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-20 text-center">
-          <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground mb-4">No paystubs uploaded yet.</p>
-          <label htmlFor="paystub-upload">
-            <Button asChild>
-              <span>Upload Your First Paystub</span>
-            </Button>
-          </label>
-          <input
-            id="paystub-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleUpload}
-            className="hidden"
-          />
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="py-20 text-center">
+            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-4">No paystubs uploaded yet.</p>
+            <DialogTrigger asChild>
+              <Button onClick={() => setDialogOpen(true)}>
+                Upload Your First Paystub
+              </Button>
+            </DialogTrigger>
+          </CardContent>
+        </Card>
+        <IncomeEntryDialog
+          open={dialogOpen}
+          onOpenChange={handleDialogClose}
+        />
+      </>
     );
   }
 
   return (
-    <div>
+    <>
       <div className="mb-4">
-        <label htmlFor="paystub-upload">
-          <Button disabled={uploading} asChild>
-            <span>
-              <Upload className="mr-2 h-4 w-4" />
-              {uploading ? "Uploading..." : "Upload Paystub"}
-            </span>
+        <DialogTrigger asChild>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Paystub
           </Button>
-        </label>
-        <input
-          id="paystub-upload"
-          type="file"
-          accept="image/*"
-          onChange={handleUpload}
-          className="hidden"
-        />
+        </DialogTrigger>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {paystubs.map((paystub) => (
@@ -148,6 +129,10 @@ export function PaystubsGrid({ initialData }: PaystubsGridProps) {
           </Card>
         ))}
       </div>
-    </div>
+      <IncomeEntryDialog
+        open={dialogOpen}
+        onOpenChange={handleDialogClose}
+      />
+    </>
   );
 }

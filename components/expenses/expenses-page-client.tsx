@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
-import { ReceiptsGrid } from "@/components/receipts/receipts-grid";
+import { ReceiptsPreview } from "@/components/receipts/receipts-preview";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ExpensesPageClientProps {
   expenseRecords: any[];
@@ -19,6 +18,15 @@ export function ExpensesPageClient({
 }: ExpensesPageClientProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [receipts, setReceipts] = useState(receiptRecords);
+
+  const refreshReceipts = async () => {
+    const response = await fetch("/api/receipts", { cache: "no-store" });
+    if (response.ok) {
+      const data = await response.json();
+      setReceipts(data);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -29,6 +37,7 @@ export function ExpensesPageClient({
           Add Expense
         </Button>
       </div>
+      <ReceiptsPreview initialData={receipts} onDelete={refreshReceipts} />
       <ExpenseList
         initialData={expenseRecords}
         onEdit={(expense) => {
@@ -36,14 +45,6 @@ export function ExpensesPageClient({
           setDialogOpen(true);
         }}
       />
-      <Card>
-        <CardHeader>
-          <CardTitle>Receipt Gallery</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ReceiptsGrid initialData={receiptRecords} />
-        </CardContent>
-      </Card>
       <ExpenseEntryDialog
         open={dialogOpen}
         onOpenChange={(open) => {
