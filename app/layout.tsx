@@ -3,14 +3,14 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "CallSheets - Financial Management for Film & TV Professionals",
   description: "Comprehensive financial management tool for Canadian film and TV industry professionals",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({

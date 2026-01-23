@@ -10,8 +10,9 @@ export function canAccessFeature(
     case "vehicles":
     case "tax_calculator":
     case "assets_cca":
-    case "optimization":
       return tier === "personal" || tier === "corporate";
+    case "optimization":
+      return tier === "corporate";
     default:
       return false;
   }

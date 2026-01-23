@@ -7,19 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ALL_EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface ExpenseFormProps {
   initialData?: Partial<ExpenseFormData> & { id?: string };
+  onSuccess?: () => void;
+  ocrData?: any;
 }
 
-export function ExpenseForm({ initialData }: ExpenseFormProps) {
+export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Merge OCR data with initial data
+  const mergedData = ocrData ? { ...initialData, ...ocrData } : initialData;
 
   const {
     register,
@@ -28,7 +32,7 @@ export function ExpenseForm({ initialData }: ExpenseFormProps) {
     formState: { errors },
   } = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: initialData,
+    defaultValues: mergedData,
   });
 
   const expenseType = watch("expenseType");
@@ -56,8 +60,12 @@ export function ExpenseForm({ initialData }: ExpenseFormProps) {
         throw new Error(errorData.error || "Failed to save expense");
       }
 
-      router.push("/expenses");
-      router.refresh();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/expenses");
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       setLoading(false);
@@ -65,14 +73,7 @@ export function ExpenseForm({ initialData }: ExpenseFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {initialData?.id ? "Edit Expense" : "Add Expense"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {error && (
             <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
               {error}
@@ -204,16 +205,16 @@ export function ExpenseForm({ initialData }: ExpenseFormProps) {
             <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : initialData?.id ? "Update" : "Create"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
-              Cancel
-            </Button>
+            {onSuccess && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onSuccess}
+              >
+                Cancel
+              </Button>
+            )}
           </div>
         </form>
-      </CardContent>
-    </Card>
   );
 }

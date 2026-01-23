@@ -7,19 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { INCOME_TYPES } from "@/lib/validations/expense-categories";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface IncomeFormProps {
   initialData?: Partial<IncomeFormData> & { id?: string };
+  onSuccess?: () => void;
+  ocrData?: any;
 }
 
-export function IncomeForm({ initialData }: IncomeFormProps) {
+export function IncomeForm({ initialData, onSuccess, ocrData }: IncomeFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Merge OCR data with initial data
+  const mergedData = ocrData ? { ...initialData, ...ocrData } : initialData;
 
   const {
     register,
@@ -27,7 +31,7 @@ export function IncomeForm({ initialData }: IncomeFormProps) {
     formState: { errors },
   } = useForm<IncomeFormData>({
     resolver: zodResolver(incomeSchema),
-    defaultValues: initialData,
+    defaultValues: mergedData,
   });
 
   const onSubmit = async (data: IncomeFormData) => {
@@ -53,8 +57,12 @@ export function IncomeForm({ initialData }: IncomeFormProps) {
         throw new Error(errorData.error || "Failed to save income");
       }
 
-      router.push("/income");
-      router.refresh();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/income");
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       setLoading(false);
@@ -62,14 +70,7 @@ export function IncomeForm({ initialData }: IncomeFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {initialData?.id ? "Edit Income" : "Add Income"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {error && (
             <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
               {error}
@@ -168,16 +169,16 @@ export function IncomeForm({ initialData }: IncomeFormProps) {
             <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : initialData?.id ? "Update" : "Create"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
-              Cancel
-            </Button>
+            {onSuccess && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onSuccess}
+              >
+                Cancel
+              </Button>
+            )}
           </div>
         </form>
-      </CardContent>
-    </Card>
   );
 }

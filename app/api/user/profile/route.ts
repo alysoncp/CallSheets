@@ -50,7 +50,13 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const validatedData = userProfileSchema.parse(body);
+
+    // Transform null values to undefined for optional fields
+    const cleanedBody = Object.fromEntries(
+      Object.entries(body).map(([key, value]) => [key, value === null ? undefined : value])
+    );
+
+    const validatedData = userProfileSchema.parse(cleanedBody);
 
     const [updated] = await db
       .update(users)
@@ -68,7 +74,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Error in PATCH /api/user/profile:", error);
-    if (error instanceof Error && error.name === "ZodError") {
+
+    // Check for Zod validation errors
+    if (error && typeof error === 'object' && 'issues' in error) {
       return NextResponse.json(
         { error: "Validation error", details: error },
         { status: 400 }

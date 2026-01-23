@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { Pencil, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
 
 interface ExpenseRecord {
   id: string;
@@ -20,11 +20,14 @@ interface ExpenseRecord {
 
 interface ExpenseListProps {
   initialData: ExpenseRecord[];
+  onEdit?: (expense: ExpenseRecord) => void;
 }
 
-export function ExpenseList({ initialData }: ExpenseListProps) {
+export function ExpenseList({ initialData, onEdit }: ExpenseListProps) {
   const [expenseRecords, setExpenseRecords] = useState(initialData);
   const [loading, setLoading] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this expense record?")) {
@@ -47,16 +50,33 @@ export function ExpenseList({ initialData }: ExpenseListProps) {
     }
   };
 
+  const handleEdit = (expense: ExpenseRecord) => {
+    setEditingExpense(expense);
+    setDialogOpen(true);
+    if (onEdit) {
+      onEdit(expense);
+    }
+  };
+
   if (expenseRecords.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-10 text-center">
-          <p className="text-muted-foreground">No expense records yet.</p>
-          <Button asChild className="mt-4">
-            <Link href="/expenses/new">Add Your First Expense</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="py-10 text-center">
+            <p className="text-muted-foreground">No expense records yet.</p>
+          </CardContent>
+        </Card>
+        <ExpenseEntryDialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setEditingExpense(null);
+            }
+          }}
+          initialData={editingExpense || undefined}
+        />
+      </>
     );
   }
 
@@ -93,10 +113,12 @@ export function ExpenseList({ initialData }: ExpenseListProps) {
                   })}
                 </span>
                 <div className="flex gap-2">
-                  <Button asChild variant="ghost" size="icon">
-                    <Link href={`/expenses/${record.id}/edit`}>
-                      <Pencil className="h-4 w-4" />
-                    </Link>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(record)}
+                  >
+                    <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -112,6 +134,16 @@ export function ExpenseList({ initialData }: ExpenseListProps) {
           ))}
         </div>
       </CardContent>
+      <ExpenseEntryDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setEditingExpense(null);
+          }
+        }}
+        initialData={editingExpense || undefined}
+      />
     </Card>
   );
 }

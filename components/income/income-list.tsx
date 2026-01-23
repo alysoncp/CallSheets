@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { Pencil, Trash2 } from "lucide-react";
-import Link from "next/link";
 import { INCOME_TYPES } from "@/lib/validations/expense-categories";
+import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 
 interface IncomeRecord {
   id: string;
@@ -20,11 +20,14 @@ interface IncomeRecord {
 
 interface IncomeListProps {
   initialData: IncomeRecord[];
+  onEdit?: (income: IncomeRecord) => void;
 }
 
-export function IncomeList({ initialData }: IncomeListProps) {
+export function IncomeList({ initialData, onEdit }: IncomeListProps) {
   const [incomeRecords, setIncomeRecords] = useState(initialData);
   const [loading, setLoading] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<IncomeRecord | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this income record?")) {
@@ -47,16 +50,33 @@ export function IncomeList({ initialData }: IncomeListProps) {
     }
   };
 
+  const handleEdit = (income: IncomeRecord) => {
+    setEditingIncome(income);
+    setDialogOpen(true);
+    if (onEdit) {
+      onEdit(income);
+    }
+  };
+
   if (incomeRecords.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-10 text-center">
-          <p className="text-muted-foreground">No income records yet.</p>
-          <Button asChild className="mt-4">
-            <Link href="/income/new">Add Your First Income Record</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="py-10 text-center">
+            <p className="text-muted-foreground">No income records yet.</p>
+          </CardContent>
+        </Card>
+        <IncomeEntryDialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setEditingIncome(null);
+            }
+          }}
+          initialData={editingIncome || undefined}
+        />
+      </>
     );
   }
 
@@ -97,10 +117,12 @@ export function IncomeList({ initialData }: IncomeListProps) {
                   })}
                 </span>
                 <div className="flex gap-2">
-                  <Button asChild variant="ghost" size="icon">
-                    <Link href={`/income/${record.id}/edit`}>
-                      <Pencil className="h-4 w-4" />
-                    </Link>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(record)}
+                  >
+                    <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -116,6 +138,16 @@ export function IncomeList({ initialData }: IncomeListProps) {
           ))}
         </div>
       </CardContent>
+      <IncomeEntryDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setEditingIncome(null);
+          }
+        }}
+        initialData={editingIncome || undefined}
+      />
     </Card>
   );
 }
