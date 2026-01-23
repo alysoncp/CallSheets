@@ -15,6 +15,8 @@ import {
   Settings,
   CreditCard,
   User,
+  HelpCircle,
+  Info,
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
@@ -31,6 +33,8 @@ const allNavigation = [
   { name: "Leases", href: "/leases", icon: CreditCard, requiresPersonalOrCorporate: true },
   { name: "Optimization", href: "/optimization", icon: PieChart, requiresCorporate: true },
   { name: "Profile", href: "/profile", icon: Settings },
+  { name: "Help", href: "/help", icon: HelpCircle },
+  { name: "About", href: "/about", icon: Info },
 ];
 
 export function Sidebar() {
@@ -157,6 +161,13 @@ export function Sidebar() {
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
+              onClick={() => {
+                // #region agent log
+                if (item.href === '/help') {
+                  fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'components/layout/sidebar.tsx:151',message:'Help link clicked',data:{href:item.href,pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                }
+                // #endregion
+              }}
             >
               <item.icon className="h-5 w-5" />
               {item.name}

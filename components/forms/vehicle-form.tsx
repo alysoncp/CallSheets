@@ -24,17 +24,36 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<VehicleFormData>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: initialData,
   });
 
+  const claimsCca = watch("claimsCca");
+
+  // Clear conditional fields when claimsCca is unchecked
+  const handleClaimsCcaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.checked) {
+      setValue("purchasePrice", undefined);
+      setValue("ccaClass", undefined);
+    }
+  };
+
   const onSubmit = async (data: VehicleFormData) => {
     setLoading(true);
     setError(null);
 
     try {
+      // Clear conditional fields if claimsCca is false
+      const submitData = { ...data };
+      if (!submitData.claimsCca) {
+        submitData.purchasePrice = undefined;
+        submitData.ccaClass = undefined;
+      }
+
       const url = initialData?.id
         ? `/api/vehicles/${initialData.id}`
         : "/api/vehicles";
@@ -45,7 +64,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
@@ -114,24 +133,6 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="licensePlate">License Plate</Label>
-              <Input
-                id="licensePlate"
-                {...register("licensePlate")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="purchasePrice">Purchase Price</Label>
-              <Input
-                id="purchasePrice"
-                type="number"
-                step="0.01"
-                {...register("purchasePrice")}
-              />
-            </div>
-
             <div className="space-y-2 flex items-center">
               <input
                 id="isPrimary"
@@ -158,23 +159,39 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
               <input
                 id="claimsCca"
                 type="checkbox"
-                {...register("claimsCca")}
+                {...register("claimsCca", {
+                  onChange: handleClaimsCcaChange,
+                })}
                 className="mr-2"
               />
               <Label htmlFor="claimsCca">Claims CCA</Label>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ccaClass">CCA Class</Label>
-              <Select id="ccaClass" {...register("ccaClass")}>
-                <option value="">Select CCA class</option>
-                {CCA_CLASSES.map((cls) => (
-                  <option key={cls} value={cls}>
-                    Class {cls}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            {claimsCca && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="purchasePrice">Purchase price or CCA balance</Label>
+                  <Input
+                    id="purchasePrice"
+                    type="number"
+                    step="0.01"
+                    {...register("purchasePrice")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ccaClass">CCA Class</Label>
+                  <Select id="ccaClass" {...register("ccaClass")}>
+                    <option value="">Select CCA class</option>
+                    {CCA_CLASSES.map((cls) => (
+                      <option key={cls} value={cls}>
+                        Class {cls}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex gap-4">

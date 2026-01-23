@@ -84,7 +84,6 @@ export function VehiclesList({ initialData }: VehiclesListProps) {
                   {vehicle.make && vehicle.model
                     ? `${vehicle.make} ${vehicle.model}`
                     : vehicle.make || vehicle.model}
-                  {vehicle.licensePlate && ` • ${vehicle.licensePlate}`}
                 </p>
               </div>
               <div className="flex gap-2">
