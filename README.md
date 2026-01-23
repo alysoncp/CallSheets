@@ -31,58 +31,64 @@ A comprehensive financial management web application built specifically for Cana
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Supabase account and project
+- Docker Desktop (for local Supabase)
+- Supabase CLI (`npm install -g supabase` or use `npx supabase`)
 - Veryfi API credentials (optional, for OCR)
 
-### Installation
+### Local Development Setup
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd CallSheets
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Set up environment variables:
+3. **Start Supabase locally:**
 ```bash
-cp .env.local.example .env.local
+npm run supabase:start
 ```
 
-4. Fill in your environment variables in `.env.local`:
+This will start all Supabase services locally (PostgreSQL, Auth, Storage, API, etc.)
+
+4. **Set up environment variables:**
+The `.env.local` file is already configured with local Supabase credentials. After running `supabase start`, you'll see the connection details. Update `.env.local` if needed:
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-DATABASE_URL=your_database_connection_string
-VERYFI_CLIENT_ID=your_veryfi_client_id
-VERYFI_CLIENT_SECRET=your_veryfi_client_secret
-VERYFI_USERNAME=your_veryfi_username
-VERYFI_API_KEY=your_veryfi_api_key
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<from supabase start output>
+SUPABASE_SERVICE_ROLE_KEY=<from supabase start output>
 ```
 
-5. Set up the database:
+5. **Set up the database schema:**
 ```bash
-# Generate migrations
-npm run db:generate
-
-# Apply migrations (or push schema)
 npm run db:push
 ```
 
-6. Set up Supabase Storage buckets:
+6. **Set up Supabase Storage buckets:**
+   - Open Supabase Studio: http://127.0.0.1:54323
    - Create buckets: `receipts`, `paystubs`, `odometer-photos`
    - Configure RLS policies for each bucket
 
-7. Run the development server:
+7. **Run the development server:**
 ```bash
 npm run dev
 ```
 
-8. Open [http://localhost:3000](http://localhost:3000) in your browser.
+8. **Open [http://localhost:3000](http://localhost:3000) in your browser.**
+
+### Supabase CLI Commands
+
+- `npm run supabase:start` - Start local Supabase
+- `npm run supabase:stop` - Stop local Supabase
+- `npm run supabase:status` - Check Supabase status
+- `npm run supabase:reset` - Reset database (clears all data)
+
+Access Supabase Studio at http://127.0.0.1:54323 to manage your local database.
 
 ## Database Setup
 
@@ -163,6 +169,10 @@ CallSheets/
 - `npm run db:push` - Push schema to database
 - `npm run db:migrate` - Run migrations
 - `npm run db:studio` - Open Drizzle Studio
+- `npm run supabase:start` - Start local Supabase
+- `npm run supabase:stop` - Stop local Supabase
+- `npm run supabase:status` - Check Supabase status
+- `npm run supabase:reset` - Reset database
 
 ## Deployment
 

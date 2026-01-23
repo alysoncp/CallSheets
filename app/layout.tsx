@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "CallSheets - Financial Management for Film & TV Professionals",
   description: "Comprehensive financial management tool for Canadian film and TV industry professionals",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
