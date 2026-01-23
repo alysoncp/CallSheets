@@ -1,15 +1,7 @@
-"use client";
-
-import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpCircle, BookOpen, MessageCircle, FileText } from "lucide-react";
 
 export default function HelpPage() {
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(dashboard)/help/page.tsx:9',message:'Dashboard help page rendering',data:{page:'dashboard-help',pathname:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  }, []);
-  // #endregion
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

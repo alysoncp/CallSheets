@@ -91,3 +91,20 @@ export const CCA_RATES: Record<CcaClass, number> = {
   "50": 55,
   "45": 45,
 };
+
+export function getCategoriesByExpenseType(expenseType: string): readonly string[] {
+  switch (expenseType) {
+    case "home_office_living":
+      return EXPENSE_CATEGORIES.HOME_OFFICE_LIVING;
+    case "vehicle":
+      return EXPENSE_CATEGORIES.VEHICLE;
+    case "self_employment":
+      return EXPENSE_CATEGORIES.SELF_EMPLOYMENT;
+    case "personal":
+      return [...EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL, ...EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL];
+    case "mixed":
+      return ALL_EXPENSE_CATEGORIES;
+    default:
+      return ALL_EXPENSE_CATEGORIES;
+  }
+}

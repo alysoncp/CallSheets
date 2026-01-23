@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { ALL_EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
+import { getCategoriesByExpenseType, ALL_EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ExpenseFormProps {
   initialData?: Partial<ExpenseFormData> & { id?: string };
@@ -21,6 +21,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [enabledCategories, setEnabledCategories] = useState<string[] | null>(null);
 
   // Merge OCR data with initial data
   const mergedData = ocrData ? { ...initialData, ...ocrData } : initialData;
@@ -29,6 +30,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -36,6 +38,47 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
   });
 
   const expenseType = watch("expenseType");
+
+  // Fetch user profile to get enabled categories
+  useEffect(() => {
+    fetch("/api/user/profile")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && !data.error && data.enabledExpenseCategories) {
+          setEnabledCategories(data.enabledExpenseCategories);
+        }
+      })
+      .catch(() => {
+        // Silently fail - will show all categories
+      });
+  }, []);
+
+  // Clear category when expense type changes
+  useEffect(() => {
+    if (expenseType) {
+      setValue("category", "");
+    }
+  }, [expenseType, setValue]);
+
+  // Get available categories based on expense type and enabled categories
+  const getAvailableCategories = () => {
+    let categories: readonly string[] = [];
+    
+    if (expenseType) {
+      categories = getCategoriesByExpenseType(expenseType);
+    } else {
+      categories = ALL_EXPENSE_CATEGORIES;
+    }
+
+    // Filter by enabled categories if available
+    if (enabledCategories && enabledCategories.length > 0) {
+      return categories.filter((cat) => enabledCategories.includes(cat));
+    }
+
+    return categories;
+  };
+
+  const availableCategories = getAvailableCategories();
 
   const onSubmit = async (data: ExpenseFormData) => {
     setLoading(true);
@@ -121,21 +164,6 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
-              <Select id="category" {...register("category")} required>
-                <option value="">Select category</option>
-                {ALL_EXPENSE_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </option>
-                ))}
-              </Select>
-              {errors.category && (
-                <p className="text-sm text-destructive">{errors.category.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="expenseType">Expense Type *</Label>
               <Select id="expenseType" {...register("expenseType")} required>
                 <option value="">Select type</option>
@@ -147,6 +175,26 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               </Select>
               {errors.expenseType && (
                 <p className="text-sm text-destructive">{errors.expenseType.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select 
+                id="category" 
+                {...register("category")} 
+                required
+                disabled={!expenseType}
+              >
+                <option value="">{expenseType ? "Select category" : "Select expense type first"}</option>
+                {availableCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                  </option>
+                ))}
+              </Select>
+              {errors.category && (
+                <p className="text-sm text-destructive">{errors.category.message}</p>
               )}
             </div>
 

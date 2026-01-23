@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import Link from "next/link";
+import { db } from "@/lib/db";
+import { vehicleMileageLogs, vehicles } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { VehicleMileagePageClient } from "@/components/mileage/vehicle-mileage-page-client";
 
 export default async function VehicleMileagePage() {
   const supabase = await createClient();
@@ -15,22 +15,22 @@ export default async function VehicleMileagePage() {
     redirect("/signin");
   }
 
+  const mileageLogs = await db
+    .select()
+    .from(vehicleMileageLogs)
+    .where(eq(vehicleMileageLogs.userId, user.id))
+    .orderBy(desc(vehicleMileageLogs.date));
+
+  const vehicleRecords = await db
+    .select()
+    .from(vehicles)
+    .where(eq(vehicles.userId, user.id))
+    .orderBy(desc(vehicles.createdAt));
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Vehicle Mileage</h1>
-        <Button asChild>
-          <Link href="/vehicle-mileage/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Log Mileage
-          </Link>
-        </Button>
-      </div>
-      <Card>
-        <CardContent className="py-10 text-center">
-          <p className="text-muted-foreground">Mileage tracking coming soon.</p>
-        </CardContent>
-      </Card>
-    </div>
+    <VehicleMileagePageClient
+      initialLogs={mileageLogs}
+      vehicles={vehicleRecords}
+    />
   );
 }

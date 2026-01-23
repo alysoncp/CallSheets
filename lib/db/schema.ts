@@ -113,6 +113,7 @@ export const vehicleMileageLogs = pgTable("vehicle_mileage_logs", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   date: date("date").notNull(),
   odometerReading: integer("odometer_reading"),
+  tripDistance: integer("trip_distance"),
   description: text("description"),
   isBusinessUse: boolean("is_business_use").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
