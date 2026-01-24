@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Eye } from "lucide-react";
 import { INCOME_TYPES } from "@/lib/validations/expense-categories";
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
+import { ImageViewDialog } from "@/components/ui/image-view-dialog";
 
 interface IncomeRecord {
   id: string;
@@ -16,18 +17,28 @@ interface IncomeRecord {
   description?: string | null;
   productionName?: string | null;
   employerName?: string | null;
+  paystubImageUrl?: string | null;
+}
+
+interface PaystubRecord {
+  id: string;
+  imageUrl: string;
+  linkedIncomeId?: string | null;
 }
 
 interface IncomeListProps {
   initialData: IncomeRecord[];
+  paystubRecords?: PaystubRecord[];
   onEdit?: (income: IncomeRecord) => void;
 }
 
-export function IncomeList({ initialData, onEdit }: IncomeListProps) {
+export function IncomeList({ initialData, paystubRecords = [], onEdit }: IncomeListProps) {
   const [incomeRecords, setIncomeRecords] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [editingIncome, setEditingIncome] = useState<IncomeRecord | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this income record?")) {
@@ -61,6 +72,26 @@ export function IncomeList({ initialData, onEdit }: IncomeListProps) {
   const handleAddClick = () => {
     setEditingIncome(null);
     setDialogOpen(true);
+  };
+
+  const getPaystubImageUrl = (income: IncomeRecord): string | null => {
+    // Check if income has direct paystubImageUrl
+    if (income.paystubImageUrl) {
+      return income.paystubImageUrl;
+    }
+    // Check if any paystub is linked to this income
+    const linkedPaystub = paystubRecords.find(
+      (paystub) => paystub.linkedIncomeId === income.id
+    );
+    return linkedPaystub?.imageUrl || null;
+  };
+
+  const handleViewPaystub = (income: IncomeRecord) => {
+    const imageUrl = getPaystubImageUrl(income);
+    if (imageUrl) {
+      setViewingImageUrl(imageUrl);
+      setImageDialogOpen(true);
+    }
   };
 
   return (
@@ -109,6 +140,16 @@ export function IncomeList({ initialData, onEdit }: IncomeListProps) {
                       })}
                     </span>
                     <div className="flex gap-2">
+                      {getPaystubImageUrl(record) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewPaystub(record)}
+                          title="View Paystub"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -142,6 +183,14 @@ export function IncomeList({ initialData, onEdit }: IncomeListProps) {
         }}
         initialData={editingIncome || undefined}
       />
+      {viewingImageUrl && (
+        <ImageViewDialog
+          open={imageDialogOpen}
+          onOpenChange={setImageDialogOpen}
+          imageUrl={viewingImageUrl}
+          title="View Paystub"
+        />
+      )}
     </>
   );
 }

@@ -1,3 +1,1 @@
-{"location":"components/layout/sidebar.tsx:151","message":"Help link clicked","data":{"href":"/help","pathname":"/vehicles/new"},"timestamp":1769207982832,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
-{"location":"app/(dashboard)/help/page.tsx:9","message":"Dashboard help page rendering","data":{"page":"dashboard-help","pathname":"/help"},"timestamp":1769207984004,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
-{"location":"app/(dashboard)/help/page.tsx:9","message":"Dashboard help page rendering","data":{"page":"dashboard-help","pathname":"/help"},"timestamp":1769207984011,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"components/mileage/vehicle-mileage-page-client.tsx:25","message":"VehicleMileagePageClient mounted","data":{"initialLogsCount":0,"vehiclesCount":1},"timestamp":1769213022319,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { MileageLogEntryDialog } from "@/components/mileage/mileage-log-entry-dialog";
 import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -33,6 +33,8 @@ export function VehicleMileagePageClient({
   const router = useRouter();
   const [logs, setLogs] = useState(initialLogs);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState<MileageLogRecord | null>(null);
+  const [loading, setLoading] = useState(false);
   const [mileageLoggingStyle, setMileageLoggingStyle] = useState<"odometer" | "trip_distance">("trip_distance");
 
   // Fetch user profile for mileage logging style
@@ -64,6 +66,36 @@ export function VehicleMileagePageClient({
 
   const handleSuccess = () => {
     refreshLogs();
+    setEditingLog(null);
+  };
+
+  const handleEdit = (log: MileageLogRecord) => {
+    setEditingLog(log);
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this mileage log?")) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/mileage-logs/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setLogs(logs.filter((log) => log.id !== id));
+        router.refresh();
+      } else {
+        console.error("Failed to delete mileage log");
+      }
+    } catch (error) {
+      console.error("Error deleting mileage log:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -137,6 +169,23 @@ export function VehicleMileagePageClient({
                           </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(log)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(log.id)}
+                          disabled={loading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
@@ -148,8 +197,14 @@ export function VehicleMileagePageClient({
 
       <MileageLogEntryDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setEditingLog(null);
+          }
+        }}
         onSuccess={handleSuccess}
+        initialData={editingLog || undefined}
       />
     </div>
   );

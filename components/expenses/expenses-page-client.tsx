@@ -40,6 +40,7 @@ export function ExpensesPageClient({
       <ReceiptsPreview initialData={receipts} onDelete={refreshReceipts} />
       <ExpenseList
         initialData={expenseRecords}
+        receiptRecords={receipts}
         onEdit={(expense) => {
           setEditingExpense(expense);
           setDialogOpen(true);

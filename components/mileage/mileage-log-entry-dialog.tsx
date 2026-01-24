@@ -19,6 +19,7 @@ interface MileageLogEntryDialogProps {
 export function MileageLogEntryDialog({
   open,
   onOpenChange,
+  onSuccess,
   initialData,
 }: MileageLogEntryDialogProps) {
   const handleSuccess = () => {

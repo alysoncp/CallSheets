@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Eye } from "lucide-react";
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
+import { ImageViewDialog } from "@/components/ui/image-view-dialog";
 
 interface ExpenseRecord {
   id: string;
@@ -16,18 +17,28 @@ interface ExpenseRecord {
   expenseType: string;
   description?: string | null;
   vendor?: string | null;
+  receiptImageUrl?: string | null;
+}
+
+interface ReceiptRecord {
+  id: string;
+  imageUrl: string;
+  linkedExpenseId?: string | null;
 }
 
 interface ExpenseListProps {
   initialData: ExpenseRecord[];
+  receiptRecords?: ReceiptRecord[];
   onEdit?: (expense: ExpenseRecord) => void;
 }
 
-export function ExpenseList({ initialData, onEdit }: ExpenseListProps) {
+export function ExpenseList({ initialData, receiptRecords = [], onEdit }: ExpenseListProps) {
   const [expenseRecords, setExpenseRecords] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this expense record?")) {
@@ -61,6 +72,26 @@ export function ExpenseList({ initialData, onEdit }: ExpenseListProps) {
   const handleAddClick = () => {
     setEditingExpense(null);
     setDialogOpen(true);
+  };
+
+  const getReceiptImageUrl = (expense: ExpenseRecord): string | null => {
+    // Check if expense has direct receiptImageUrl
+    if (expense.receiptImageUrl) {
+      return expense.receiptImageUrl;
+    }
+    // Check if any receipt is linked to this expense
+    const linkedReceipt = receiptRecords.find(
+      (receipt) => receipt.linkedExpenseId === expense.id
+    );
+    return linkedReceipt?.imageUrl || null;
+  };
+
+  const handleViewReceipt = (expense: ExpenseRecord) => {
+    const imageUrl = getReceiptImageUrl(expense);
+    if (imageUrl) {
+      setViewingImageUrl(imageUrl);
+      setImageDialogOpen(true);
+    }
   };
 
   return (
@@ -138,6 +169,14 @@ export function ExpenseList({ initialData, onEdit }: ExpenseListProps) {
         }}
         initialData={editingExpense || undefined}
       />
+      {viewingImageUrl && (
+        <ImageViewDialog
+          open={imageDialogOpen}
+          onOpenChange={setImageDialogOpen}
+          imageUrl={viewingImageUrl}
+          title="View Receipt"
+        />
+      )}
     </>
   );
 }

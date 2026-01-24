@@ -90,8 +90,12 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
         submitData.odometerReading = undefined;
       }
 
-      const response = await fetch("/api/mileage-logs", {
-        method: "POST",
+      const isEditing = !!initialData?.id;
+      const url = isEditing ? `/api/mileage-logs/${initialData.id}` : "/api/mileage-logs";
+      const method = isEditing ? "PATCH" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -100,7 +104,7 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save mileage log");
+        throw new Error(errorData.error || `Failed to ${isEditing ? "update" : "save"} mileage log`);
       }
 
       if (onSuccess) {
@@ -209,7 +213,13 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
 
       <div className="flex gap-4">
         <Button type="submit" disabled={loading || vehicles.length === 0}>
-          {loading ? "Saving..." : "Save Mileage Log"}
+          {loading
+            ? initialData?.id
+              ? "Updating..."
+              : "Saving..."
+            : initialData?.id
+              ? "Update Mileage Log"
+              : "Save Mileage Log"}
         </Button>
         {onSuccess && (
           <Button

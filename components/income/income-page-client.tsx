@@ -40,6 +40,7 @@ export function IncomePageClient({
       <PaystubsPreview initialData={paystubs} onDelete={refreshPaystubs} />
       <IncomeList
         initialData={incomeRecords}
+        paystubRecords={paystubs}
         onEdit={(income) => {
           setEditingIncome(income);
           setDialogOpen(true);
