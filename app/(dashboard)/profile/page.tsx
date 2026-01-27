@@ -12,15 +12,7 @@ export default async function ProfilePage({
   searchParams,
 }: {
   searchParams: Promise<{ setup?: string }>;
-}) {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(dashboard)/profile/page.tsx:11',message:'ProfilePage entry - awaiting searchParams',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-  const resolvedSearchParams = await searchParams;
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(dashboard)/profile/page.tsx:13',message:'After resolving searchParams',data:{setup:resolvedSearchParams.setup,isSetupMode:resolvedSearchParams.setup === "true"},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-  const isSetupMode = resolvedSearchParams.setup === "true";
+}) {const resolvedSearchParams = await searchParams;const isSetupMode = resolvedSearchParams.setup === "true";
   
   const supabase = await createClient();
   const {

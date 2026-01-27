@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { expenses } from "@/lib/db/schema";
+import { expenses, receipts } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { expenseSchema } from "@/lib/validations/expense";
 
@@ -57,12 +57,41 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
+    // Link receipt to expense if receiptImageUrl is provided
+    if (validatedData.receiptImageUrl) {
+      try {
+        // Find receipt by imageUrl
+        const receiptRecords = await db
+          .select()
+          .from(receipts)
+          .where(eq(receipts.userId, user.id))
+          .limit(100); // Get recent receipts to find match
+        
+        const matchingReceipt = receiptRecords.find(
+          (r) => r.imageUrl === validatedData.receiptImageUrl
+        );
+
+        if (matchingReceipt && !matchingReceipt.linkedExpenseId) {
+          // Link the receipt to this expense
+          await db
+            .update(receipts)
+            .set({ linkedExpenseId: newExpense.id })
+            .where(eq(receipts.id, matchingReceipt.id));
+        }
+      } catch (linkError) {
+        // Non-critical error, log but don't fail
+        console.error("Error linking receipt to expense:", linkError);
+      }
+    }
+
     return NextResponse.json(newExpense, { status: 201 });
   } catch (error) {
     console.error("Error in POST /api/expenses:", error);
-    if (error instanceof Error && error.name === "ZodError") {
+    
+    // Check if it's a Zod validation error
+    if (error && typeof error === 'object' && 'issues' in error) {
       return NextResponse.json(
-        { error: "Validation error", details: error },
+        { error: "Validation error", details: (error as any).issues },
         { status: 400 }
       );
     }

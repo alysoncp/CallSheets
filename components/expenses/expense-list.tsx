@@ -32,8 +32,7 @@ interface ExpenseListProps {
   onEdit?: (expense: ExpenseRecord) => void;
 }
 
-export function ExpenseList({ initialData, receiptRecords = [], onEdit }: ExpenseListProps) {
-  const [expenseRecords, setExpenseRecords] = useState(initialData);
+export function ExpenseList({ initialData, receiptRecords = [], onEdit }: ExpenseListProps) {const [expenseRecords, setExpenseRecords] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -120,7 +119,14 @@ export function ExpenseList({ initialData, receiptRecords = [], onEdit }: Expens
                       <div>
                         <p className="font-medium">{record.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {format(parseISO(record.date), "MMM dd, yyyy")} •{" "}
+                          {(() => {
+                            try {
+                              const dateValue = typeof record.date === 'string' ? parseISO(record.date) : new Date(record.date);
+                              return format(dateValue, "MMM dd, yyyy");
+                            } catch (e) {
+                              return record.date?.toString() || 'Invalid date';
+                            }
+                          })()} •{" "}
                           {record.category.replace(/_/g, " ")} •{" "}
                           {record.expenseType.replace(/_/g, " ")}
                           {record.vendor && ` • ${record.vendor}`}
@@ -136,6 +142,16 @@ export function ExpenseList({ initialData, receiptRecords = [], onEdit }: Expens
                       })}
                     </span>
                     <div className="flex gap-2">
+                      {getReceiptImageUrl(record) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewReceipt(record)}
+                          title="View Receipt"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"

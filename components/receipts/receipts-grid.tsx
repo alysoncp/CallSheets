@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2, Upload, Receipt } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
@@ -101,6 +101,7 @@ export function ReceiptsGrid({ initialData, onReceiptsUpdated }: ReceiptsGridPro
                 alt="Receipt"
                 fill
                 className="object-cover"
+                unoptimized
               />
             </div>
             <CardContent className="p-4">
@@ -117,15 +118,30 @@ export function ReceiptsGrid({ initialData, onReceiptsUpdated }: ReceiptsGridPro
                   OCR: {receipt.ocrStatus}
                 </p>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(receipt.id)}
-                className="w-full"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
+              <div className="flex gap-2">
+                {receipt.linkedExpenseId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      window.location.href = "/expenses";
+                    }}
+                    className="flex-1"
+                  >
+                    <Receipt className="h-4 w-4 mr-2" />
+                    View Expense
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(receipt.id)}
+                  className={receipt.linkedExpenseId ? "flex-1" : "w-full"}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}

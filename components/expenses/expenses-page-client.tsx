@@ -15,13 +15,9 @@ interface ExpensesPageClientProps {
 export function ExpensesPageClient({
   expenseRecords,
   receiptRecords,
-}: ExpensesPageClientProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
+}: ExpensesPageClientProps) {const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
-  const [receipts, setReceipts] = useState(receiptRecords);
-
-  const refreshReceipts = async () => {
-    const response = await fetch("/api/receipts", { cache: "no-store" });
+  const [receipts, setReceipts] = useState(receiptRecords);const refreshReceipts = async () => {const response = await fetch("/api/receipts", { cache: "no-store" });
     if (response.ok) {
       const data = await response.json();
       setReceipts(data);
@@ -37,7 +33,7 @@ export function ExpensesPageClient({
           Add Expense
         </Button>
       </div>
-      <ReceiptsPreview initialData={receipts} onDelete={refreshReceipts} />
+      <ReceiptsPreview initialData={receipts} onDelete={(id) => { refreshReceipts(); }} />
       <ExpenseList
         initialData={expenseRecords}
         receiptRecords={receipts}

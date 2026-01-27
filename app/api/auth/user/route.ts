@@ -25,13 +25,19 @@ export async function GET(request: NextRequest) {
 
     // Auto-create user if doesn't exist
     if (!existingUser) {
+      // Get subscription tier from user metadata (set during signup)
+      const subscriptionTier = (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
+      
+      // Determine tax filing status based on subscription tier
+      const taxFilingStatus = subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
+      
       const [newUser] = await db
         .insert(users)
         .values({
           id: authUser.id,
           email: authUser.email!,
-          subscriptionTier: "basic",
-          taxFilingStatus: "personal_only",
+          subscriptionTier: subscriptionTier,
+          taxFilingStatus: taxFilingStatus,
           province: "BC",
         })
         .returning();

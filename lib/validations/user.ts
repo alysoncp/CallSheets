@@ -22,6 +22,7 @@ export const userProfileSchema = z
     homeOfficePercentage: z.coerce.number().min(0).max(100).nullish(),
     enabledExpenseCategories: z.array(z.string()).nullish(),
     mileageLoggingStyle: z.enum(["trip_distance", "odometer"]).nullish(),
+    trackPersonalExpenses: z.boolean().nullish(),
   })
   .refine(
     (data) => {

@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { getCategoriesByExpenseType, ALL_EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface ExpenseFormProps {
   initialData?: Partial<ExpenseFormData> & { id?: string };
@@ -22,6 +23,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enabledCategories, setEnabledCategories] = useState<string[] | null>(null);
+  const [userProfile, setUserProfile] = useState<{ homeOfficePercentage?: number | null; trackPersonalExpenses?: boolean } | null>(null);
 
   // Merge OCR data with initial data
   const mergedData = ocrData ? { ...initialData, ...ocrData } : initialData;
@@ -37,15 +39,26 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
     defaultValues: mergedData,
   });
 
+  // Log form errors
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {}
+  }, [errors, mergedData]);
+
   const expenseType = watch("expenseType");
 
-  // Fetch user profile to get enabled categories
+  // Fetch user profile to get enabled categories, home office %, and personal expenses setting
   useEffect(() => {
     fetch("/api/user/profile")
       .then((res) => res.json())
       .then((data) => {
-        if (data && !data.error && data.enabledExpenseCategories) {
-          setEnabledCategories(data.enabledExpenseCategories);
+        if (data && !data.error) {
+          if (data.enabledExpenseCategories) {
+            setEnabledCategories(data.enabledExpenseCategories);
+          }
+          setUserProfile({
+            homeOfficePercentage: data.homeOfficePercentage,
+            trackPersonalExpenses: data.trackPersonalExpenses !== false, // Default to true if not set
+          });
         }
       })
       .catch(() => {
@@ -80,37 +93,28 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
 
   const availableCategories = getAvailableCategories();
 
-  const onSubmit = async (data: ExpenseFormData) => {
-    setLoading(true);
+  const onSubmit = async (data: ExpenseFormData) => {setLoading(true);
     setError(null);
 
     try {
       const url = initialData?.id
         ? `/api/expenses/${initialData.id}`
         : "/api/expenses";
-      const method = initialData?.id ? "PATCH" : "POST";
-
-      const response = await fetch(url, {
+      const method = initialData?.id ? "PATCH" : "POST";const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save expense");
-      }
-
-      if (onSuccess) {
+      });if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));throw new Error(errorData.error || "Failed to save expense");
+      }if (onSuccess) {
         onSuccess();
       } else {
         router.push("/expenses");
         router.refresh();
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+    } catch (err) {setError(err instanceof Error ? err.message : "An error occurred");
       setLoading(false);
     }
   };
@@ -170,7 +174,9 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
                 <option value="home_office_living">Home Office/Living</option>
                 <option value="vehicle">Vehicle</option>
                 <option value="self_employment">Self-Employment</option>
-                <option value="personal">Personal</option>
+                {userProfile?.trackPersonalExpenses !== false && (
+                  <option value="personal">Personal</option>
+                )}
                 <option value="mixed">Mixed</option>
               </Select>
               {errors.expenseType && (
@@ -198,7 +204,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               )}
             </div>
 
-            {(expenseType === "mixed" || expenseType === "home_office_living") && (
+            {expenseType === "mixed" && (
               <div className="space-y-2">
                 <Label htmlFor="businessUsePercentage">Business Use Percentage</Label>
                 <Input
@@ -211,6 +217,27 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
                 />
               </div>
             )}
+            {expenseType === "home_office_living" && userProfile?.homeOfficePercentage != null && (
+              <div className="space-y-2">
+                <Label htmlFor="homeOfficePercentage">Home Office Percentage</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="homeOfficePercentage"
+                    type="number"
+                    value={userProfile.homeOfficePercentage}
+                    disabled
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <Link href="/settings">Change in Settings</Link>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  This percentage is set in your settings. Click the button above to modify it.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor</Label>
@@ -221,22 +248,12 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="gstAmount">GST Amount</Label>
+              <Label htmlFor="gstAmount">GST Amount (if paid)</Label>
               <Input
                 id="gstAmount"
                 type="number"
                 step="0.01"
                 {...register("gstAmount")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="pstAmount">PST Amount</Label>
-              <Input
-                id="pstAmount"
-                type="number"
-                step="0.01"
-                {...register("pstAmount")}
               />
             </div>
 
@@ -250,7 +267,11 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
           </div>
 
           <div className="flex gap-4">
-            <Button type="submit" disabled={loading}>
+            <Button 
+              type="submit" 
+              disabled={loading}
+              onClick={() => {}}
+            >
               {loading ? "Saving..." : initialData?.id ? "Update" : "Create"}
             </Button>
             {onSuccess && (

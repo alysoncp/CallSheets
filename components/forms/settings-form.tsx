@@ -37,6 +37,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       enabledExpenseCategories: initialData?.enabledExpenseCategories || ALL_EXPENSE_CATEGORIES,
       mileageLoggingStyle: initialData?.mileageLoggingStyle || "trip_distance",
       homeOfficePercentage: initialData?.homeOfficePercentage || undefined,
+      trackPersonalExpenses: initialData?.trackPersonalExpenses !== false, // Default to true
     },
   });
 
@@ -381,6 +382,32 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
               </Label>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Track Personal Expenses */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Personal Expenses</CardTitle>
+          <CardDescription>Choose whether to track personal expenses</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="trackPersonalExpenses"
+              checked={watch("trackPersonalExpenses") !== false}
+              onCheckedChange={(checked) => setValue("trackPersonalExpenses", checked === true)}
+            />
+            <Label
+              htmlFor="trackPersonalExpenses"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Track personal expenses
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            When disabled, the "Personal" expense type will be removed from the expense form.
+          </p>
         </CardContent>
       </Card>
 

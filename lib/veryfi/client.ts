@@ -44,9 +44,52 @@ export class VeryfiClient {
   }
 
   async processReceipt(imageUrl: string): Promise<VeryfiReceiptResult> {
-    // Implementation would call Veryfi API
-    // For now, return a placeholder structure
-    throw new Error("Veryfi integration not yet implemented. Add credentials to .env.local");
+    if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
+      throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
+    }
+
+    // Fetch the image from the URL
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+    }
+    const imageBlob = await imageResponse.blob();
+
+    // Create form data for Veryfi API
+    const formData = new FormData();
+    formData.append("file", imageBlob, "receipt.jpg");
+
+    // Veryfi API v8 document.parser endpoint
+    const response = await fetch(`${this.baseUrl}/partner/document`, {
+      method: "POST",
+      headers: {
+        "CLIENT-ID": this.clientId,
+        "AUTHORIZATION": `apikey ${this.username}:${this.apiKey}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Veryfi API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    // Map Veryfi response to our interface
+    return {
+      vendor: {
+        name: data.vendor?.name || data.vendor?.raw_name || "",
+      },
+      line_items: (data.line_items || []).map((item: any) => ({
+        description: item.description || item.text || "",
+        total: item.total || 0,
+      })),
+      total: data.total || 0,
+      tax: data.tax || 0,
+      date: data.date || new Date().toISOString(),
+      currency_code: data.currency_code || "CAD",
+    };
   }
 
   async processPaystub(imageUrl: string): Promise<VeryfiPaystubResult> {

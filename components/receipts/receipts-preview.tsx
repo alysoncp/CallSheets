@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowRight } from "lucide-react";
+import { Trash2, ArrowRight, Receipt } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
@@ -22,8 +23,14 @@ interface ReceiptsPreviewProps {
   onDelete?: (id: string) => void;
 }
 
-export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps) {
-  const previewReceipts = initialData.slice(0, 3);
+export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps) {const [receipts, setReceipts] = useState(initialData);
+
+  // Sync with prop changes
+  useEffect(() => {
+    setReceipts(initialData);
+  }, [initialData]);
+
+  const previewReceipts = receipts.slice(0, 3);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this receipt?")) {
@@ -35,15 +42,25 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
         method: "DELETE",
       });
 
-      if (response.ok && onDelete) {
-        onDelete(id);
+      if (response.ok) {
+        // Optimistically update local state
+        setReceipts(receipts.filter((r) => r.id !== id));
+        // Call parent callback if provided
+        if (onDelete) {
+          onDelete(id);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error deleting receipt:", errorData.error || "Unknown error");
+        alert("Failed to delete receipt. Please try again.");
       }
     } catch (error) {
       console.error("Error deleting receipt:", error);
+      alert("Failed to delete receipt. Please try again.");
     }
   };
 
-  if (initialData.length === 0) {
+  if (receipts.length === 0) {
     return null;
   }
 
@@ -70,35 +87,54 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
                   alt="Receipt"
                   fill
                   className="object-cover"
+                  unoptimized
                 />
               </div>
               <div className="mt-2">
                 <p className="text-sm text-muted-foreground">
-                  {format(
-                    typeof receipt.uploadedAt === "string"
-                      ? parseISO(receipt.uploadedAt)
-                      : receipt.uploadedAt,
-                    "MMM dd, yyyy"
-                  )}
+                  {(() => {
+                    try {
+                      const dateValue = typeof receipt.uploadedAt === "string" ? parseISO(receipt.uploadedAt) : receipt.uploadedAt;
+                      return format(dateValue, "MMM dd, yyyy");
+                    } catch (e) {
+                      return receipt.uploadedAt?.toString() || 'Invalid date';
+                    }
+                  })()}
                 </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(receipt.id)}
-                  className="mt-1 h-8"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete
-                </Button>
+                <div className="flex gap-2">
+                  {receipt.linkedExpenseId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // Navigate to expenses page - the expense will be visible there
+                        window.location.href = "/expenses";
+                      }}
+                      className="mt-1 h-8"
+                    >
+                      <Receipt className="h-3 w-3 mr-1" />
+                      View Expense
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(receipt.id)}
+                    className="mt-1 h-8"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
         </div>
-        {initialData.length > 3 && (
+        {receipts.length > 3 && (
           <div className="mt-4 text-center">
             <Link href="/receipts">
               <Button variant="outline">
-                View All {initialData.length} Receipts
+                View All {receipts.length} Receipts
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

@@ -185,24 +185,10 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
       <Card>
         <CardHeader>
           <CardTitle>Tax Information</CardTitle>
-          <CardDescription>Tax filing and GST/HST information</CardDescription>
+          <CardDescription>GST/HST information</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="taxFilingStatus">
-                Tax Filing Status <span className="text-destructive">*</span>
-              </Label>
-              <Select id="taxFilingStatus" {...register("taxFilingStatus")} required={isSetupMode}>
-                <option value="">Select filing status</option>
-                <option value="personal_only">Personal Only</option>
-                <option value="personal_and_corporate">Personal + Corporate</option>
-              </Select>
-              {errors.taxFilingStatus && (
-                <p className="text-sm text-destructive">{errors.taxFilingStatus.message}</p>
-              )}
-            </div>
-
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Checkbox

@@ -1,12 +1,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, ArrowLeft } from "lucide-react";
 
 export default function PricingPage() {
   return (
     <div className="min-h-screen py-20">
       <div className="container mx-auto px-4">
+        <div className="mb-6">
+          <Button variant="ghost" asChild>
+            <Link href="/">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Link>
+          </Button>
+        </div>
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Pricing</h1>
           <p className="text-xl text-muted-foreground">
@@ -15,8 +23,8 @@ export default function PricingPage() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {/* Basic Plan */}
-          <Card>
+          {/* Basic Plan - Greyed out */}
+          <Card className="opacity-50 cursor-not-allowed">
             <CardHeader>
               <CardTitle>Basic</CardTitle>
               <CardDescription>Free</CardDescription>
@@ -41,20 +49,25 @@ export default function PricingPage() {
                   <span>Basic dashboard</span>
                 </li>
               </ul>
-              <Button asChild className="w-full" variant="outline">
-                <Link href="/signup">Get Started</Link>
+              <Button disabled className="w-full" variant="outline">
+                Not Available
               </Button>
             </CardContent>
           </Card>
 
-          {/* Personal Plan */}
-          <Card className="border-primary">
+          {/* Personal Plan - Free during beta */}
+          <Card className="border-primary border-2">
             <CardHeader>
               <CardTitle>Personal</CardTitle>
-              <CardDescription>Most Popular</CardDescription>
+              <CardDescription>Most Popular - Free during beta</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold mb-6">$9.99<span className="text-lg font-normal">/month</span></div>
+              <div className="text-3xl font-bold mb-2">
+                <span className="line-through text-muted-foreground">$9.99</span>
+                <span className="ml-2">Free</span>
+                <span className="text-lg font-normal">/month</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">Free during beta period</p>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-center gap-2">
                   <Check className="h-5 w-5 text-green-600" />
@@ -87,11 +100,11 @@ export default function PricingPage() {
             </CardContent>
           </Card>
 
-          {/* Corporate Plan */}
-          <Card>
+          {/* Corporate Plan - Coming soon */}
+          <Card className="opacity-50 cursor-not-allowed">
             <CardHeader>
               <CardTitle>Corporate</CardTitle>
-              <CardDescription>For Professionals</CardDescription>
+              <CardDescription>Coming Soon</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold mb-6">$24.99<span className="text-lg font-normal">/month</span></div>
@@ -113,8 +126,8 @@ export default function PricingPage() {
                   <span>Corporate tax features</span>
                 </li>
               </ul>
-              <Button asChild className="w-full" variant="outline">
-                <Link href="/signup">Get Started</Link>
+              <Button disabled className="w-full" variant="outline">
+                Coming Soon
               </Button>
             </CardContent>
           </Card>

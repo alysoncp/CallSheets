@@ -6,13 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { income, expenses } from "@/lib/db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, subMonths } from "date-fns";
 import { MonthlyChart } from "@/components/charts/monthly-chart";
 
 async function getDashboardData(userId: string) {
   const now = new Date();
   const startOfCurrentMonth = startOfMonth(now);
   const endOfCurrentMonth = endOfMonth(now);
+  const startOfCurrentYear = startOfYear(now);
 
   const [totalIncomeResult] = await db
     .select({
@@ -31,6 +32,28 @@ async function getDashboardData(userId: string) {
   const totalIncome = Number(totalIncomeResult?.total || 0);
   const totalExpenses = Number(totalExpensesResult?.total || 0);
 
+  // Get year-to-date data for yearly chart
+  const yearlyIncome = await db
+    .select()
+    .from(income)
+    .where(
+      and(
+        eq(income.userId, userId),
+        gte(income.date, format(startOfCurrentYear, "yyyy-MM-dd"))
+      )
+    );
+
+  const yearlyExpenses = await db
+    .select()
+    .from(expenses)
+    .where(
+      and(
+        eq(expenses.userId, userId),
+        gte(expenses.date, format(startOfCurrentYear, "yyyy-MM-dd"))
+      )
+    );
+
+  // Get current month data for recent transactions
   const monthlyIncome = await db
     .select()
     .from(income)
@@ -72,6 +95,8 @@ async function getDashboardData(userId: string) {
     totalExpenses,
     monthlyIncome,
     monthlyExpenses,
+    yearlyIncome,
+    yearlyExpenses,
     recentIncome,
     recentExpenses,
   };
@@ -172,15 +197,15 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Overview</CardTitle>
+            <CardTitle>Yearly Overview</CardTitle>
             <CardDescription>
-              Income and expenses for {format(new Date(), "MMMM yyyy")}
+              Income and expenses for {format(new Date(), "yyyy")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <MonthlyChart
-              income={data.monthlyIncome}
-              expenses={data.monthlyExpenses}
+              income={data.yearlyIncome}
+              expenses={data.yearlyExpenses}
             />
           </CardContent>
         </Card>
