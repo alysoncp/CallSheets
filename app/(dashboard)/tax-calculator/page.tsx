@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTaxYear } from "@/lib/contexts/tax-year-context";
 
 interface TaxCalculationResult {
   grossIncome: number;
@@ -22,30 +19,30 @@ interface TaxCalculationResult {
 }
 
 export default function TaxCalculatorPage() {
-  const [taxYear, setTaxYear] = useState(new Date().getFullYear());
+  const { taxYear } = useTaxYear();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TaxCalculationResult | null>(null);
 
-  const calculate = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/tax-calculation?taxYear=${taxYear}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setResult(data);
-      }
-    } catch (error) {
-      console.error("Error calculating tax:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const calculate = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/tax-calculation?taxYear=${taxYear}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setResult(data);
+        }
+      } catch (error) {
+        console.error("Error calculating tax:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     calculate();
-  }, []);
+  }, [taxYear]);
 
   return (
     <div className="space-y-6">
@@ -53,30 +50,11 @@ export default function TaxCalculatorPage() {
         <h1 className="text-3xl font-bold">Tax Calculator</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tax Year</CardTitle>
-          <CardDescription>Select the tax year to calculate</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 items-end">
-            <div className="space-y-2">
-              <Label htmlFor="taxYear">Tax Year</Label>
-              <Input
-                id="taxYear"
-                type="number"
-                value={taxYear}
-                onChange={(e) => setTaxYear(parseInt(e.target.value))}
-                min="2020"
-                max="2030"
-              />
-            </div>
-            <Button onClick={calculate} disabled={loading}>
-              {loading ? "Calculating..." : "Calculate"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {loading && (
+        <div className="text-center py-4 text-muted-foreground">
+          Calculating...
+        </div>
+      )}
 
       {result && (
         <div className="grid gap-4 md:grid-cols-2">

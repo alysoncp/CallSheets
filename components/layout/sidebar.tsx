@@ -22,7 +22,7 @@ import {
 import { useEffect, useState, useMemo } from "react";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";
-import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
 const allNavigation = [
@@ -52,6 +52,7 @@ export function Sidebar() {
     hasGstNumber?: boolean;
   } | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(true);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   const fetchUserProfile = () => {
     fetch("/api/user/profile")
@@ -88,9 +89,60 @@ export function Sidebar() {
       });
   };
 
+  const fetchAvailableYears = async () => {
+    try {
+      const [incomeResponse, expenseResponse] = await Promise.all([
+        fetch("/api/income", { cache: "no-store" }),
+        fetch("/api/expenses", { cache: "no-store" }),
+      ]);
+
+      const incomeData = incomeResponse.ok ? await incomeResponse.json() : [];
+      const expenseData = expenseResponse.ok ? await expenseResponse.json() : [];
+
+      const years = new Set<number>();
+      const currentYear = new Date().getFullYear();
+      years.add(currentYear); // Always include current year
+
+      // Extract years from income records
+      incomeData.forEach((record: any) => {
+        try {
+          const recordDate = new Date(record.date);
+          const year = recordDate.getFullYear();
+          if (!isNaN(year)) {
+            years.add(year);
+          }
+        } catch {
+          // Skip invalid dates
+        }
+      });
+
+      // Extract years from expense records
+      expenseData.forEach((record: any) => {
+        try {
+          const recordDate = typeof record.date === 'string' 
+            ? new Date(record.date) 
+            : new Date(record.date);
+          const year = recordDate.getFullYear();
+          if (!isNaN(year)) {
+            years.add(year);
+          }
+        } catch {
+          // Skip invalid dates
+        }
+      });
+
+      const sortedYears = Array.from(years).sort((a, b) => b - a); // Sort descending
+      setAvailableYears(sortedYears);
+    } catch (error) {
+      // If fetch fails, just show current year
+      setAvailableYears([new Date().getFullYear()]);
+    }
+  };
+
   useEffect(() => {
     fetchUserProfile();
     checkProfileCompletion();
+    fetchAvailableYears();
     
     // Listen for profile updates
     const handleProfileUpdate = () => {
@@ -100,8 +152,15 @@ export function Sidebar() {
       }, 300);
     };
     
-    // Custom event
+    // Listen for data updates (income/expense added/deleted)
+    const handleDataUpdate = () => {
+      fetchAvailableYears();
+    };
+    
+    // Custom events
     window.addEventListener('profileUpdated', handleProfileUpdate);
+    window.addEventListener('incomeUpdated', handleDataUpdate);
+    window.addEventListener('expenseUpdated', handleDataUpdate);
     
     // Polling fallback (check every second if profile was updated)
     const pollInterval = setInterval(() => {
@@ -118,6 +177,8 @@ export function Sidebar() {
     
     return () => {
       window.removeEventListener('profileUpdated', handleProfileUpdate);
+      window.removeEventListener('incomeUpdated', handleDataUpdate);
+      window.removeEventListener('expenseUpdated', handleDataUpdate);
       clearInterval(pollInterval);
     };
   }, []);
@@ -179,15 +240,29 @@ export function Sidebar() {
           <Label htmlFor="tax-year" className="text-xs text-muted-foreground">
             Tax Year
           </Label>
-          <Input
+          <Select
             id="tax-year"
-            type="number"
-            value={taxYear}
-            onChange={(e) => setTaxYear(parseInt(e.target.value) || new Date().getFullYear())}
+            value={taxYear.toString()}
+            onChange={(e) => {
+              const newYear = parseInt(e.target.value, 10);
+              if (!isNaN(newYear) && newYear !== taxYear) {
+                setTaxYear(newYear);
+              }
+            }}
             className="h-9 w-full text-sm"
-            min="2020"
-            max="2030"
-          />
+          >
+            {availableYears.length > 0 ? (
+              availableYears.map((year) => (
+                <option key={year} value={year.toString()}>
+                  {year}
+                </option>
+              ))
+            ) : (
+              <option value={new Date().getFullYear().toString()}>
+                {new Date().getFullYear()}
+              </option>
+            )}
+          </Select>
         </div>
         {userName && (
           <div className="flex items-center gap-3 rounded-lg px-3 py-2">

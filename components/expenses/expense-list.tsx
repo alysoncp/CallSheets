@@ -52,6 +52,8 @@ export function ExpenseList({ initialData, receiptRecords = [], onEdit }: Expens
 
       if (response.ok) {
         setExpenseRecords(expenseRecords.filter((item) => item.id !== id));
+        // Dispatch event to update sidebar year list
+        window.dispatchEvent(new Event('expenseUpdated'));
       }
     } catch (error) {
       console.error("Error deleting expense:", error);

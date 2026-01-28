@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useTaxYear } from "@/lib/contexts/tax-year-context";
 
 interface GstHstData {
   gstCollected: number;
@@ -16,7 +14,7 @@ interface GstHstData {
 }
 
 export function GstHstPageClient() {
-  const [taxYear, setTaxYear] = useState(new Date().getFullYear());
+  const { taxYear } = useTaxYear();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<GstHstData | null>(null);
 
@@ -55,30 +53,11 @@ export function GstHstPageClient() {
         <h1 className="text-3xl font-bold">GST/HST Summary</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tax Year</CardTitle>
-          <CardDescription>Select the tax year to view GST/HST tracking</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 items-end">
-            <div className="space-y-2">
-              <Label htmlFor="taxYear">Tax Year</Label>
-              <Input
-                id="taxYear"
-                type="number"
-                value={taxYear}
-                onChange={(e) => setTaxYear(parseInt(e.target.value))}
-                min="2020"
-                max="2030"
-              />
-            </div>
-            <Button onClick={fetchData} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {loading && (
+        <div className="text-center py-4 text-muted-foreground">
+          Loading...
+        </div>
+      )}
 
       {data && (
         <div className="grid gap-4 md:grid-cols-2">

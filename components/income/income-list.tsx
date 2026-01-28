@@ -73,6 +73,8 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
 
       if (response.ok) {
         setIncomeRecords(incomeRecords.filter((item) => item.id !== id));
+        // Dispatch event to update sidebar year list
+        window.dispatchEvent(new Event('incomeUpdated'));
       }
     } catch (error) {
       console.error("Error deleting income:", error);
