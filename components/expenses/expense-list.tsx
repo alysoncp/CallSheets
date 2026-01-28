@@ -87,6 +87,9 @@ export function ExpenseList({ initialData, receiptRecords = [], onEdit }: Expens
 
   const handleViewReceipt = (expense: ExpenseRecord) => {
     const imageUrl = getReceiptImageUrl(expense);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'expense-list.tsx:88',message:'handleViewReceipt called',data:{expenseId:expense.id,imageUrl,imageUrlIsNull:imageUrl===null,imageUrlIsEmpty:imageUrl==='',hasReceiptImageUrl:!!expense.receiptImageUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     if (imageUrl) {
       setViewingImageUrl(imageUrl);
       setImageDialogOpen(true);

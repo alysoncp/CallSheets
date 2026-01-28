@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Check, ExternalLink, ArrowLeft } from "lucide-react";
 import { getOcrLimit } from "@/lib/utils/subscription";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
+import { SubscriptionUpgradeButton } from "@/components/subscription/subscription-upgrade-button";
 
 export default async function SubscriptionPage() {
   const supabase = await createClient();
@@ -212,15 +213,12 @@ export default async function SubscriptionPage() {
                     <span>100 OCR requests/month</span>
                   </li>
                 </ul>
-                {subscriptionTier === "personal" ? (
-                  <Button disabled className="w-full">
-                    Current Plan
-                  </Button>
-                ) : (
-                  <Button disabled className="w-full" variant="outline">
-                    Select (Beta: Free)
-                  </Button>
-                )}
+                <SubscriptionUpgradeButton
+                  currentTier={subscriptionTier}
+                  targetTier="personal"
+                >
+                  Select (Beta: Free)
+                </SubscriptionUpgradeButton>
               </CardContent>
             </Card>
 

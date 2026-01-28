@@ -30,15 +30,34 @@ interface IncomeListProps {
   initialData: IncomeRecord[];
   paystubRecords?: PaystubRecord[];
   onEdit?: (income: IncomeRecord) => void;
+  onRefresh?: () => void;
 }
 
-export function IncomeList({ initialData, paystubRecords = [], onEdit }: IncomeListProps) {
+export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh }: IncomeListProps) {
   const [incomeRecords, setIncomeRecords] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [editingIncome, setEditingIncome] = useState<IncomeRecord | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
+
+  // Refresh income records when initialData changes
+  useEffect(() => {
+    setIncomeRecords(initialData);
+  }, [initialData]);
+
+  // Refresh from API if onRefresh callback is provided
+  const refreshIncome = async () => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      const response = await fetch("/api/income", { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        setIncomeRecords(data);
+      }
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this income record?")) {
@@ -179,6 +198,7 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit }: IncomeL
           setDialogOpen(open);
           if (!open) {
             setEditingIncome(null);
+            refreshIncome(); // Refresh income list when dialog closes
           }
         }}
         initialData={editingIncome || undefined}

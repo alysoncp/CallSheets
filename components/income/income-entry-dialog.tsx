@@ -31,8 +31,12 @@ export function IncomeEntryDialog({
   const [uploading, setUploading] = useState(false);
   const [ocrData, setOcrData] = useState<any>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedPaystub, setUploadedPaystub] = useState<{ id: string; imageUrl: string } | null>(null);
 
   const handleFileSelect = async (file: File) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:36',message:'handleFileSelect entry',data:{fileName:file.name,fileSize:file.size,fileType:file.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+    // #endregion
     setUploading(true);
     setUploadedFile(file);
 
@@ -40,24 +44,57 @@ export function IncomeEntryDialog({
       const formData = new FormData();
       formData.append("file", file);
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:45',message:'Starting fetch to /api/paystubs/upload',data:{hasFile:!!file},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+      // #endregion
+
       const response = await fetch("/api/paystubs/upload", {
         method: "POST",
         body: formData,
       });
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:52',message:'Fetch response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+      // #endregion
+
       if (response.ok) {
         const data = await response.json();
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:61',message:'Response OK, data parsed',data:{hasId:!!data.id,hasImageUrl:!!data.imageUrl,hasOcrResult:!!data.ocrResult,dataKeys:Object.keys(data),ocrResult:data.ocrResult,ocrResultKeys:data.ocrResult?Object.keys(data.ocrResult):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+        // #endregion
+        
+        // Store paystub data (including imageUrl)
+        if (data.id && data.imageUrl) {
+          setUploadedPaystub({ id: data.id, imageUrl: data.imageUrl });
+        }
+        
         // If OCR is available, process it
         if (data.ocrResult) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:75',message:'Setting OCR data',data:{ocrResult:data.ocrResult,ocrResultKeys:Object.keys(data.ocrResult)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+          // #endregion
           setOcrData(data.ocrResult);
+        } else {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:79',message:'No OCR result in response',data:{dataKeys:Object.keys(data)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+          // #endregion
         }
+        
         // Proceed to form with OCR data
         setEntryMethod("manual");
       } else {
+        const errorText = await response.text().catch(() => '');
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:68',message:'Response not OK',data:{status:response.status,errorText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+        // #endregion
         throw new Error("Failed to upload paystub");
       }
     } catch (error) {
       console.error("Error uploading paystub:", error);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:72',message:'Catch block executed',data:{errorMessage:error instanceof Error?error.message:String(error),errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+      // #endregion
       alert("Failed to upload paystub. Please try again.");
     } finally {
       setUploading(false);
@@ -84,6 +121,7 @@ export function IncomeEntryDialog({
     setEntryMethod(null);
     setOcrData(null);
     setUploadedFile(null);
+    setUploadedPaystub(null);
   };
 
   const handleClose = (open: boolean) => {
@@ -201,7 +239,16 @@ export function IncomeEntryDialog({
             </DialogDescription>
           </DialogHeader>
           <IncomeForm
-            initialData={ocrData ? { ...ocrData, paystubImageUrl: uploadedFile?.name } : undefined}
+            initialData={ocrData ? (() => {
+              // #region agent log
+              const initialDataValue = { 
+                ...ocrData, 
+                paystubImageUrl: uploadedPaystub?.imageUrl || "",
+              };
+              fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:207',message:'Passing initialData to IncomeForm',data:{ocrData,initialDataValue,initialDataKeys:Object.keys(initialDataValue),hasUploadedPaystub:!!uploadedPaystub},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'K'})}).catch(()=>{});
+              // #endregion
+              return initialDataValue;
+            })() : undefined}
             onSuccess={() => handleClose(false)}
             ocrData={ocrData}
           />

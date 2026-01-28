@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowRight, Receipt } from "lucide-react";
+import { Trash2, ArrowRight, Receipt, Pencil } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
+import { ImageViewDialog } from "@/components/ui/image-view-dialog";
+import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
 
 interface ReceiptRecord {
   id: string;
@@ -23,7 +25,11 @@ interface ReceiptsPreviewProps {
   onDelete?: (id: string) => void;
 }
 
-export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps) {const [receipts, setReceipts] = useState(initialData);
+export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps) {
+  const [receipts, setReceipts] = useState(initialData);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [expenseEditDialogOpen, setExpenseEditDialogOpen] = useState(false);
 
   // Sync with prop changes
   useEffect(() => {
@@ -60,6 +66,26 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
     }
   };
 
+  const handleEditExpense = async (expenseId: string) => {
+    try {
+      // Fetch all expenses and find the one with matching ID
+      const response = await fetch("/api/expenses", { cache: "no-store" });
+      if (response.ok) {
+        const expenses = await response.json();
+        const expense = expenses.find((e: any) => e.id === expenseId);
+        if (expense) {
+          setEditingExpense(expense);
+          setExpenseEditDialogOpen(true);
+        } else {
+          alert("Expense not found");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching expense:", error);
+      alert("Failed to load expense for editing");
+    }
+  };
+
   if (receipts.length === 0) {
     return null;
   }
@@ -81,7 +107,15 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {previewReceipts.map((receipt) => (
             <div key={receipt.id} className="relative group">
-              <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+              <div 
+                className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer"
+                onClick={() => {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'receipts-preview.tsx:87',message:'Receipt image clicked',data:{receiptId:receipt.id,imageUrl:receipt.imageUrl,imageUrlLength:receipt.imageUrl?.length,imageUrlIsEmpty:receipt.imageUrl==='',imageUrlIsNull:receipt.imageUrl===null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                  // #endregion
+                  setViewingImage(receipt.imageUrl);
+                }}
+              >
                 <Image
                   src={receipt.imageUrl}
                   alt="Receipt"
@@ -103,18 +137,28 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
                 </p>
                 <div className="flex gap-2">
                   {receipt.linkedExpenseId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        // Navigate to expenses page - the expense will be visible there
-                        window.location.href = "/expenses";
-                      }}
-                      className="mt-1 h-8"
-                    >
-                      <Receipt className="h-3 w-3 mr-1" />
-                      View Expense
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditExpense(receipt.linkedExpenseId!)}
+                        className="mt-1 h-8"
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          window.location.href = "/expenses";
+                        }}
+                        className="mt-1 h-8"
+                      >
+                        <Receipt className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                    </>
                   )}
                   <Button
                     variant="ghost"
@@ -141,6 +185,29 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
           </div>
         )}
       </CardContent>
+      {viewingImage && (
+        <ImageViewDialog
+          open={viewingImage !== null}
+          onOpenChange={(open) => {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'receipts-preview.tsx:186',message:'ImageViewDialog onOpenChange',data:{open,viewingImage,viewingImageIsNull:viewingImage===null,viewingImageIsEmpty:viewingImage===''},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
+            if (!open) setViewingImage(null);
+          }}
+          imageUrl={viewingImage}
+          title="Receipt"
+        />
+      )}
+      <ExpenseEntryDialog
+        open={expenseEditDialogOpen}
+        onOpenChange={(open) => {
+          setExpenseEditDialogOpen(open);
+          if (!open) {
+            setEditingExpense(null);
+          }
+        }}
+        initialData={editingExpense}
+      />
     </Card>
   );
 }

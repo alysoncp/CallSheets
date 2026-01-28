@@ -33,29 +33,42 @@ export function ExpenseEntryDialog({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedReceipt, setUploadedReceipt] = useState<{ id: string; imageUrl: string } | null>(null);
 
-  const handleFileSelect = async (file: File) => {setUploading(true);
+  const handleFileSelect = async (file: File) => {
+    setUploading(true);
     setUploadedFile(file);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);const response = await fetch("/api/receipts/upload", {
+      formData.append("file", file);
+
+      const response = await fetch("/api/receipts/upload", {
         method: "POST",
         body: formData,
-      });if (response.ok) {
-        const data = await response.json();// Store receipt data (including imageUrl)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Store receipt data (including imageUrl)
         if (data.id && data.imageUrl) {
           setUploadedReceipt({ id: data.id, imageUrl: data.imageUrl });
         }
         
         // If OCR is available, process it
-        if (data.ocrResult) {setOcrData(data.ocrResult);
-        } else {}
+        if (data.ocrResult) {
+          setOcrData(data.ocrResult);
+        } else {
+          // No OCR result
+        }
+
         // Proceed to form (with or without OCR data)
         setEntryMethod("manual");
       } else {
-        const errorText = await response.text();throw new Error("Failed to upload receipt");
+        const errorText = await response.text();
+        throw new Error("Failed to upload receipt");
       }
-    } catch (error) {console.error("Error uploading receipt:", error);
+    } catch (error) {
+      console.error("Error uploading receipt:", error);
       alert("Failed to upload receipt. Please try again.");
     } finally {
       setUploading(false);

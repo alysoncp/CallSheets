@@ -19,12 +19,21 @@ export function IncomePageClient({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<any>(null);
   const [paystubs, setPaystubs] = useState(paystubRecords);
+  const [incomeList, setIncomeList] = useState(incomeRecords);
 
   const refreshPaystubs = async () => {
     const response = await fetch("/api/paystubs", { cache: "no-store" });
     if (response.ok) {
       const data = await response.json();
       setPaystubs(data);
+    }
+  };
+
+  const refreshIncome = async () => {
+    const response = await fetch("/api/income", { cache: "no-store" });
+    if (response.ok) {
+      const data = await response.json();
+      setIncomeList(data);
     }
   };
 
@@ -39,12 +48,13 @@ export function IncomePageClient({
       </div>
       <PaystubsPreview initialData={paystubs} onDelete={refreshPaystubs} />
       <IncomeList
-        initialData={incomeRecords}
+        initialData={incomeList}
         paystubRecords={paystubs}
         onEdit={(income) => {
           setEditingIncome(income);
           setDialogOpen(true);
         }}
+        onRefresh={refreshIncome}
       />
       <IncomeEntryDialog
         open={dialogOpen}
@@ -52,6 +62,7 @@ export function IncomePageClient({
           setDialogOpen(open);
           if (!open) {
             setEditingIncome(null);
+            refreshIncome(); // Refresh income list when dialog closes
           }
         }}
         initialData={editingIncome || undefined}

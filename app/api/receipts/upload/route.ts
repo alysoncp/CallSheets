@@ -5,36 +5,50 @@ import { receipts, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiReceiptResult } from "@/lib/veryfi/client";
 
-export async function POST(request: NextRequest) {try {
+export async function POST(request: NextRequest) {
+  try {
     const supabase = await createClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();if (authError || !user) {return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const notes = formData.get("notes") as string | null;if (!file) {return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    const notes = formData.get("notes") as string | null;
+
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
     // Upload to Supabase Storage
     const bucketName = "receipts";
     const fileExt = file.name.split(".").pop();
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-    const filePath = fileName;let { data: uploadData, error: uploadError } = await supabase.storage
+    const filePath = fileName;
+
+    let { data: uploadData, error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: "3600",
         upsert: false,
-      });// If bucket doesn't exist, try to create it and retry upload
-    if (uploadError && (uploadError.message === "Bucket not found" || uploadError.statusCode === "404")) {// Use admin client for bucket creation (requires service role key)
+      });
+
+    // If bucket doesn't exist, try to create it and retry upload
+    if (uploadError && (uploadError.message === "Bucket not found" || uploadError.statusCode === "404")) {
+      // Use admin client for bucket creation (requires service role key)
       const adminClient = createAdminClient();
       const { data: bucketData, error: bucketError } = await adminClient.storage.createBucket(bucketName, {
         public: true,
         allowedMimeTypes: ["image/*"],
         fileSizeLimit: 52428800, // 50MB
-      });if (!bucketError) {
+      });
+
+      if (!bucketError) {
         // Retry upload after bucket creation
         const retryResult = await supabase.storage
           .from(bucketName)
@@ -43,11 +57,13 @@ export async function POST(request: NextRequest) {try {
             upsert: false,
           });
         uploadData = retryResult.data;
-        uploadError = retryResult.error;}
+        uploadError = retryResult.error;
+      }
     }
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);return NextResponse.json(
+      console.error("Upload error:", uploadError);
+      return NextResponse.json(
         { error: "Failed to upload file" },
         { status: 500 }
       );
@@ -56,7 +72,10 @@ export async function POST(request: NextRequest) {try {
     // Get public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from(bucketName).getPublicUrl(filePath);// Create receipt recordconst [newReceipt] = await db
+    } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+
+    // Create receipt record
+    const [newReceipt] = await db
       .insert(receipts)
       .values({
         userId: user.id,
@@ -64,9 +83,12 @@ export async function POST(request: NextRequest) {try {
         notes: notes || null,
         ocrStatus: "pending",
       })
-      .returning();// Try to process OCR automatically (non-blocking)
+      .returning();
+
+    // Try to process OCR automatically (non-blocking)
     let ocrResult = null;
-    try {// Check user's subscription tier and OCR limits
+    try {
+      // Check user's subscription tier and OCR limits
       const [userProfile] = await db
         .select()
         .from(users)
@@ -171,10 +193,14 @@ export async function POST(request: NextRequest) {try {
             .set({
               ocrRequestsThisMonth: (userProfile.ocrRequestsThisMonth || 0) + 1,
             })
-            .where(eq(users.id, user.id));} else {}
+            .where(eq(users.id, user.id));
+        } else {
+          // OCR limit reached
+        }
       }
     } catch (ocrError) {
-      // OCR is optional, don't fail the upload if it failsconsole.error("OCR processing failed (non-blocking):", ocrError);
+      // OCR is optional, don't fail the upload if it fails
+      console.error("OCR processing failed (non-blocking):", ocrError);
       // Reset status to pending if OCR failed
       await db
         .update(receipts)
@@ -186,7 +212,8 @@ export async function POST(request: NextRequest) {try {
     // Return receipt with OCR result if available
     return NextResponse.json({ ...newReceipt, ocrResult }, { status: 201 });
   } catch (error) {
-    console.error("Error in POST /api/receipts/upload:", error);return NextResponse.json(
+    console.error("Error in POST /api/receipts/upload:", error);
+    return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
