@@ -24,6 +24,7 @@ interface IncomeEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: Partial<any> & { id?: string };
+  onPaystubUploaded?: () => void;
 }
 
 export function IncomeEntryDialog({

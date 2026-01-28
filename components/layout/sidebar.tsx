@@ -211,33 +211,18 @@ export function Sidebar() {
   return (
     <div className="flex h-full w-64 flex-col border-r bg-background">
       <div className="flex h-16 items-center border-b px-6">
-        <Link href="/dashboard" className="font-bold text-xl">
-          CallSheets
+        <Link
+          href="/dashboard"
+          className="text-2xl font-extrabold tracking-tight text-foreground"
+        >
+          <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            CallSheets
+          </span>
         </Link>
       </div>
-      <nav className="flex-1 space-y-1 p-4">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="border-t p-4 space-y-4">
+      <div className="border-b bg-primary/5 px-4 py-3">
         <div className="space-y-2">
-          <Label htmlFor="tax-year" className="text-xs text-muted-foreground">
+          <Label htmlFor="tax-year" className="text-sm font-semibold text-foreground">
             Tax Year
           </Label>
           <Select
@@ -249,7 +234,7 @@ export function Sidebar() {
                 setTaxYear(newYear);
               }
             }}
-            className="h-9 w-full text-sm"
+            className="h-10 w-full text-base font-semibold bg-background border-2 border-primary/30 focus-visible:border-primary"
           >
             {availableYears.length > 0 ? (
               availableYears.map((year) => (
@@ -264,6 +249,30 @@ export function Sidebar() {
             )}
           </Select>
         </div>
+      </div>
+      <nav className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-1">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.name}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+      <div className="border-t p-4 space-y-4">
         {userName && (
           <div className="flex items-center gap-3 rounded-lg px-3 py-2">
             <User className="h-5 w-5 text-muted-foreground" />

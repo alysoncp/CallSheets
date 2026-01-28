@@ -56,11 +56,14 @@ export async function POST(request: NextRequest) {
     const { paystubId, ...incomeData } = body;
     const validatedData = incomeSchema.parse(incomeData);
 
+    // Omit form-only fields not in DB (paystubIssuer, reimbursements, totalDeductions)
+    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, ...dbData } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number };
+
     const [newIncome] = await db
       .insert(income)
       .values({
         userId: user.id,
-        ...validatedData,
+        ...dbData,
       })
       .returning();
 

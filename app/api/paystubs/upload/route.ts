@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const notes = formData.get("notes") as string | null;
+    const enableOcrValue = formData.get("enableOcr");
+    const enableOcr = typeof enableOcrValue === "string" && enableOcrValue === "true";
 
     // #region agent log
     await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:24',message:'FormData extracted',data:{hasFile:!!file,fileName:file?.name,fileSize:file?.size,fileType:file?.type,hasNotes:!!notes},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
@@ -63,11 +65,11 @@ export async function POST(request: NextRequest) {
       });
 
     // #region agent log
-    await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:40',message:'Storage upload completed',data:{hasUploadData:!!uploadData,hasUploadError:!!uploadError,uploadErrorMessage:uploadError?.message,uploadErrorCode:uploadError?.statusCode,uploadErrorName:uploadError?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:40',message:'Storage upload completed',data:{hasUploadData:!!uploadData,hasUploadError:!!uploadError,uploadErrorMessage:uploadError?.message,uploadErrorName:uploadError?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
     // #endregion
 
     // If bucket doesn't exist, try to create it and retry upload
-    if (uploadError && (uploadError.message === "Bucket not found" || uploadError.statusCode === "404" || uploadError.message?.includes("row-level security"))) {
+    if (uploadError && (uploadError.message === "Bucket not found" || uploadError.message === "Not Found" || uploadError.message?.includes("row-level security"))) {
       // #region agent log
       await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:46',message:'Bucket not found or RLS issue, attempting to create with admin client',data:{bucketName:'paystubs',uploadError:uploadError.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
@@ -101,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (uploadError) {
       console.error("Upload error:", uploadError);
       // #region agent log
-      await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:72',message:'Storage upload error, returning 500',data:{uploadError:uploadError.message,uploadErrorCode:uploadError.statusCode,uploadErrorName:uploadError.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:72',message:'Storage upload error, returning 500',data:{uploadError:uploadError.message,uploadErrorName:uploadError.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
       return NextResponse.json(
         { error: "Failed to upload file" },
@@ -148,209 +150,208 @@ export async function POST(request: NextRequest) {
         console.log("=== STARTING OCR PROCESSING ===");
         console.log("OCR is enabled, processing...");
         // Check user's subscription tier and OCR limits
-      const [userProfile] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, user.id))
-        .limit(1);
+        const [userProfile] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
 
-      console.log("User profile found:", !!userProfile);
-      if (!userProfile) {
-        console.log("No user profile found, skipping OCR");
-      }
-
-      if (userProfile) {
-        const ocrLimits: Record<string, number> = {
-          basic: 10,
-          personal: 100,
-          corporate: Infinity,
-        };
-
-        const limit = ocrLimits[userProfile.subscriptionTier || "basic"];
-        const canProcessOCR = !userProfile.ocrRequestsThisMonth || userProfile.ocrRequestsThisMonth < limit;
-
-        // #region agent log
-        await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:156',message:'OCR processing check',data:{canProcessOCR,subscriptionTier:userProfile.subscriptionTier,ocrRequestsThisMonth:userProfile.ocrRequestsThisMonth,limit},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
-        // #endregion
+        console.log("User profile found:", !!userProfile);
         
-        console.log("=== PAYSTUB OCR PROCESSING ===");
-        console.log("Can process OCR:", canProcessOCR);
-        console.log("Subscription tier:", userProfile.subscriptionTier);
-        console.log("OCR requests this month:", userProfile.ocrRequestsThisMonth);
-        console.log("Limit:", limit);
-
-        if (canProcessOCR) {
-          // Update paystub status to processing
-          await db
-            .update(paystubs)
-            .set({ ocrStatus: "processing" })
-            .where(eq(paystubs.id, newPaystub.id));
-
-          // Helper function to transform Veryfi result to income form format
-          const transformVeryfiToIncome = (veryfiResult: VeryfiPaystubResult, ocrText?: string, rawVeryfiData?: any) => {
-            // Use OCR parser to extract data from ocr_text if structured data is missing
-            const parsedData = parsePaystubOcr(ocrText, rawVeryfiData || veryfiResult);
-            
-            // Format pay period date as YYYY-MM-DD for the form
-            const payPeriodDate = parsedData.date || veryfiResult.pay_period 
-              ? new Date(parsedData.date || veryfiResult.pay_period).toISOString().split('T')[0]
-              : new Date().toISOString().split('T')[0];
-            
-            // Calculate total deductions
-            const totalDeductions = parsedData.deductions || 
-              ((veryfiResult.deductions?.cpp || 0) + 
-               (veryfiResult.deductions?.ei || 0) + 
-               (veryfiResult.deductions?.income_tax || 0));
-            
-            // Map to income form field names
-            return {
-              productionName: parsedData.productionName || veryfiResult.employer || "",
-              grossPay: parsedData.grossIncome || veryfiResult.gross_pay || 0,
-              amount: parsedData.netIncome || veryfiResult.net_pay || 0, // Net income
-              date: payPeriodDate,
-              totalDeductions: totalDeductions,
-              gstHstCollected: parsedData.gst || 0,
-              // Keep individual deductions for backward compatibility
-              cppContribution: veryfiResult.deductions?.cpp || 0,
-              eiContribution: veryfiResult.deductions?.ei || 0,
-              incomeTaxDeduction: veryfiResult.deductions?.income_tax || 0,
-            };
+        if (userProfile) {
+          const ocrLimits: Record<string, number> = {
+            basic: 10,
+            personal: 100,
+            corporate: Infinity,
           };
 
-          // Check if Veryfi is configured and call it
-          const hasVeryfiCredentials = 
-            process.env.VERYFI_CLIENT_ID && 
-            process.env.VERYFI_CLIENT_SECRET && 
-            process.env.VERYFI_USERNAME && 
-            process.env.VERYFI_API_KEY;
+          const limit = ocrLimits[userProfile.subscriptionTier || "basic"];
+          const canProcessOCR = !userProfile.ocrRequestsThisMonth || userProfile.ocrRequestsThisMonth < limit;
 
           // #region agent log
-          await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:175',message:'Veryfi credentials check',data:{hasVeryfiCredentials,hasClientId:!!process.env.VERYFI_CLIENT_ID,hasClientSecret:!!process.env.VERYFI_CLIENT_SECRET,hasUsername:!!process.env.VERYFI_USERNAME,hasApiKey:!!process.env.VERYFI_API_KEY},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'M'})}).catch(()=>{});
+          await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:156',message:'OCR processing check',data:{canProcessOCR,subscriptionTier:userProfile.subscriptionTier,ocrRequestsThisMonth:userProfile.ocrRequestsThisMonth,limit},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
           // #endregion
           
-          console.log("=== VERYFI CREDENTIALS CHECK ===");
-          console.log("Has Veryfi credentials:", hasVeryfiCredentials);
-          console.log("Has CLIENT_ID:", !!process.env.VERYFI_CLIENT_ID);
-          console.log("Has CLIENT_SECRET:", !!process.env.VERYFI_CLIENT_SECRET);
-          console.log("Has USERNAME:", !!process.env.VERYFI_USERNAME);
-          console.log("Has API_KEY:", !!process.env.VERYFI_API_KEY);
-          console.log("Public URL for OCR:", publicUrl);
+          console.log("=== PAYSTUB OCR PROCESSING ===");
+          console.log("Can process OCR:", canProcessOCR);
+          console.log("Subscription tier:", userProfile.subscriptionTier);
+          console.log("OCR requests this month:", userProfile.ocrRequestsThisMonth);
+          console.log("Limit:", limit);
 
-          if (hasVeryfiCredentials) {
-            try {
-              console.log("=== CALLING VERYFI API ===");
-              console.log("Image URL:", publicUrl);
-              const veryfiClient = new VeryfiClient();
-              console.log("VeryfiClient created, calling processPaystub...");
-              const veryfiResult = await veryfiClient.processPaystub(publicUrl);
-              
-              console.log("=== VERYFI RESULT RECEIVED ===");
-              console.log("Veryfi result:", JSON.stringify(veryfiResult, null, 2));
-              console.log("OCR text available:", !!veryfiResult.ocr_text);
-              console.log("OCR text length:", veryfiResult.ocr_text?.length || 0);
-              
-              // #region agent log
-              await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:163',message:'Veryfi result received from client',data:{veryfiResult,hasOcrText:!!veryfiResult.ocr_text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
-              // #endregion
-              
-              // Transform to income form format, using OCR text parser if available
-              ocrResult = transformVeryfiToIncome(
-                veryfiResult,
-                veryfiResult.ocr_text,
-                veryfiResult.raw_data
-              );
-              
-              console.log("=== OCR RESULT TRANSFORMED ===");
-              console.log("Transformed OCR result:", JSON.stringify(ocrResult, null, 2));
-              
-              // #region agent log
-              await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:170',message:'OCR result transformed to income format',data:{ocrResult,ocrResultKeys:Object.keys(ocrResult)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
-              // #endregion
-            } catch (veryfiError) {
-              console.error("=== VERYFI OCR ERROR ===");
-              console.error("Error:", veryfiError);
-              console.error("Error message:", veryfiError instanceof Error ? veryfiError.message : String(veryfiError));
-              console.error("Error stack:", veryfiError instanceof Error ? veryfiError.stack : undefined);
-              // #region agent log
-              await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:177',message:'Veryfi OCR error caught',data:{errorMessage:veryfiError instanceof Error?veryfiError.message:String(veryfiError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
-              // #endregion
-              // Fall through to placeholder if Veryfi fails
-            }
-          } else {
-            console.log("=== VERYFI CREDENTIALS MISSING ===");
-            console.log("Skipping Veryfi OCR, will use placeholder");
-          }
-
-          // If OCR failed or Veryfi not configured, use placeholder
-          if (!ocrResult) {
-            console.log("=== USING PLACEHOLDER OCR DATA ===");
-            // #region agent log
-            await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:188',message:'Using placeholder OCR data',data:{hasVeryfiCredentials},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'N'})}).catch(()=>{});
-            // #endregion
-            const veryfiPlaceholder: VeryfiPaystubResult = {
-              employer: "",
-              employee_name: "",
-              gross_pay: 0,
-              net_pay: 0,
-              deductions: {
-                cpp: 0,
-                ei: 0,
-                income_tax: 0,
-              },
-              pay_period: new Date().toISOString(),
-              ocr_text: undefined,
-              raw_data: undefined,
-            };
-            
-            ocrResult = transformVeryfiToIncome(veryfiPlaceholder, undefined, undefined);
-            
-            console.log("Placeholder OCR result:", JSON.stringify(ocrResult, null, 2));
-            
-            // #region agent log
-            await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:202',message:'Placeholder OCR result created',data:{ocrResult},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'N'})}).catch(()=>{});
-            // #endregion
-          }
-
-          // Update paystub with OCR result (only if OCR was processed)
-          if (ocrResult) {
+          if (canProcessOCR) {
+            // Update paystub status to processing
             await db
               .update(paystubs)
-              .set({
-                ocrStatus: "completed",
-                ocrResult: ocrResult as any,
-                ocrProcessedAt: new Date(),
-              })
+              .set({ ocrStatus: "processing" })
               .where(eq(paystubs.id, newPaystub.id));
 
-            // Increment OCR request count
-            await db
-              .update(users)
-              .set({
-                ocrRequestsThisMonth: (userProfile.ocrRequestsThisMonth || 0) + 1,
-              })
-              .where(eq(users.id, user.id));
-          } else {
-            // OCR limit reached
-            console.log("=== OCR LIMIT REACHED ===");
-            console.log("OCR requests this month:", userProfile.ocrRequestsThisMonth);
-            console.log("Limit:", limit);
+            // Helper function to transform Veryfi result to income form format
+            const transformVeryfiToIncome = (veryfiResult: VeryfiPaystubResult, ocrText?: string, rawVeryfiData?: any) => {
+              // Use OCR parser to extract data from ocr_text if structured data is missing
+              const parsedData = parsePaystubOcr(ocrText, rawVeryfiData || veryfiResult);
+              
+              // Format pay period date as YYYY-MM-DD for the form
+              const payPeriodDate = parsedData.date || veryfiResult.pay_period 
+                ? new Date(parsedData.date || veryfiResult.pay_period).toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0];
+              
+              // Calculate total deductions (for EP) or use deductions (for CC)
+              const totalDeductions = parsedData.deductions ?? 
+                ((veryfiResult.deductions?.cpp || 0) + 
+                 (veryfiResult.deductions?.ei || 0) + 
+                 (veryfiResult.deductions?.income_tax || 0));
+              
+              // Form entry values: EP uses grossPayRaw for Gross Pay; CC uses grossPayRaw + reimbursements
+              const grossPayForForm = parsedData.grossPayRaw ?? parsedData.grossIncome ?? veryfiResult.gross_pay ?? 0;
+              const reimbursementsForForm = parsedData.reimbursements ?? 0;
+              
+              return {
+                paystubIssuer: parsedData.issuerType ?? undefined,
+                productionName: parsedData.productionName || veryfiResult.employer || "",
+                grossPay: grossPayForForm,
+                amount: parsedData.netIncome ?? veryfiResult.net_pay ?? 0,
+                date: payPeriodDate,
+                totalDeductions,
+                reimbursements: reimbursementsForForm,
+                gstHstCollected: parsedData.gst ?? 0,
+                cppContribution: veryfiResult.deductions?.cpp ?? 0,
+                eiContribution: veryfiResult.deductions?.ei ?? 0,
+                incomeTaxDeduction: veryfiResult.deductions?.income_tax ?? 0,
+              };
+            };
+
+            // Check if Veryfi is configured and call it
+            const hasVeryfiCredentials = 
+              process.env.VERYFI_CLIENT_ID && 
+              process.env.VERYFI_CLIENT_SECRET && 
+              process.env.VERYFI_USERNAME && 
+              process.env.VERYFI_API_KEY;
+
+            // #region agent log
+            await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:175',message:'Veryfi credentials check',data:{hasVeryfiCredentials,hasClientId:!!process.env.VERYFI_CLIENT_ID,hasClientSecret:!!process.env.VERYFI_CLIENT_SECRET,hasUsername:!!process.env.VERYFI_USERNAME,hasApiKey:!!process.env.VERYFI_API_KEY},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'M'})}).catch(()=>{});
+            // #endregion
+            
+            console.log("=== VERYFI CREDENTIALS CHECK ===");
+            console.log("Has Veryfi credentials:", hasVeryfiCredentials);
+            console.log("Has CLIENT_ID:", !!process.env.VERYFI_CLIENT_ID);
+            console.log("Has CLIENT_SECRET:", !!process.env.VERYFI_CLIENT_SECRET);
+            console.log("Has USERNAME:", !!process.env.VERYFI_USERNAME);
+            console.log("Has API_KEY:", !!process.env.VERYFI_API_KEY);
+            console.log("Public URL for OCR:", publicUrl);
+
+            if (hasVeryfiCredentials) {
+              try {
+                console.log("=== CALLING VERYFI API ===");
+                console.log("Image URL:", publicUrl);
+                const veryfiClient = new VeryfiClient();
+                console.log("VeryfiClient created, calling processPaystub...");
+                const veryfiResult = await veryfiClient.processPaystub(publicUrl);
+                
+                console.log("=== VERYFI RESULT RECEIVED ===");
+                console.log("Veryfi result:", JSON.stringify(veryfiResult, null, 2));
+                console.log("OCR text available:", !!veryfiResult.ocr_text);
+                console.log("OCR text length:", veryfiResult.ocr_text?.length || 0);
+                
+                // #region agent log
+                await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:163',message:'Veryfi result received from client',data:{veryfiResult,hasOcrText:!!veryfiResult.ocr_text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+                // #endregion
+                
+                // Transform to income form format, using OCR text parser if available
+                ocrResult = transformVeryfiToIncome(
+                  veryfiResult,
+                  veryfiResult.ocr_text,
+                  veryfiResult.raw_data
+                );
+                
+                console.log("=== OCR RESULT TRANSFORMED ===");
+                console.log("Transformed OCR result:", JSON.stringify(ocrResult, null, 2));
+                
+                // #region agent log
+                await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:170',message:'OCR result transformed to income format',data:{ocrResult,ocrResultKeys:Object.keys(ocrResult)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+                // #endregion
+              } catch (veryfiError) {
+                console.error("=== VERYFI OCR ERROR ===");
+                console.error("Error:", veryfiError);
+                console.error("Error message:", veryfiError instanceof Error ? veryfiError.message : String(veryfiError));
+                console.error("Error stack:", veryfiError instanceof Error ? veryfiError.stack : undefined);
+                // #region agent log
+                await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:177',message:'Veryfi OCR error caught',data:{errorMessage:veryfiError instanceof Error?veryfiError.message:String(veryfiError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+                // #endregion
+                // Fall through to placeholder if Veryfi fails
+              }
+            } else {
+              console.log("=== VERYFI CREDENTIALS MISSING ===");
+              console.log("Skipping Veryfi OCR, will use placeholder");
+            }
+
+            // If OCR failed or Veryfi not configured, use placeholder
+            if (!ocrResult) {
+              console.log("=== USING PLACEHOLDER OCR DATA ===");
+              // #region agent log
+              await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:188',message:'Using placeholder OCR data',data:{hasVeryfiCredentials},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'N'})}).catch(()=>{});
+              // #endregion
+              const veryfiPlaceholder: VeryfiPaystubResult = {
+                employer: "",
+                employee_name: "",
+                gross_pay: 0,
+                net_pay: 0,
+                deductions: {
+                  cpp: 0,
+                  ei: 0,
+                  income_tax: 0,
+                },
+                pay_period: new Date().toISOString(),
+                ocr_text: undefined,
+                raw_data: undefined,
+              };
+              
+              ocrResult = transformVeryfiToIncome(veryfiPlaceholder, undefined, undefined);
+              
+              console.log("Placeholder OCR result:", JSON.stringify(ocrResult, null, 2));
+              
+              // #region agent log
+              await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:202',message:'Placeholder OCR result created',data:{ocrResult},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'N'})}).catch(()=>{});
+              // #endregion
+            }
+
+            // Update paystub with OCR result (only if OCR was processed)
+            if (ocrResult) {
+              await db
+                .update(paystubs)
+                .set({
+                  ocrStatus: "completed",
+                  ocrResult: ocrResult as any,
+                  ocrProcessedAt: new Date(),
+                })
+                .where(eq(paystubs.id, newPaystub.id));
+
+              // Increment OCR request count
+              await db
+                .update(users)
+                .set({
+                  ocrRequestsThisMonth: (userProfile.ocrRequestsThisMonth || 0) + 1,
+                })
+                .where(eq(users.id, user.id));
+            } else {
+              // OCR limit reached
+              console.log("=== OCR LIMIT REACHED ===");
+              console.log("OCR requests this month:", userProfile.ocrRequestsThisMonth);
+              console.log("Limit:", limit);
+            }
           }
-        } else {
-          console.log("=== USER PROFILE NOT FOUND ===");
-          console.log("Skipping OCR processing");
         }
       } catch (ocrError) {
-      // OCR is optional, don't fail the upload if it fails
-      console.error("=== OCR PROCESSING ERROR ===");
-      console.error("Error:", ocrError);
-      console.error("Error message:", ocrError instanceof Error ? ocrError.message : String(ocrError));
-      console.error("Error stack:", ocrError instanceof Error ? ocrError.stack : undefined);
-      // Reset status to pending if OCR failed
-      await db
-        .update(paystubs)
-        .set({ ocrStatus: "pending" })
-        .where(eq(paystubs.id, newPaystub.id))
-        .catch(() => {});
+        // OCR is optional, don't fail the upload if it fails
+        console.error("=== OCR PROCESSING ERROR ===");
+        console.error("Error:", ocrError);
+        console.error("Error message:", ocrError instanceof Error ? ocrError.message : String(ocrError));
+        console.error("Error stack:", ocrError instanceof Error ? ocrError.stack : undefined);
+        // Reset status to pending if OCR failed
+        await db
+          .update(paystubs)
+          .set({ ocrStatus: "pending" })
+          .where(eq(paystubs.id, newPaystub.id))
+          .catch(() => {});
       }
     } else {
       console.log("=== OCR DISABLED ===");

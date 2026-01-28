@@ -14,6 +14,8 @@ export function TaxYearProvider({ children }: { children: ReactNode }) {
 
   const setTaxYear = useCallback((year: number) => {
     setTaxYearState(year);
+    // Dispatch event for pages that need to refresh on year change
+    window.dispatchEvent(new CustomEvent('taxYearChanged', { detail: { year } }));
   }, []);
 
   const value = useMemo(() => ({

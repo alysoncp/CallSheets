@@ -24,10 +24,12 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = incomeSchema.parse(body);
 
+    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, ...dbData } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number };
+
     const [updated] = await db
       .update(income)
       .set({
-        ...validatedData,
+        ...dbData,
         updatedAt: new Date(),
       })
       .where(and(eq(income.id, id), eq(income.userId, user.id)))

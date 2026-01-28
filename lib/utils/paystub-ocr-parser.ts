@@ -8,8 +8,11 @@ export interface ParsedPaystubData {
   date?: string;
   gst?: number;
   grossIncome?: number;
+  /** Raw gross pay from stub (EP only); form uses this for entry, stores grossIncome = grossPay - gst */
+  grossPayRaw?: number;
   netIncome?: number;
   deductions?: number;
+  reimbursements?: number;
   productionName?: string;
 }
 
@@ -97,19 +100,25 @@ function extractCCDate(ocrText: string): string | undefined {
 
 /**
  * Extract GST from EP paystub
- * Looks for "G/HST" pattern
+ * Looks for "G/HST", "G/HST (P)", or "GST/HST" patterns
  */
 function extractEPGst(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const gstPattern = /G\/?HST[:\s]*\$?[\s]*(\d+\.?\d*)/i;
-  const match = upperText.match(gstPattern);
+  const patterns = [
+    /G\/HST\s*\(P\)[:\s]*\$?[\s]*(\d+\.?\d*)/i,
+    /GST\/HST[:\s]*\$?[\s]*(\d+\.?\d*)/i,
+    /G\/?HST[:\s]*\$?[\s]*(\d+\.?\d*)/i,
+  ];
 
-  if (match && match[1]) {
-    const amount = parseFloat(match[1]);
-    if (!isNaN(amount) && amount >= 0) {
-      return amount;
+  for (const gstPattern of patterns) {
+    const match = upperText.match(gstPattern);
+    if (match && match[1]) {
+      const amount = parseFloat(match[1]);
+      if (!isNaN(amount) && amount >= 0) {
+        return amount;
+      }
     }
   }
 
@@ -138,10 +147,10 @@ function extractCCGst(ocrText: string): number | undefined {
 }
 
 /**
- * Extract gross income from EP paystub
- * Looks for "GROSS PAY" and subtracts GST
+ * Extract raw gross pay from EP paystub (for form display)
+ * Looks for "GROSS PAY" pattern
  */
-function extractEPGrossIncome(ocrText: string, gst: number = 0): number | undefined {
+function extractEPGrossPayRaw(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
@@ -150,9 +159,8 @@ function extractEPGrossIncome(ocrText: string, gst: number = 0): number | undefi
 
   if (match && match[1]) {
     const amount = parseFloat(match[1]);
-    if (!isNaN(amount) && amount > 0) {
-      // Subtract GST from gross pay
-      return Math.max(0, amount - gst);
+    if (!isNaN(amount) && amount >= 0) {
+      return amount;
     }
   }
 
@@ -160,28 +168,37 @@ function extractEPGrossIncome(ocrText: string, gst: number = 0): number | undefi
 }
 
 /**
- * Extract gross income from CC paystub
- * Looks for "GROSS PAY:" and "REIMBURSEMENTS" and sums them
+ * Extract gross income from EP paystub (Gross Pay - GST, for storage)
+ * Looks for "GROSS PAY" and subtracts GST
  */
-function extractCCGrossIncome(ocrText: string): number | undefined {
-  if (!ocrText) return undefined;
+function extractEPGrossIncome(ocrText: string, gst: number = 0): number | undefined {
+  const raw = extractEPGrossPayRaw(ocrText);
+  if (raw === undefined) return undefined;
+  return Math.max(0, raw - gst);
+}
 
+/**
+ * Extract raw gross pay from CC paystub (for form display)
+ */
+function extractCCGrossPayRaw(ocrText: string): number | undefined {
+  if (!ocrText) return undefined;
   const upperText = ocrText.toUpperCase();
-  
-  // Find GROSS PAY
   const grossPayPattern = /GROSS\s+PAY[:\s]*\$?[\s]*(\d+\.?\d*)/i;
   const grossMatch = upperText.match(grossPayPattern);
   const grossPay = grossMatch && grossMatch[1] ? parseFloat(grossMatch[1]) : 0;
+  return grossPay > 0 ? grossPay : undefined;
+}
 
-  // Find REIMBURSEMENTS
-  const reimbursementPattern = /REIMBURSEMENTS?[:\s]*\$?[\s]*(\d+\.?\d*)/i;
-  const reimbMatch = upperText.match(reimbursementPattern);
-  const reimbursements = reimbMatch && reimbMatch[1] ? parseFloat(reimbMatch[1]) : 0;
-
+/**
+ * Extract gross income from CC paystub (Gross Pay + Reimbursements, for storage)
+ * Looks for "GROSS PAY:" and "REIMBURSEMENTS" and sums them
+ */
+function extractCCGrossIncome(ocrText: string): number | undefined {
+  const grossPay = extractCCGrossPayRaw(ocrText) ?? 0;
+  const reimbursements = extractCCReimbursements(ocrText) ?? 0;
   if (grossPay > 0 || reimbursements > 0) {
     return grossPay + reimbursements;
   }
-
   return undefined;
 }
 
@@ -237,6 +254,27 @@ function extractCCDeductions(ocrText: string): number | undefined {
   const upperText = ocrText.toUpperCase();
   const deductionsPattern = /DEDUCTIONS?[:\s]*\$?[\s]*(\d+\.?\d*)/i;
   const match = upperText.match(deductionsPattern);
+
+  if (match && match[1]) {
+    const amount = parseFloat(match[1]);
+    if (!isNaN(amount) && amount >= 0) {
+      return amount;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract reimbursements from CC paystub
+ * Looks for "REIMBURSEMENTS" pattern
+ */
+function extractCCReimbursements(ocrText: string): number | undefined {
+  if (!ocrText) return undefined;
+
+  const upperText = ocrText.toUpperCase();
+  const reimbursementPattern = /REIMBURSEMENTS?[:\s]*\$?[\s]*(\d+\.?\d*)/i;
+  const match = upperText.match(reimbursementPattern);
 
   if (match && match[1]) {
     const amount = parseFloat(match[1]);
@@ -319,6 +357,7 @@ export function parsePaystubOcr(
     // Parse EP paystub
     result.date = extractEPDate(ocrText);
     result.gst = extractEPGst(ocrText);
+    result.grossPayRaw = extractEPGrossPayRaw(ocrText);
     result.grossIncome = extractEPGrossIncome(ocrText, result.gst || 0);
     result.netIncome = extractNetIncome(ocrText);
     result.deductions = extractEPDeductions(ocrText);
@@ -327,9 +366,11 @@ export function parsePaystubOcr(
     // Parse CC paystub
     result.date = extractCCDate(ocrText);
     result.gst = extractCCGst(ocrText);
+    result.grossPayRaw = extractCCGrossPayRaw(ocrText);
     result.grossIncome = extractCCGrossIncome(ocrText);
     result.netIncome = extractNetIncome(ocrText);
     result.deductions = extractCCDeductions(ocrText);
+    result.reimbursements = extractCCReimbursements(ocrText);
     result.productionName = extractCCProductionName(ocrText);
   } else {
     // Unknown issuer type, try generic patterns

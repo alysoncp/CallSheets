@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { MileageLogEntryDialog } from "@/components/mileage/mileage-log-entry-dialog";
 import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
+import { useTaxYear } from "@/lib/contexts/tax-year-context";
 
 interface MileageLogRecord {
   id: string;
@@ -31,11 +32,24 @@ export function VehicleMileagePageClient({
   vehicles,
 }: VehicleMileagePageClientProps) {
   const router = useRouter();
+  const { taxYear } = useTaxYear();
   const [logs, setLogs] = useState(initialLogs);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<MileageLogRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [mileageLoggingStyle, setMileageLoggingStyle] = useState<"odometer" | "trip_distance">("trip_distance");
+
+  // Filter logs by selected year from context
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      try {
+        const logDate = new Date(log.date);
+        return logDate.getFullYear() === taxYear;
+      } catch {
+        return false;
+      }
+    });
+  }, [logs, taxYear]);
 
   // Fetch user profile for mileage logging style
   useEffect(() => {
@@ -63,6 +77,12 @@ export function VehicleMileagePageClient({
     }
     router.refresh();
   };
+
+  // Refresh logs when tax year changes
+  useEffect(() => {
+    refreshLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxYear]);
 
   const handleSuccess = () => {
     refreshLogs();
@@ -127,10 +147,10 @@ export function VehicleMileagePageClient({
             <CardTitle>Mileage Logs</CardTitle>
           </CardHeader>
           <CardContent>
-            {logs.length === 0 ? (
+            {filteredLogs.length === 0 ? (
               <div className="py-10 text-center">
                 <p className="text-muted-foreground mb-4">
-                  No mileage logs yet. Click Log Mileage to add one.
+                  No mileage logs for {taxYear}. Click Log Mileage to add one.
                 </p>
                 <Button onClick={() => setDialogOpen(true)}>
                   Log Mileage
@@ -138,7 +158,7 @@ export function VehicleMileagePageClient({
               </div>
             ) : (
               <div className="space-y-4">
-                {logs.map((log) => {
+                {filteredLogs.map((log) => {
                   // Get vehicle name - either from joined data or fetch it
                   const vehicle = vehicles.find((v) => v.id === log.vehicleId);
                   const vehicleName = vehicle?.name || "Unknown Vehicle";

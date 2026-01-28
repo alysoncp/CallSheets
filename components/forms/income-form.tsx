@@ -43,9 +43,7 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
       : initialData;
 
   const isUnionProduction = incomeType === "union_production" || mergedData?.incomeType === "union_production";
-  const isFullMember = userUbcpStatus === "full_member";
-  const showOptionalFields = isUnionProduction && isFullMember;
-  const showDuesOnly = isUnionProduction && !isFullMember && userUbcpStatus !== "none";
+  const showOptionalFields = isUnionProduction; // Retirement, Insurance, Pension, Dues for both EP and CC (optional)
   const productionLabel = isUnionProduction ? "Production Name" : "Production / Employer";
 
   const {
@@ -56,32 +54,50 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
     formState: { errors },
   } = useForm<IncomeFormData>({
     resolver: zodResolver(incomeSchema),
-    defaultValues: mergedData,
+    defaultValues: {
+      ...mergedData,
+      paystubIssuer: (mergedData as any)?.paystubIssuer ?? "EP",
+      reimbursements: (mergedData as any)?.reimbursements ?? 0,
+    },
   });
 
-  // Watch for gross income and deductions to calculate net income
-  const grossIncome = watch("grossPay") || 0;
-  const totalDeductions = watch("totalDeductions") || 0;
-  const currentAmount = watch("amount");
-  const netIncome = Math.max(0, Number(grossIncome) - Number(totalDeductions));
+  const paystubIssuer = watch("paystubIssuer") ?? "EP";
+  const isEP = paystubIssuer === "EP";
+  const isCC = paystubIssuer === "CC";
 
-  // Update amount field when net income changes (only if user hasn't manually entered it)
+  // Non-union: net income = gross - deductions
+  const grossPayVal = watch("grossPay") || 0;
+  const totalDeductionsVal = watch("totalDeductions") || 0;
+  const amountVal = watch("amount");
+  const netIncomeNonUnion = Math.max(0, Number(grossPayVal) - Number(totalDeductionsVal));
+
   useEffect(() => {
-    if (netIncome > 0 && (!currentAmount || currentAmount === 0)) {
-      setValue("amount", netIncome);
+    if (!isUnionProduction && netIncomeNonUnion > 0 && (!amountVal || amountVal === 0)) {
+      setValue("amount", netIncomeNonUnion);
     }
-  }, [netIncome, currentAmount, setValue]);
+  }, [isUnionProduction, netIncomeNonUnion, amountVal, setValue]);
 
   const onSubmit = async (data: IncomeFormData) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Calculate net income if not already set
-      const finalData = {
-        ...data,
-        amount: data.amount || Math.max(0, (data.grossPay || 0) - (data.totalDeductions || 0)),
-      };
+      let finalData: IncomeFormData = { ...data };
+      if (isUnionProduction) {
+        const grossPayEntry = Number(data.grossPay) || 0;
+        const gstEntry = Number(data.gstHstCollected) || 0;
+        const netPayEntry = Number(data.amount) || 0;
+        const reimbEntry = Number(data.reimbursements) || 0;
+        if (data.paystubIssuer === "EP") {
+          finalData.grossPay = Math.max(0, grossPayEntry - gstEntry);
+          finalData.amount = netPayEntry;
+        } else if (data.paystubIssuer === "CC") {
+          finalData.grossPay = grossPayEntry + reimbEntry;
+          finalData.amount = netPayEntry;
+        }
+      } else {
+        finalData.amount = data.amount || Math.max(0, (data.grossPay || 0) - (data.totalDeductions || 0));
+      }
 
       const url = initialData?.id
         ? `/api/income/${initialData.id}`
@@ -181,124 +197,252 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
               )}
             </div>
 
-            {/* 4. Net Income (calculated, read-only) */}
-            <div className="space-y-2">
-              <Label htmlFor="amount">Net Income *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={netIncome.toFixed(2)}
-                readOnly
-                className="bg-muted"
-              />
-              <input type="hidden" {...register("amount")} value={netIncome} />
-              <p className="text-xs text-muted-foreground">
-                Calculated: Gross Income - Deductions
-              </p>
-            </div>
+            {/* Union Production: Paystub issuer (EP / CC) */}
+            {isUnionProduction && (
+              <div className="space-y-2">
+                <Label htmlFor="paystubIssuer">Paystub issuer *</Label>
+                <select
+                  id="paystubIssuer"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  {...register("paystubIssuer")}
+                >
+                  <option value="EP">EP (Entertainment Partners)</option>
+                  <option value="CC">CC (Cast and Crew)</option>
+                </select>
+              </div>
+            )}
 
-            {/* 5. Gross Income */}
-            <div className="space-y-2">
-              <Label htmlFor="grossPay">Gross Income *</Label>
-              <Input
-                id="grossPay"
-                type="number"
-                step="0.01"
-                {...register("grossPay")}
-                required
-              />
-              {errors.grossPay && (
-                <p className="text-sm text-destructive">{errors.grossPay.message}</p>
-              )}
-            </div>
+            {/* Non-union: Gross, Deductions, Net (calculated), GST */}
+            {!isUnionProduction && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="grossPay">Gross Income *</Label>
+                  <Input
+                    id="grossPay"
+                    type="number"
+                    step="0.01"
+                    {...register("grossPay")}
+                    required
+                  />
+                  {errors.grossPay && (
+                    <p className="text-sm text-destructive">{errors.grossPay.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="totalDeductions">Deductions *</Label>
+                  <Input
+                    id="totalDeductions"
+                    type="number"
+                    step="0.01"
+                    {...register("totalDeductions")}
+                    required
+                  />
+                  {errors.totalDeductions && (
+                    <p className="text-sm text-destructive">{errors.totalDeductions.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Net Income *</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    value={netIncomeNonUnion.toFixed(2)}
+                    readOnly
+                    className="bg-muted"
+                  />
+                  <input type="hidden" {...register("amount")} value={netIncomeNonUnion} />
+                  <p className="text-xs text-muted-foreground">
+                    Calculated: Gross Income - Deductions
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gstHstCollected">GST *</Label>
+                  <Input
+                    id="gstHstCollected"
+                    type="number"
+                    step="0.01"
+                    {...register("gstHstCollected")}
+                    required
+                  />
+                  {errors.gstHstCollected && (
+                    <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
+                  )}
+                </div>
+              </>
+            )}
 
-            {/* 6. Deductions (single field) */}
-            <div className="space-y-2">
-              <Label htmlFor="totalDeductions">Deductions *</Label>
-              <Input
-                id="totalDeductions"
-                type="number"
-                step="0.01"
-                {...register("totalDeductions")}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Total of CPP + EI + Income Tax
-              </p>
-              {errors.totalDeductions && (
-                <p className="text-sm text-destructive">{errors.totalDeductions.message}</p>
-              )}
-            </div>
+            {/* Union EP: Gross Pay, GST, Total Deductions, Net Pay */}
+            {isUnionProduction && isEP && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="grossPay">Gross Pay *</Label>
+                  <Input
+                    id="grossPay"
+                    type="number"
+                    step="0.01"
+                    {...register("grossPay")}
+                    required
+                  />
+                  {errors.grossPay && (
+                    <p className="text-sm text-destructive">{errors.grossPay.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gstHstCollected">GST *</Label>
+                  <Input
+                    id="gstHstCollected"
+                    type="number"
+                    step="0.01"
+                    {...register("gstHstCollected")}
+                    required
+                  />
+                  {errors.gstHstCollected && (
+                    <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="totalDeductions">Total Deductions *</Label>
+                  <Input
+                    id="totalDeductions"
+                    type="number"
+                    step="0.01"
+                    {...register("totalDeductions")}
+                    required
+                  />
+                  {errors.totalDeductions && (
+                    <p className="text-sm text-destructive">{errors.totalDeductions.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Net Pay *</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    {...register("amount")}
+                    required
+                  />
+                  {errors.amount && (
+                    <p className="text-sm text-destructive">{errors.amount.message}</p>
+                  )}
+                </div>
+              </>
+            )}
 
-            {/* 7. GST */}
-            <div className="space-y-2">
-              <Label htmlFor="gstHstCollected">GST *</Label>
-              <Input
-                id="gstHstCollected"
-                type="number"
-                step="0.01"
-                {...register("gstHstCollected")}
-                required
-              />
-              {errors.gstHstCollected && (
-                <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
-              )}
-            </div>
+            {/* Union CC: Gross Pay, GST, Deductions, Reimbursements, Net Pay */}
+            {isUnionProduction && isCC && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="grossPay">Gross Pay *</Label>
+                  <Input
+                    id="grossPay"
+                    type="number"
+                    step="0.01"
+                    {...register("grossPay")}
+                    required
+                  />
+                  {errors.grossPay && (
+                    <p className="text-sm text-destructive">{errors.grossPay.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gstHstCollected">GST *</Label>
+                  <Input
+                    id="gstHstCollected"
+                    type="number"
+                    step="0.01"
+                    {...register("gstHstCollected")}
+                    required
+                  />
+                  {errors.gstHstCollected && (
+                    <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="totalDeductions">Deductions *</Label>
+                  <Input
+                    id="totalDeductions"
+                    type="number"
+                    step="0.01"
+                    {...register("totalDeductions")}
+                    required
+                  />
+                  {errors.totalDeductions && (
+                    <p className="text-sm text-destructive">{errors.totalDeductions.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reimbursements">Reimbursements</Label>
+                  <Input
+                    id="reimbursements"
+                    type="number"
+                    step="0.01"
+                    {...register("reimbursements")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Net Pay *</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    {...register("amount")}
+                    required
+                  />
+                  {errors.amount && (
+                    <p className="text-sm text-destructive">{errors.amount.message}</p>
+                  )}
+                </div>
+              </>
+            )}
 
-            {/* Optional fields - only for Union Production */}
+            {/* Optional fields - Union Production (Retirement, Insurance, Pension, Dues) */}
             {showOptionalFields && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="retirement">Retirement *</Label>
+                  <Label htmlFor="retirement">Retirement</Label>
                   <Input
                     id="retirement"
                     type="number"
                     step="0.01"
                     {...register("retirement")}
-                    required
                   />
                   {errors.retirement && (
                     <p className="text-sm text-destructive">{errors.retirement.message}</p>
                   )}
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="insurance">Insurance *</Label>
+                  <Label htmlFor="insurance">Insurance</Label>
                   <Input
                     id="insurance"
                     type="number"
                     step="0.01"
                     {...register("insurance")}
-                    required
                   />
                   {errors.insurance && (
                     <p className="text-sm text-destructive">{errors.insurance.message}</p>
                   )}
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="pension">Pension *</Label>
+                  <Label htmlFor="pension">Pension</Label>
                   <Input
                     id="pension"
                     type="number"
                     step="0.01"
                     {...register("pension")}
-                    required
                   />
                   {errors.pension && (
                     <p className="text-sm text-destructive">{errors.pension.message}</p>
                   )}
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="dues">Dues *</Label>
+                  <Label htmlFor="dues">Dues</Label>
                   <Input
                     id="dues"
                     type="number"
                     step="0.01"
                     {...register("dues")}
-                    required
                   />
                   {errors.dues && (
                     <p className="text-sm text-destructive">{errors.dues.message}</p>
@@ -307,18 +451,6 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
               </>
             )}
 
-            {/* Dues only - for Union Production but not Full Member */}
-            {showDuesOnly && (
-              <div className="space-y-2">
-                <Label htmlFor="dues">Dues</Label>
-                <Input
-                  id="dues"
-                  type="number"
-                  step="0.01"
-                  {...register("dues")}
-                />
-              </div>
-            )}
           </div>
 
           <div className="flex gap-4">
