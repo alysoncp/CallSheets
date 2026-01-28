@@ -31,7 +31,7 @@ export function IncomeTypeDialog({
 }: IncomeTypeDialogProps) {
   const handleSelect = (incomeType: IncomeType) => {
     onSelect(incomeType);
-    onOpenChange(false);
+    // Don't close the dialog here - let the parent component handle the state transition
   };
 
   return (

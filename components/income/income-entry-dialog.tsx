@@ -41,9 +41,19 @@ export function IncomeEntryDialog({
   const [enableOcr, setEnableOcr] = useState(true);
   const [userProfile, setUserProfile] = useState<{ ubcpActraStatus?: string } | null>(null);
 
-  // Fetch user profile to get UBCP status
+  // Reset state when dialog opens for a new entry
   useEffect(() => {
     if (open && !initialData?.id) {
+      // Reset all state when opening for a new entry
+      setStep("type");
+      setSelectedIncomeType(null);
+      setEntryMethod(null);
+      setOcrData(null);
+      setUploadedFile(null);
+      setUploadedPaystub(null);
+      setEnableOcr(true);
+      
+      // Fetch user profile to get UBCP status
       fetch("/api/user/profile")
         .then((res) => res.json())
         .then((data) => {

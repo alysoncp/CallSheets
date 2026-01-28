@@ -7,9 +7,10 @@ import { incomeSchema } from "@/lib/validations/income";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -29,7 +30,7 @@ export async function PATCH(
         ...validatedData,
         updatedAt: new Date(),
       })
-      .where(and(eq(income.id, params.id), eq(income.userId, user.id)))
+      .where(and(eq(income.id, id), eq(income.userId, user.id)))
       .returning();
 
     if (!updated) {
@@ -54,9 +55,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -69,7 +71,7 @@ export async function DELETE(
 
     await db
       .delete(income)
-      .where(and(eq(income.id, params.id), eq(income.userId, user.id)));
+      .where(and(eq(income.id, id), eq(income.userId, user.id)));
 
     return NextResponse.json({ success: true });
   } catch (error) {
