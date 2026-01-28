@@ -130,9 +130,7 @@ export function ExpenseList({ initialData, receiptRecords = [], onEdit }: Expens
                               return record.date?.toString() || 'Invalid date';
                             }
                           })()} •{" "}
-                          {record.category.replace(/_/g, " ")} •{" "}
-                          {record.expenseType.replace(/_/g, " ")}
-                          {record.vendor && ` • ${record.vendor}`}
+                          {record.category.replace(/_/g, " ")}
                         </p>
                       </div>
                     </div>

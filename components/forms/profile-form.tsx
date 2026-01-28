@@ -181,6 +181,32 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
         </CardContent>
       </Card>
 
+      {/* UBCP/ACTRA Status Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>UBCP/ACTRA Status</CardTitle>
+          <CardDescription>Your union membership status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="ubcpActraStatus">
+                UBCP/ACTRA Status
+              </Label>
+              <Select id="ubcpActraStatus" {...register("ubcpActraStatus")}>
+                <option value="none">None</option>
+                <option value="background">Background</option>
+                <option value="apprentice">Apprentice</option>
+                <option value="full_member">Full Member</option>
+              </Select>
+              {errors.ubcpActraStatus && (
+                <p className="text-sm text-destructive">{errors.ubcpActraStatus.message}</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tax Information Section */}
       <Card>
         <CardHeader>

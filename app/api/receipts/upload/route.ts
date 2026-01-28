@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { receipts, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiReceiptResult } from "@/lib/veryfi/client";
+import { parseReceiptOcr } from "@/lib/utils/receipt-ocr-parser";
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,13 +114,17 @@ export async function POST(request: NextRequest) {
             .where(eq(receipts.id, newReceipt.id));
 
           // Helper function to transform Veryfi result to expense form format
-          const transformVeryfiToExpense = (veryfiResult: VeryfiReceiptResult) => {
+          const transformVeryfiToExpense = (veryfiResult: VeryfiReceiptResult, ocrText?: string, rawVeryfiData?: any) => {
             // Log the raw Veryfi response
             console.log("Veryfi OCR raw response:", JSON.stringify(veryfiResult, null, 2));
+            console.log("OCR text available:", !!ocrText);
+            
+            // Use OCR parser to extract data from ocr_text if structured data is missing
+            const parsedData = parseReceiptOcr(ocrText, rawVeryfiData || veryfiResult);
             
             // Format date as YYYY-MM-DD for the form
-            const receiptDate = veryfiResult.date 
-              ? new Date(veryfiResult.date).toISOString().split('T')[0]
+            const receiptDate = parsedData.date || veryfiResult.date 
+              ? new Date(parsedData.date || veryfiResult.date).toISOString().split('T')[0]
               : new Date().toISOString().split('T')[0];
             
             // Map line items to description
@@ -129,10 +134,10 @@ export async function POST(request: NextRequest) {
               .join(', ') || "";
             
             return {
-              title: veryfiResult.vendor?.name || "Receipt",
-              vendor: veryfiResult.vendor?.name || "",
-              amount: veryfiResult.total || 0,
-              gstAmount: veryfiResult.tax || 0,
+              title: parsedData.vendor || veryfiResult.vendor?.name || "Receipt",
+              vendor: parsedData.vendor || veryfiResult.vendor?.name || "",
+              amount: parsedData.total || veryfiResult.total || 0,
+              gstAmount: parsedData.gst || veryfiResult.tax || 0,
               date: receiptDate,
               description: description,
             };
@@ -153,8 +158,12 @@ export async function POST(request: NextRequest) {
               // Log the full Veryfi response
               console.log("Veryfi OCR result received:", JSON.stringify(veryfiResult, null, 2));
               
-              // Transform to expense form format
-              ocrResult = transformVeryfiToExpense(veryfiResult);
+              // Transform to expense form format, using OCR text fallback if needed
+              ocrResult = transformVeryfiToExpense(
+                veryfiResult, 
+                veryfiResult.ocr_text, 
+                veryfiResult.raw_data
+              );
               
               // Log the transformed result
               console.log("OCR result transformed for form:", JSON.stringify(ocrResult, null, 2));

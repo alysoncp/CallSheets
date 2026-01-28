@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,11 +10,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { IncomeForm } from "@/components/forms/income-form";
+import { IncomeTypeDialog } from "@/components/income/income-type-dialog";
 import { Upload, Camera, FileText, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import type { IncomeType } from "@/lib/validations/expense-categories";
 
 type EntryMethod = "upload" | "camera" | "manual" | null;
+type DialogStep = "type" | "method" | "upload" | "form";
 
 interface IncomeEntryDialogProps {
   open: boolean;
@@ -27,16 +31,51 @@ export function IncomeEntryDialog({
   onOpenChange,
   initialData,
 }: IncomeEntryDialogProps) {
+  const [step, setStep] = useState<DialogStep>("type");
+  const [selectedIncomeType, setSelectedIncomeType] = useState<IncomeType | null>(null);
   const [entryMethod, setEntryMethod] = useState<EntryMethod>(null);
   const [uploading, setUploading] = useState(false);
   const [ocrData, setOcrData] = useState<any>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedPaystub, setUploadedPaystub] = useState<{ id: string; imageUrl: string } | null>(null);
+  const [enableOcr, setEnableOcr] = useState(true);
+  const [userProfile, setUserProfile] = useState<{ ubcpActraStatus?: string } | null>(null);
+
+  // Fetch user profile to get UBCP status
+  useEffect(() => {
+    if (open && !initialData?.id) {
+      fetch("/api/user/profile")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && !data.error) {
+            setUserProfile({
+              ubcpActraStatus: data.ubcpActraStatus || "none",
+            });
+          }
+        })
+        .catch(() => {
+          // Silently fail
+        });
+    }
+  }, [open, initialData]);
+
+  const handleIncomeTypeSelect = (incomeType: IncomeType) => {
+    setSelectedIncomeType(incomeType);
+    setStep("method");
+    // Reset OCR toggle based on income type
+    setEnableOcr(incomeType === "union_production");
+  };
+
+  const handleEntryMethodSelect = (method: EntryMethod) => {
+    setEntryMethod(method);
+    if (method === "manual") {
+      setStep("form");
+    } else {
+      setStep("upload");
+    }
+  };
 
   const handleFileSelect = async (file: File) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:36',message:'handleFileSelect entry',data:{fileName:file.name,fileSize:file.size,fileType:file.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-    // #endregion
     setUploading(true);
     setUploadedFile(file);
 
@@ -44,57 +83,32 @@ export function IncomeEntryDialog({
       const formData = new FormData();
       formData.append("file", file);
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:45',message:'Starting fetch to /api/paystubs/upload',data:{hasFile:!!file},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-      // #endregion
-
       const response = await fetch("/api/paystubs/upload", {
         method: "POST",
         body: formData,
       });
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:52',message:'Fetch response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-      // #endregion
-
       if (response.ok) {
         const data = await response.json();
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:61',message:'Response OK, data parsed',data:{hasId:!!data.id,hasImageUrl:!!data.imageUrl,hasOcrResult:!!data.ocrResult,dataKeys:Object.keys(data),ocrResult:data.ocrResult,ocrResultKeys:data.ocrResult?Object.keys(data.ocrResult):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-        // #endregion
         
         // Store paystub data (including imageUrl)
         if (data.id && data.imageUrl) {
           setUploadedPaystub({ id: data.id, imageUrl: data.imageUrl });
         }
         
-        // If OCR is available, process it
-        if (data.ocrResult) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:75',message:'Setting OCR data',data:{ocrResult:data.ocrResult,ocrResultKeys:Object.keys(data.ocrResult)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-          // #endregion
+        // If OCR is enabled and available, process it
+        if (enableOcr && data.ocrResult) {
           setOcrData(data.ocrResult);
-        } else {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:79',message:'No OCR result in response',data:{dataKeys:Object.keys(data)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-          // #endregion
         }
         
-        // Proceed to form with OCR data
-        setEntryMethod("manual");
+        // Proceed to form
+        setStep("form");
       } else {
         const errorText = await response.text().catch(() => '');
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:68',message:'Response not OK',data:{status:response.status,errorText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-        // #endregion
         throw new Error("Failed to upload paystub");
       }
     } catch (error) {
       console.error("Error uploading paystub:", error);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:72',message:'Catch block executed',data:{errorMessage:error instanceof Error?error.message:String(error),errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-      // #endregion
       alert("Failed to upload paystub. Please try again.");
     } finally {
       setUploading(false);
@@ -102,11 +116,9 @@ export function IncomeEntryDialog({
   };
 
   const handleCameraCapture = async () => {
-    // For now, use file input with capture attribute
-    // In a real app, you'd use the camera API
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "image/*";
+    input.accept = "image/*,.pdf";
     input.capture = "environment";
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -118,10 +130,13 @@ export function IncomeEntryDialog({
   };
 
   const handleReset = () => {
+    setStep("type");
+    setSelectedIncomeType(null);
     setEntryMethod(null);
     setOcrData(null);
     setUploadedFile(null);
     setUploadedPaystub(null);
+    setEnableOcr(true);
   };
 
   const handleClose = (open: boolean) => {
@@ -146,14 +161,91 @@ export function IncomeEntryDialog({
             initialData={initialData}
             onSuccess={() => handleClose(false)}
             ocrData={null}
+            incomeType={initialData.incomeType}
+            userUbcpStatus={userProfile?.ubcpActraStatus}
           />
         </DialogContent>
       </Dialog>
     );
   }
 
-  // If entry method selected and not manual, show upload/camera interface
-  if (entryMethod === "upload" || entryMethod === "camera") {
+  // Step 1: Income Type Selection
+  if (step === "type") {
+    return (
+      <IncomeTypeDialog
+        open={open}
+        onOpenChange={handleClose}
+        onSelect={handleIncomeTypeSelect}
+      />
+    );
+  }
+
+  // Step 2: Entry Method Selection
+  if (step === "method") {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Income</DialogTitle>
+            <DialogDescription>
+              Choose how you want to add this income record
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto py-4"
+              onClick={() => handleEntryMethodSelect("upload")}
+            >
+              <Upload className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-medium">Upload Paystub</div>
+                <div className="text-sm text-muted-foreground">
+                  Upload an image or PDF of your paystub
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto py-4"
+              onClick={() => handleEntryMethodSelect("camera")}
+            >
+              <Camera className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-medium">Take Picture</div>
+                <div className="text-sm text-muted-foreground">
+                  Capture a photo of your paystub
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto py-4"
+              onClick={() => handleEntryMethodSelect("manual")}
+            >
+              <FileText className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-medium">Manual Entry</div>
+                <div className="text-sm text-muted-foreground">
+                  Enter income details manually
+                </div>
+              </div>
+            </Button>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" onClick={handleReset} className="flex-1">
+              Back
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Step 3: Upload/Camera Interface
+  if (step === "upload") {
+    const isUnionProduction = selectedIncomeType === "union_production";
+    
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-md">
@@ -163,18 +255,35 @@ export function IncomeEntryDialog({
             </DialogTitle>
             <DialogDescription>
               {entryMethod === "upload"
-                ? "Select a paystub image to upload"
+                ? "Select a paystub image or PDF to upload"
                 : "Capture a photo of your paystub"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* OCR Toggle - only for Union Production */}
+            {isUnionProduction && (
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enable-ocr">Enable OCR Processing</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically extract data from paystub
+                  </p>
+                </div>
+                <Switch
+                  id="enable-ocr"
+                  checked={enableOcr}
+                  onCheckedChange={setEnableOcr}
+                />
+              </div>
+            )}
+
             {entryMethod === "upload" && (
               <div className="space-y-2">
-                <Label htmlFor="file-upload">Select Paystub Image</Label>
+                <Label htmlFor="file-upload">Select Paystub</Label>
                 <Input
                   id="file-upload"
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.pdf"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -215,7 +324,7 @@ export function IncomeEntryDialog({
               </div>
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleReset} className="flex-1">
+              <Button variant="outline" onClick={() => setStep("method")} className="flex-1">
                 Back
               </Button>
             </div>
@@ -225,8 +334,11 @@ export function IncomeEntryDialog({
     );
   }
 
-  // If manual entry or OCR data ready, show form
-  if (entryMethod === "manual" || ocrData) {
+  // Step 4: Income Form
+  if (step === "form") {
+    const isUnionProduction = selectedIncomeType === "union_production";
+    const isFullMember = userProfile?.ubcpActraStatus === "full_member";
+    
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -239,76 +351,19 @@ export function IncomeEntryDialog({
             </DialogDescription>
           </DialogHeader>
           <IncomeForm
-            initialData={ocrData ? (() => {
-              // #region agent log
-              const initialDataValue = { 
-                ...ocrData, 
-                paystubImageUrl: uploadedPaystub?.imageUrl || "",
-              };
-              fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'income-entry-dialog.tsx:207',message:'Passing initialData to IncomeForm',data:{ocrData,initialDataValue,initialDataKeys:Object.keys(initialDataValue),hasUploadedPaystub:!!uploadedPaystub},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'K'})}).catch(()=>{});
-              // #endregion
-              return initialDataValue;
-            })() : undefined}
+            initialData={ocrData ? {
+              ...ocrData,
+              paystubImageUrl: uploadedPaystub?.imageUrl || "",
+            } : undefined}
             onSuccess={() => handleClose(false)}
             ocrData={ocrData}
+            incomeType={selectedIncomeType || undefined}
+            userUbcpStatus={userProfile?.ubcpActraStatus}
           />
         </DialogContent>
       </Dialog>
     );
   }
 
-  // Initial state: show entry method selection
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Income</DialogTitle>
-          <DialogDescription>
-            Choose how you want to add this income record
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            className="w-full justify-start h-auto py-4"
-            onClick={() => setEntryMethod("upload")}
-          >
-            <Upload className="mr-3 h-5 w-5" />
-            <div className="text-left">
-              <div className="font-medium">Upload Paystub</div>
-              <div className="text-sm text-muted-foreground">
-                Upload an image of your paystub
-              </div>
-            </div>
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start h-auto py-4"
-            onClick={() => setEntryMethod("camera")}
-          >
-            <Camera className="mr-3 h-5 w-5" />
-            <div className="text-left">
-              <div className="font-medium">Take Picture</div>
-              <div className="text-sm text-muted-foreground">
-                Capture a photo of your paystub
-              </div>
-            </div>
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start h-auto py-4"
-            onClick={() => setEntryMethod("manual")}
-          >
-            <FileText className="mr-3 h-5 w-5" />
-            <div className="text-left">
-              <div className="font-medium">Manual Entry</div>
-              <div className="text-sm text-muted-foreground">
-                Enter income details manually
-              </div>
-            </div>
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  return null;
 }

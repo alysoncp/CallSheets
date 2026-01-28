@@ -14,6 +14,8 @@ export interface VeryfiReceiptResult {
   tax: number;
   date: string;
   currency_code: string;
+  ocr_text?: string;
+  raw_data?: any;
 }
 
 export interface VeryfiPaystubResult {
@@ -27,6 +29,8 @@ export interface VeryfiPaystubResult {
     income_tax: number;
   };
   pay_period: string;
+  ocr_text?: string;
+  raw_data?: any;
 }
 
 export class VeryfiClient {
@@ -99,6 +103,7 @@ export class VeryfiClient {
     console.log("Veryfi Receipt OCR raw response:", JSON.stringify(data, null, 2));
     console.log("Response keys:", Object.keys(data));
     console.log("OCR text:", data.ocr_text || "NOT PRESENT");
+    console.log("OCR text length:", data.ocr_text?.length || 0);
     console.log("Vendor:", data.vendor);
     console.log("Total:", data.total);
     console.log("Tax:", data.tax);
@@ -118,6 +123,8 @@ export class VeryfiClient {
       tax: data.tax || 0,
       date: data.date || new Date().toISOString(),
       currency_code: data.currency_code || "CAD",
+      ocr_text: data.ocr_text, // Include OCR text for fallback parsing
+      raw_data: data, // Include raw data for fallback parsing
     };
     
     console.log("=== MAPPED RECEIPT RESULT ===");
@@ -213,13 +220,15 @@ export class VeryfiClient {
         income_tax: data.deductions?.income_tax || data.deductions?.tax || 0,
       },
       pay_period: data.pay_period || data.period || data.date || new Date().toISOString(),
+      ocr_text: data.ocr_text, // Include OCR text for fallback parsing
+      raw_data: data, // Include raw data for fallback parsing
     };
     
     console.log("=== MAPPED PAYSTUB RESULT ===");
     console.log("Mapped result:", JSON.stringify(mappedResult, null, 2));
     
     // #region agent log
-    await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'veryfi/client.ts:143',message:'Veryfi Paystub OCR mapped result',data:{mappedResult},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+    await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'veryfi/client.ts:143',message:'Veryfi Paystub OCR mapped result',data:{mappedResult,hasOcrText:!!mappedResult.ocr_text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
     // #endregion
     
     return mappedResult;

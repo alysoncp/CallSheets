@@ -138,15 +138,10 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
                     <div className="flex items-center gap-4">
                       <div>
                         <p className="font-medium">
-                          {record.description ||
-                            record.productionName ||
-                            record.employerName ||
-                            INCOME_TYPES.find((t) => t === record.incomeType) ||
-                            "Income"}
+                          {record.productionName || "Income"}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {format(parseISO(record.date), "MMM dd, yyyy")} •{" "}
-                          {record.incomeType.replace(/_/g, " ")}
+                          {format(parseISO(record.date), "MMM dd, yyyy")}
                         </p>
                       </div>
                     </div>

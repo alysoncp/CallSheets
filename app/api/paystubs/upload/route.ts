@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { paystubs, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiPaystubResult } from "@/lib/veryfi/client";
+import { parsePaystubOcr } from "@/lib/utils/paystub-ocr-parser";
 
 export async function POST(request: NextRequest) {
   console.log("=== PAYSTUB UPLOAD ROUTE CALLED ===");
@@ -185,21 +186,33 @@ export async function POST(request: NextRequest) {
             .where(eq(paystubs.id, newPaystub.id));
 
           // Helper function to transform Veryfi result to income form format
-          const transformVeryfiToIncome = (veryfiResult: VeryfiPaystubResult) => {
+          const transformVeryfiToIncome = (veryfiResult: VeryfiPaystubResult, ocrText?: string, rawVeryfiData?: any) => {
+            // Use OCR parser to extract data from ocr_text if structured data is missing
+            const parsedData = parsePaystubOcr(ocrText, rawVeryfiData || veryfiResult);
+            
             // Format pay period date as YYYY-MM-DD for the form
-            const payPeriodDate = veryfiResult.pay_period 
-              ? new Date(veryfiResult.pay_period).toISOString().split('T')[0]
+            const payPeriodDate = parsedData.date || veryfiResult.pay_period 
+              ? new Date(parsedData.date || veryfiResult.pay_period).toISOString().split('T')[0]
               : new Date().toISOString().split('T')[0];
+            
+            // Calculate total deductions
+            const totalDeductions = parsedData.deductions || 
+              ((veryfiResult.deductions?.cpp || 0) + 
+               (veryfiResult.deductions?.ei || 0) + 
+               (veryfiResult.deductions?.income_tax || 0));
             
             // Map to income form field names
             return {
-              employerName: veryfiResult.employer || "",
-              grossPay: veryfiResult.gross_pay || 0,
-              amount: veryfiResult.net_pay || veryfiResult.gross_pay || 0, // Use net pay as amount, fallback to gross
+              productionName: parsedData.productionName || veryfiResult.employer || "",
+              grossPay: parsedData.grossIncome || veryfiResult.gross_pay || 0,
+              amount: parsedData.netIncome || veryfiResult.net_pay || 0, // Net income
               date: payPeriodDate,
-              cppContribution: veryfiResult.deductions.cpp || 0,
-              eiContribution: veryfiResult.deductions.ei || 0,
-              incomeTaxDeduction: veryfiResult.deductions.income_tax || 0,
+              totalDeductions: totalDeductions,
+              gstHstCollected: parsedData.gst || 0,
+              // Keep individual deductions for backward compatibility
+              cppContribution: veryfiResult.deductions?.cpp || 0,
+              eiContribution: veryfiResult.deductions?.ei || 0,
+              incomeTaxDeduction: veryfiResult.deductions?.income_tax || 0,
             };
           };
 
@@ -232,13 +245,19 @@ export async function POST(request: NextRequest) {
               
               console.log("=== VERYFI RESULT RECEIVED ===");
               console.log("Veryfi result:", JSON.stringify(veryfiResult, null, 2));
+              console.log("OCR text available:", !!veryfiResult.ocr_text);
+              console.log("OCR text length:", veryfiResult.ocr_text?.length || 0);
               
               // #region agent log
-              await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:163',message:'Veryfi result received from client',data:{veryfiResult},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+              await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:163',message:'Veryfi result received from client',data:{veryfiResult,hasOcrText:!!veryfiResult.ocr_text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
               // #endregion
               
-              // Transform to income form format
-              ocrResult = transformVeryfiToIncome(veryfiResult);
+              // Transform to income form format, using OCR text parser if available
+              ocrResult = transformVeryfiToIncome(
+                veryfiResult,
+                veryfiResult.ocr_text,
+                veryfiResult.raw_data
+              );
               
               console.log("=== OCR RESULT TRANSFORMED ===");
               console.log("Transformed OCR result:", JSON.stringify(ocrResult, null, 2));
@@ -278,9 +297,11 @@ export async function POST(request: NextRequest) {
                 income_tax: 0,
               },
               pay_period: new Date().toISOString(),
+              ocr_text: undefined,
+              raw_data: undefined,
             };
             
-            ocrResult = transformVeryfiToIncome(veryfiPlaceholder);
+            ocrResult = transformVeryfiToIncome(veryfiPlaceholder, undefined, undefined);
             
             console.log("Placeholder OCR result:", JSON.stringify(ocrResult, null, 2));
             

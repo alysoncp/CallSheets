@@ -128,6 +128,20 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
+            {/* 1. Title */}
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                {...register("title")}
+                required
+              />
+              {errors.title && (
+                <p className="text-sm text-destructive">{errors.title.message}</p>
+              )}
+            </div>
+
+            {/* 2. Date */}
             <div className="space-y-2">
               <Label htmlFor="date">Date *</Label>
               <Input
@@ -141,32 +155,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                {...register("amount")}
-                required
-              />
-              {errors.amount && (
-                <p className="text-sm text-destructive">{errors.amount.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                {...register("title")}
-                required
-              />
-              {errors.title && (
-                <p className="text-sm text-destructive">{errors.title.message}</p>
-              )}
-            </div>
-
+            {/* 3. Expense Type */}
             <div className="space-y-2">
               <Label htmlFor="expenseType">Expense Type *</Label>
               <Select id="expenseType" {...register("expenseType")} required>
@@ -184,6 +173,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               )}
             </div>
 
+            {/* 4. Expense Category */}
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
               <Select 
@@ -204,6 +194,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               )}
             </div>
 
+            {/* 5. Business Percentage (conditional - only for "mixed") */}
             {expenseType === "mixed" && (
               <div className="space-y-2">
                 <Label htmlFor="businessUsePercentage">Business Use Percentage</Label>
@@ -239,6 +230,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               </div>
             )}
 
+            {/* 6. Vendor */}
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor</Label>
               <Input
@@ -247,21 +239,38 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="gstAmount">GST Amount (if paid)</Label>
-              <Input
-                id="gstAmount"
-                type="number"
-                step="0.01"
-                {...register("gstAmount")}
-              />
-            </div>
-
+            {/* 7. Description */}
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="description">Description</Label>
               <Input
                 id="description"
                 {...register("description")}
+              />
+            </div>
+
+            {/* 8. Total */}
+            <div className="space-y-2">
+              <Label htmlFor="amount">Total *</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                {...register("amount")}
+                required
+              />
+              {errors.amount && (
+                <p className="text-sm text-destructive">{errors.amount.message}</p>
+              )}
+            </div>
+
+            {/* 9. GST */}
+            <div className="space-y-2">
+              <Label htmlFor="gstAmount">GST</Label>
+              <Input
+                id="gstAmount"
+                type="number"
+                step="0.01"
+                {...register("gstAmount")}
               />
             </div>
           </div>

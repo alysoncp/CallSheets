@@ -27,6 +27,7 @@ export const users = pgTable("users", {
   enabledExpenseCategories: jsonb("enabled_expense_categories").$type<string[]>(),
   mileageLoggingStyle: text("mileage_logging_style").$type<"trip_distance" | "odometer">().default("trip_distance"),
   trackPersonalExpenses: boolean("track_personal_expenses").default(true),
+  ubcpActraStatus: text("ubcp_actra_status").$type<"none" | "background" | "apprentice" | "full_member">().default("none"),
   ocrRequestsThisMonth: integer("ocr_requests_this_month").default(0),
   lastOcrReset: timestamp("last_ocr_reset"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

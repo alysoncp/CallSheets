@@ -23,6 +23,7 @@ export const userProfileSchema = z
     enabledExpenseCategories: z.array(z.string()).nullish(),
     mileageLoggingStyle: z.enum(["trip_distance", "odometer"]).nullish(),
     trackPersonalExpenses: z.boolean().nullish(),
+    ubcpActraStatus: z.enum(["none", "background", "apprentice", "full_member"]).nullish(),
   })
   .refine(
     (data) => {
