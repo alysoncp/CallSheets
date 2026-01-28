@@ -6,7 +6,6 @@ import { PaystubsExportDialog } from "@/components/paystubs/paystubs-export-dial
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 import { Button } from "@/components/ui/button";
 import { FileDown, Plus } from "lucide-react";
-import { DialogTrigger } from "@/components/ui/dialog";
 
 interface PaystubRecord {
   id: string;
@@ -47,12 +46,10 @@ export function PaystubsPageClient({ initialPaystubs }: PaystubsPageClientProps)
             <FileDown className="mr-2 h-4 w-4" />
             Export to PDF
           </Button>
-          <DialogTrigger asChild>
-            <Button onClick={() => setUploadDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Upload Paystub
-            </Button>
-          </DialogTrigger>
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Income
+          </Button>
         </div>
       </div>
       <PaystubsGrid
@@ -72,6 +69,7 @@ export function PaystubsPageClient({ initialPaystubs }: PaystubsPageClientProps)
             refreshPaystubs();
           }
         }}
+        onPaystubUploaded={refreshPaystubs}
       />
     </div>
   );

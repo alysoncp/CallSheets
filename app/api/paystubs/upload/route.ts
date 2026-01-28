@@ -141,12 +141,13 @@ export async function POST(request: NextRequest) {
     console.log("New paystub created:", newPaystub?.id);
     console.log("Public URL:", publicUrl);
     
-    // Try to process OCR automatically (non-blocking)
+    // Try to process OCR automatically (non-blocking) - only if enabled
     let ocrResult = null;
-    try {
-      console.log("=== STARTING OCR PROCESSING ===");
-      console.log("Entered try block");
-      // Check user's subscription tier and OCR limits
+    if (enableOcr) {
+      try {
+        console.log("=== STARTING OCR PROCESSING ===");
+        console.log("OCR is enabled, processing...");
+        // Check user's subscription tier and OCR limits
       const [userProfile] = await db
         .select()
         .from(users)
@@ -310,34 +311,35 @@ export async function POST(request: NextRequest) {
             // #endregion
           }
 
-          // Update paystub with OCR result
-          await db
-            .update(paystubs)
-            .set({
-              ocrStatus: "completed",
-              ocrResult: ocrResult as any,
-              ocrProcessedAt: new Date(),
-            })
-            .where(eq(paystubs.id, newPaystub.id));
+          // Update paystub with OCR result (only if OCR was processed)
+          if (ocrResult) {
+            await db
+              .update(paystubs)
+              .set({
+                ocrStatus: "completed",
+                ocrResult: ocrResult as any,
+                ocrProcessedAt: new Date(),
+              })
+              .where(eq(paystubs.id, newPaystub.id));
 
-          // Increment OCR request count
-          await db
-            .update(users)
-            .set({
-              ocrRequestsThisMonth: (userProfile.ocrRequestsThisMonth || 0) + 1,
-            })
-            .where(eq(users.id, user.id));
+            // Increment OCR request count
+            await db
+              .update(users)
+              .set({
+                ocrRequestsThisMonth: (userProfile.ocrRequestsThisMonth || 0) + 1,
+              })
+              .where(eq(users.id, user.id));
+          } else {
+            // OCR limit reached
+            console.log("=== OCR LIMIT REACHED ===");
+            console.log("OCR requests this month:", userProfile.ocrRequestsThisMonth);
+            console.log("Limit:", limit);
+          }
         } else {
-          // OCR limit reached
-          console.log("=== OCR LIMIT REACHED ===");
-          console.log("OCR requests this month:", userProfile.ocrRequestsThisMonth);
-          console.log("Limit:", limit);
+          console.log("=== USER PROFILE NOT FOUND ===");
+          console.log("Skipping OCR processing");
         }
-      } else {
-        console.log("=== USER PROFILE NOT FOUND ===");
-        console.log("Skipping OCR processing");
-      }
-    } catch (ocrError) {
+      } catch (ocrError) {
       // OCR is optional, don't fail the upload if it fails
       console.error("=== OCR PROCESSING ERROR ===");
       console.error("Error:", ocrError);
@@ -349,6 +351,10 @@ export async function POST(request: NextRequest) {
         .set({ ocrStatus: "pending" })
         .where(eq(paystubs.id, newPaystub.id))
         .catch(() => {});
+      }
+    } else {
+      console.log("=== OCR DISABLED ===");
+      console.log("Skipping OCR processing as requested by user");
     }
 
     console.log("=== AFTER OCR PROCESSING BLOCK ===");

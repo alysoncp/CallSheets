@@ -18,9 +18,10 @@ interface IncomeFormProps {
   ocrData?: any;
   incomeType?: IncomeType;
   userUbcpStatus?: string;
+  paystubId?: string;
 }
 
-export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUbcpStatus }: IncomeFormProps) {
+export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUbcpStatus, paystubId }: IncomeFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +93,10 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(finalData),
+        body: JSON.stringify({
+          ...finalData,
+          paystubId: paystubId, // Include paystub ID to link it
+        }),
       });
 
       if (!response.ok) {

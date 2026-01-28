@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { income } from "@/lib/db/schema";
+import { income, paystubs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { incomeSchema } from "@/lib/validations/income";
 
@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const validatedData = incomeSchema.parse(body);
+    const { paystubId, ...incomeData } = body;
+    const validatedData = incomeSchema.parse(incomeData);
 
     const [newIncome] = await db
       .insert(income)
@@ -62,6 +63,14 @@ export async function POST(request: NextRequest) {
         ...validatedData,
       })
       .returning();
+
+    // Link paystub to income if paystubId is provided
+    if (paystubId && newIncome) {
+      await db
+        .update(paystubs)
+        .set({ linkedIncomeId: newIncome.id })
+        .where(eq(paystubs.id, paystubId));
+    }
 
     return NextResponse.json(newIncome, { status: 201 });
   } catch (error) {

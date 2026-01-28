@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { Pencil, Trash2, Eye } from "lucide-react";
+import Image from "next/image";
 import { INCOME_TYPES } from "@/lib/validations/expense-categories";
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 import { ImageViewDialog } from "@/components/ui/image-view-dialog";
@@ -136,6 +137,22 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-4">
+                      {getPaystubImageUrl(record) && (
+                        <div className="relative w-16 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
+                          <Image
+                            src={getPaystubImageUrl(record)!}
+                            alt="Paystub thumbnail"
+                            fill
+                            className="object-cover cursor-pointer"
+                            onClick={() => handleViewPaystub(record)}
+                            unoptimized
+                            onError={(e) => {
+                              console.error("Error loading paystub thumbnail:", getPaystubImageUrl(record));
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
                       <div>
                         <p className="font-medium">
                           {record.productionName || "Income"}

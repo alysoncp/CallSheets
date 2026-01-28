@@ -7,7 +7,6 @@ import { Trash2, Upload, Receipt, Pencil } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
-import { DialogTrigger } from "@/components/ui/dialog";
 import { ImageViewDialog } from "@/components/ui/image-view-dialog";
 
 interface ReceiptRecord {
@@ -92,11 +91,9 @@ export function ReceiptsGrid({ initialData, onReceiptsUpdated }: ReceiptsGridPro
           <CardContent className="py-20 text-center">
             <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">No receipts uploaded yet.</p>
-            <DialogTrigger asChild>
-              <Button onClick={() => setDialogOpen(true)}>
-                Upload Your First Receipt
-              </Button>
-            </DialogTrigger>
+            <Button onClick={() => setDialogOpen(true)}>
+              Add Your First Expense
+            </Button>
           </CardContent>
         </Card>
         <ExpenseEntryDialog
@@ -109,14 +106,6 @@ export function ReceiptsGrid({ initialData, onReceiptsUpdated }: ReceiptsGridPro
 
   return (
     <>
-      <div className="mb-4">
-        <DialogTrigger asChild>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Receipt
-          </Button>
-        </DialogTrigger>
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {receipts.map((receipt) => (
           <Card key={receipt.id} className="overflow-hidden">
@@ -135,6 +124,10 @@ export function ReceiptsGrid({ initialData, onReceiptsUpdated }: ReceiptsGridPro
                 fill
                 className="object-cover"
                 unoptimized
+                onError={(e) => {
+                  console.error("Error loading receipt image:", receipt.imageUrl);
+                  e.currentTarget.src = "/placeholder-image.png";
+                }}
               />
             </div>
             <CardContent className="p-4">

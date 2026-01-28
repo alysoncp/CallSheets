@@ -30,6 +30,7 @@ export function IncomeEntryDialog({
   open,
   onOpenChange,
   initialData,
+  onPaystubUploaded,
 }: IncomeEntryDialogProps) {
   const [step, setStep] = useState<DialogStep>("type");
   const [selectedIncomeType, setSelectedIncomeType] = useState<IncomeType | null>(null);
@@ -92,6 +93,7 @@ export function IncomeEntryDialog({
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("enableOcr", enableOcr ? "true" : "false");
 
       const response = await fetch("/api/paystubs/upload", {
         method: "POST",
@@ -104,11 +106,17 @@ export function IncomeEntryDialog({
         // Store paystub data (including imageUrl)
         if (data.id && data.imageUrl) {
           setUploadedPaystub({ id: data.id, imageUrl: data.imageUrl });
+          // Notify parent that paystub was uploaded
+          if (onPaystubUploaded) {
+            onPaystubUploaded();
+          }
         }
         
-        // If OCR is enabled and available, process it
+        // If OCR is enabled and available, process it; otherwise clear ocrData
         if (enableOcr && data.ocrResult) {
           setOcrData(data.ocrResult);
+        } else {
+          setOcrData(null); // Clear OCR data if disabled
         }
         
         // Proceed to form
@@ -364,11 +372,14 @@ export function IncomeEntryDialog({
             initialData={ocrData ? {
               ...ocrData,
               paystubImageUrl: uploadedPaystub?.imageUrl || "",
+            } : uploadedPaystub ? {
+              paystubImageUrl: uploadedPaystub.imageUrl,
             } : undefined}
             onSuccess={() => handleClose(false)}
             ocrData={ocrData}
             incomeType={selectedIncomeType || undefined}
             userUbcpStatus={userProfile?.ubcpActraStatus}
+            paystubId={uploadedPaystub?.id}
           />
         </DialogContent>
       </Dialog>

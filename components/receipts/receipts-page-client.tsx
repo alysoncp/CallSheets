@@ -6,7 +6,6 @@ import { ReceiptsExportDialog } from "@/components/receipts/receipts-export-dial
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
 import { Button } from "@/components/ui/button";
 import { FileDown, Plus } from "lucide-react";
-import { DialogTrigger } from "@/components/ui/dialog";
 
 interface ReceiptRecord {
   id: string;
@@ -48,12 +47,10 @@ export function ReceiptsPageClient({ initialReceipts }: ReceiptsPageClientProps)
             <FileDown className="mr-2 h-4 w-4" />
             Export to PDF
           </Button>
-          <DialogTrigger asChild>
-            <Button onClick={() => setUploadDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Upload Receipt
-            </Button>
-          </DialogTrigger>
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Expense
+          </Button>
         </div>
       </div>
       <ReceiptsGrid
