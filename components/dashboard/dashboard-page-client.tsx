@@ -10,6 +10,22 @@ import { MonthlyChart } from "@/components/charts/monthly-chart";
 import { ExpenseCategoryChart } from "@/components/charts/expense-category-chart";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";
 
+const INCOME_TYPE_LABELS: Record<string, string> = {
+  union_production: "Union Production",
+  non_union_production: "Non-Union Production",
+  royalty_residual: "Royalty/Residual",
+  cash: "Cash",
+};
+
+function getIncomeDisplayName(item: { productionName?: string | null; description?: string | null; incomeType?: string }, maxWords = 6) {
+  let name: string;
+  if (item.productionName?.trim()) name = item.productionName.trim();
+  else if (item.description?.trim()) name = item.description.trim();
+  else name = INCOME_TYPE_LABELS[item.incomeType ?? ""] ?? item.incomeType ?? "Income";
+  const words = name.split(/\s+/);
+  return words.length <= maxWords ? name : words.slice(0, maxWords).join(" ") + (words.length > maxWords ? "…" : "");
+}
+
 interface DashboardData {
   totalIncome: number;
   totalExpenses: number;
@@ -198,7 +214,7 @@ export function DashboardPageClient({ allData }: DashboardPageClientProps) {
                         key={item.id}
                         className="flex items-center justify-between text-sm"
                       >
-                        <span>{item.description || item.incomeType}</span>
+                        <span>{getIncomeDisplayName(item)}</span>
                         <span className="font-medium text-green-600">
                           ${Number(item.amount).toLocaleString("en-CA", {
                             minimumFractionDigits: 2,
