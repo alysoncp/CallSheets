@@ -217,6 +217,10 @@ export async function POST(request: NextRequest) {
                 cppContribution: veryfiResult.deductions?.cpp ?? 0,
                 eiContribution: veryfiResult.deductions?.ei ?? 0,
                 incomeTaxDeduction: veryfiResult.deductions?.income_tax ?? 0,
+                dues: parsedData.dues ?? 0,
+                retirement: parsedData.retirement ?? 0,
+                pension: parsedData.pension ?? 0,
+                insurance: parsedData.insurance ?? 0,
               };
             };
 

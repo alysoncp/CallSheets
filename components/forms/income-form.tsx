@@ -43,7 +43,8 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
       : initialData;
 
   const isUnionProduction = incomeType === "union_production" || mergedData?.incomeType === "union_production";
-  const showOptionalFields = isUnionProduction; // Retirement, Insurance, Pension, Dues for both EP and CC (optional)
+  const showOnlyDues = isUnionProduction && userUbcpStatus !== "full_member"; // Non-full members: only Dues
+  const showOptionalFields = isUnionProduction; // Full members: Retirement, Insurance, Pension, Dues
   const productionLabel = isUnionProduction ? "Production Name" : "Production / Employer";
 
   const {
@@ -397,8 +398,22 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
               </>
             )}
 
-            {/* Optional fields - Union Production (Retirement, Insurance, Pension, Dues) */}
-            {showOptionalFields && (
+            {/* Optional fields - Union Production: only Dues for non-full members; all four for full members */}
+            {showOnlyDues && (
+              <div className="space-y-2">
+                <Label htmlFor="dues">Dues</Label>
+                <Input
+                  id="dues"
+                  type="number"
+                  step="0.01"
+                  {...register("dues")}
+                />
+                {errors.dues && (
+                  <p className="text-sm text-destructive">{errors.dues.message}</p>
+                )}
+              </div>
+            )}
+            {showOptionalFields && !showOnlyDues && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="retirement">Retirement</Label>

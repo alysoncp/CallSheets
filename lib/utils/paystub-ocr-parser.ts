@@ -3,6 +3,11 @@
  * Handles both Entertainment Partners (EP) and Cast and Crew (CC) paystub formats
  */
 
+/** Parse amount string (handles commas e.g. "12,573.32") */
+function parseAmount(raw: string): number {
+  return parseFloat(raw.replace(/,/g, ""));
+}
+
 export interface ParsedPaystubData {
   issuerType?: "EP" | "CC";
   date?: string;
@@ -14,6 +19,11 @@ export interface ParsedPaystubData {
   deductions?: number;
   reimbursements?: number;
   productionName?: string;
+  /** Optional union deduction fields */
+  insurance?: number;
+  dues?: number;
+  pension?: number;
+  retirement?: number;
 }
 
 /**
@@ -107,15 +117,15 @@ function extractEPGst(ocrText: string): number | undefined {
 
   const upperText = ocrText.toUpperCase();
   const patterns = [
-    /G\/HST\s*\(P\)[:\s]*\$?[\s]*(\d+\.?\d*)/i,
-    /GST\/HST[:\s]*\$?[\s]*(\d+\.?\d*)/i,
-    /G\/?HST[:\s]*\$?[\s]*(\d+\.?\d*)/i,
+    /G\/HST\s*\(P\)[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /GST\/HST[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /G\/?HST[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
   ];
 
   for (const gstPattern of patterns) {
     const match = upperText.match(gstPattern);
     if (match && match[1]) {
-      const amount = parseFloat(match[1]);
+      const amount = parseAmount(match[1]);
       if (!isNaN(amount) && amount >= 0) {
         return amount;
       }
@@ -133,11 +143,11 @@ function extractCCGst(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const gstPattern = /GST\/?HST[:\s]*\$?[\s]*(\d+\.?\d*)/i;
+  const gstPattern = /GST\/?HST[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
   const match = upperText.match(gstPattern);
 
   if (match && match[1]) {
-    const amount = parseFloat(match[1]);
+    const amount = parseAmount(match[1]);
     if (!isNaN(amount) && amount >= 0) {
       return amount;
     }
@@ -154,11 +164,11 @@ function extractEPGrossPayRaw(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const grossPayPattern = /GROSS\s+PAY[:\s]*\$?[\s]*(\d+\.?\d*)/i;
+  const grossPayPattern = /GROSS\s+PAY[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
   const match = upperText.match(grossPayPattern);
 
   if (match && match[1]) {
-    const amount = parseFloat(match[1]);
+    const amount = parseAmount(match[1]);
     if (!isNaN(amount) && amount >= 0) {
       return amount;
     }
@@ -183,9 +193,9 @@ function extractEPGrossIncome(ocrText: string, gst: number = 0): number | undefi
 function extractCCGrossPayRaw(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
   const upperText = ocrText.toUpperCase();
-  const grossPayPattern = /GROSS\s+PAY[:\s]*\$?[\s]*(\d+\.?\d*)/i;
+  const grossPayPattern = /GROSS\s+PAY[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
   const grossMatch = upperText.match(grossPayPattern);
-  const grossPay = grossMatch && grossMatch[1] ? parseFloat(grossMatch[1]) : 0;
+  const grossPay = grossMatch && grossMatch[1] ? parseAmount(grossMatch[1]) : 0;
   return grossPay > 0 ? grossPay : undefined;
 }
 
@@ -210,11 +220,11 @@ function extractNetIncome(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const netPayPattern = /NET\s+PAY[:\s]*\$?[\s]*(\d+\.?\d*)/i;
+  const netPayPattern = /NET\s+PAY[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
   const match = upperText.match(netPayPattern);
 
   if (match && match[1]) {
-    const amount = parseFloat(match[1]);
+    const amount = parseAmount(match[1]);
     if (!isNaN(amount) && amount > 0) {
       return amount;
     }
@@ -231,11 +241,11 @@ function extractEPDeductions(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const deductionsPattern = /TOTAL\s+DEDUCTIONS?[:\s]*\$?[\s]*(\d+\.?\d*)/i;
+  const deductionsPattern = /TOTAL\s+DEDUCTIONS?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
   const match = upperText.match(deductionsPattern);
 
   if (match && match[1]) {
-    const amount = parseFloat(match[1]);
+    const amount = parseAmount(match[1]);
     if (!isNaN(amount) && amount >= 0) {
       return amount;
     }
@@ -252,11 +262,11 @@ function extractCCDeductions(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const deductionsPattern = /DEDUCTIONS?[:\s]*\$?[\s]*(\d+\.?\d*)/i;
+  const deductionsPattern = /DEDUCTIONS?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
   const match = upperText.match(deductionsPattern);
 
   if (match && match[1]) {
-    const amount = parseFloat(match[1]);
+    const amount = parseAmount(match[1]);
     if (!isNaN(amount) && amount >= 0) {
       return amount;
     }
@@ -273,17 +283,92 @@ function extractCCReimbursements(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const reimbursementPattern = /REIMBURSEMENTS?[:\s]*\$?[\s]*(\d+\.?\d*)/i;
+  const reimbursementPattern = /REIMBURSEMENTS?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
   const match = upperText.match(reimbursementPattern);
 
   if (match && match[1]) {
-    const amount = parseFloat(match[1]);
+    const amount = parseAmount(match[1]);
     if (!isNaN(amount) && amount >= 0) {
       return amount;
     }
   }
 
   return undefined;
+}
+
+/**
+ * Extract optional deduction amounts from CC paystub
+ * Labels: Ins. Ded (insurance), Member Fee (dues), Retir. Emp (pension), Retire Deduct (retirement)
+ */
+function extractCCOptionalDeductions(ocrText: string): {
+  insurance?: number;
+  dues?: number;
+  pension?: number;
+  retirement?: number;
+} {
+  const result: { insurance?: number; dues?: number; pension?: number; retirement?: number } = {};
+  if (!ocrText) return result;
+  const upperText = ocrText.toUpperCase();
+  const patterns: { key: keyof typeof result; regex: RegExp }[] = [
+    { key: "insurance", regex: /INS\.\s*DED[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
+    { key: "dues", regex: /MEMBER\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
+    { key: "pension", regex: /RETIR\.\s+EMP[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
+    { key: "retirement", regex: /RETIRE\s+DEDUCT[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
+  ];
+  for (const { key, regex } of patterns) {
+    const match = upperText.match(regex);
+    if (match && match[1]) {
+      const amount = parseAmount(match[1]);
+      if (!isNaN(amount) && amount >= 0) result[key] = amount;
+    }
+  }
+  return result;
+}
+
+/**
+ * Extract optional deduction amounts from EP paystub
+ * Labels: Insurance, Dues / Permit Fee / Member Fee (dues), Pension, Retire (retirement)
+ */
+function extractEPOptionalDeductions(ocrText: string): {
+  insurance?: number;
+  dues?: number;
+  pension?: number;
+  retirement?: number;
+} {
+  const result: { insurance?: number; dues?: number; pension?: number; retirement?: number } = {};
+  if (!ocrText) return result;
+  const upperText = ocrText.toUpperCase();
+  // Insurance
+  const insMatch = upperText.match(/INSURANCE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i);
+  if (insMatch?.[1]) {
+    const amount = parseAmount(insMatch[1]);
+    if (!isNaN(amount) && amount >= 0) result.insurance = amount;
+  }
+  // Dues: Dues, Permit Fee, or Member Fee (first match wins; typically one appears)
+  const duesPatterns = [/DUES[:\s]*\$?[\s]*([\d,]+\.?\d*)/i, /PERMIT\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i, /MEMBER\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i];
+  for (const re of duesPatterns) {
+    const match = upperText.match(re);
+    if (match?.[1]) {
+      const amount = parseAmount(match[1]);
+      if (!isNaN(amount) && amount >= 0) {
+        result.dues = amount;
+        break;
+      }
+    }
+  }
+  // Pension
+  const pensionMatch = upperText.match(/PENSION[:\s]*\$?[\s]*([\d,]+\.?\d*)/i);
+  if (pensionMatch?.[1]) {
+    const amount = parseAmount(pensionMatch[1]);
+    if (!isNaN(amount) && amount >= 0) result.pension = amount;
+  }
+  // Retirement (Retire)
+  const retireMatch = upperText.match(/RETIRE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i);
+  if (retireMatch?.[1]) {
+    const amount = parseAmount(retireMatch[1]);
+    if (!isNaN(amount) && amount >= 0) result.retirement = amount;
+  }
+  return result;
 }
 
 /**
@@ -306,13 +391,13 @@ function extractEPProductionName(ocrText: string): string | undefined {
 
 /**
  * Extract production name from CC paystub
- * Looks for "CONTROLLING EMPLOYER" pattern
+ * Looks for "CONTROLLING EMPLOYER" pattern; stops at "Resident of British"
  */
 function extractCCProductionName(ocrText: string): string | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const employerPattern = /CONTROLLING\s+EMPLOYER[:\s]+(.+?)(?:\n|$)/i;
+  const employerPattern = /CONTROLLING\s+EMPLOYER[:\s]+(.+?)(?=RESIDENT\s+OF\s+BRITISH|\n|$)/i;
   const match = upperText.match(employerPattern);
 
   if (match && match[1]) {
@@ -362,6 +447,11 @@ export function parsePaystubOcr(
     result.netIncome = extractNetIncome(ocrText);
     result.deductions = extractEPDeductions(ocrText);
     result.productionName = extractEPProductionName(ocrText);
+    const epOptional = extractEPOptionalDeductions(ocrText);
+    if (epOptional.insurance !== undefined) result.insurance = epOptional.insurance;
+    if (epOptional.dues !== undefined) result.dues = epOptional.dues;
+    if (epOptional.pension !== undefined) result.pension = epOptional.pension;
+    if (epOptional.retirement !== undefined) result.retirement = epOptional.retirement;
   } else if (result.issuerType === "CC") {
     // Parse CC paystub
     result.date = extractCCDate(ocrText);
@@ -372,6 +462,11 @@ export function parsePaystubOcr(
     result.deductions = extractCCDeductions(ocrText);
     result.reimbursements = extractCCReimbursements(ocrText);
     result.productionName = extractCCProductionName(ocrText);
+    const ccOptional = extractCCOptionalDeductions(ocrText);
+    if (ccOptional.insurance !== undefined) result.insurance = ccOptional.insurance;
+    if (ccOptional.dues !== undefined) result.dues = ccOptional.dues;
+    if (ccOptional.pension !== undefined) result.pension = ccOptional.pension;
+    if (ccOptional.retirement !== undefined) result.retirement = ccOptional.retirement;
   } else {
     // Unknown issuer type, try generic patterns
     result.date = extractEPDate(ocrText) || extractCCDate(ocrText);

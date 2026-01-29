@@ -2,6 +2,11 @@
  * Utility functions to parse OCR text from receipts when structured data is not available
  */
 
+/** Parse amount string (handles commas e.g. "12,573.32") */
+function parseAmount(raw: string): number {
+  return parseFloat(raw.replace(/,/g, ""));
+}
+
 export interface ParsedReceiptData {
   vendor?: string;
   date?: string;
@@ -83,20 +88,20 @@ function extractTotal(ocrText: string): number | undefined {
 
   // Look for patterns like "TOTAL", "AMOUNT DUE", "BALANCE", etc. followed by currency
   const totalPatterns = [
-    /(?:TOTAL|AMOUNT|BALANCE|DUE|CHARGE)[\s:]*\$?[\s]*(\d+\.?\d*)/gi,
-    /\$[\s]*(\d+\.?\d*)[\s]*(?:TOTAL|AMOUNT|BALANCE|DUE)?/gi,
-    /(?:CAD|USD|C\$)[\s]*(\d+\.?\d*)/gi,
+    /(?:TOTAL|AMOUNT|BALANCE|DUE|CHARGE)[\s:]*\$?[\s]*([\d,]+\.?\d*)/gi,
+    /\$[\s]*([\d,]+\.?\d*)[\s]*(?:TOTAL|AMOUNT|BALANCE|DUE)?/gi,
+    /(?:CAD|USD|C\$)[\s]*([\d,]+\.?\d*)/gi,
   ];
 
   // Also look for the largest currency amount (likely the total)
-  const currencyPattern = /\$[\s]*(\d+\.?\d*)/g;
+  const currencyPattern = /\$[\s]*([\d,]+\.?\d*)/g;
   const allAmounts: number[] = [];
 
   // First try specific total patterns
   for (const pattern of totalPatterns) {
     const matches = [...ocrText.matchAll(pattern)];
     for (const match of matches) {
-      const amount = parseFloat(match[1]);
+      const amount = parseAmount(match[1]);
       if (!isNaN(amount) && amount > 0) {
         return amount;
       }
@@ -106,7 +111,7 @@ function extractTotal(ocrText: string): number | undefined {
   // Fallback: find all currency amounts and return the largest
   const currencyMatches = [...ocrText.matchAll(currencyPattern)];
   for (const match of currencyMatches) {
-    const amount = parseFloat(match[1]);
+    const amount = parseAmount(match[1]);
     if (!isNaN(amount) && amount > 0) {
       allAmounts.push(amount);
     }
@@ -129,14 +134,14 @@ function extractGst(ocrText: string): number | undefined {
 
   // Look for GST/HST patterns
   const gstPatterns = [
-    /(?:GST|HST|G\/HST|TAX)[\s:]*\$?[\s]*(\d+\.?\d*)/gi,
-    /\$[\s]*(\d+\.?\d*)[\s]*(?:GST|HST|G\/HST|TAX)/gi,
+    /(?:GST|HST|G\/HST|TAX)[\s:]*\$?[\s]*([\d,]+\.?\d*)/gi,
+    /\$[\s]*([\d,]+\.?\d*)[\s]*(?:GST|HST|G\/HST|TAX)/gi,
   ];
 
   for (const pattern of gstPatterns) {
     const matches = [...ocrText.matchAll(pattern)];
     for (const match of matches) {
-      const amount = parseFloat(match[1]);
+      const amount = parseAmount(match[1]);
       if (!isNaN(amount) && amount > 0) {
         return amount;
       }
