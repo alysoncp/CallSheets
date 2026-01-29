@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       const adminClient = createAdminClient();
       const { data: bucketData, error: bucketError } = await adminClient.storage.createBucket(bucketName, {
         public: true,
-        allowedMimeTypes: ["image/*"],
+        allowedMimeTypes: ["image/*", "application/pdf"],
         fileSizeLimit: 52428800, // 50MB
       });
       // #region agent log
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'paystubs/upload/route.ts:72',message:'Storage upload error, returning 500',data:{uploadError:uploadError.message,uploadErrorName:uploadError.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
       return NextResponse.json(
-        { error: "Failed to upload file" },
+        { error: "Failed to upload file", details: uploadError.message },
         { status: 500 }
       );
     }

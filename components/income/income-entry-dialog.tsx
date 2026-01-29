@@ -123,12 +123,27 @@ export function IncomeEntryDialog({
         // Proceed to form
         setStep("form");
       } else {
-        const errorText = await response.text().catch(() => '');
-        throw new Error("Failed to upload paystub");
+        let message = "Failed to upload paystub";
+        const text = await response.text().catch(() => "");
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            if (data.error) {
+              message = data.details ? `${data.error}: ${data.details}` : data.error;
+            } else {
+              message = text;
+            }
+          } catch {
+            message = text;
+          }
+        } else if (response.statusText) {
+          message = response.statusText;
+        }
+        throw new Error(message);
       }
     } catch (error) {
       console.error("Error uploading paystub:", error);
-      alert("Failed to upload paystub. Please try again.");
+      alert(error instanceof Error ? error.message : "Failed to upload paystub. Please try again.");
     } finally {
       setUploading(false);
     }

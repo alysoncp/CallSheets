@@ -294,7 +294,7 @@ function extractEPProductionName(ocrText: string): string | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const showPattern = /SHOW[:\s]+(.+?)(?:\n|$)/i;
+  const showPattern = /SHOW[:\s]+(.+?)(?=UNION:|\n|$)/i;
   const match = upperText.match(showPattern);
 
   if (match && match[1]) {
