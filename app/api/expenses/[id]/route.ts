@@ -7,9 +7,10 @@ import { expenseSchema } from "@/lib/validations/expense";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -30,7 +31,7 @@ export async function PATCH(
         vehicleId: validatedData.vehicleId || null,
         updatedAt: new Date(),
       })
-      .where(and(eq(expenses.id, params.id), eq(expenses.userId, user.id)))
+      .where(and(eq(expenses.id, id), eq(expenses.userId, user.id)))
       .returning();
 
     if (!updated) {
@@ -55,9 +56,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -70,7 +72,7 @@ export async function DELETE(
 
     await db
       .delete(expenses)
-      .where(and(eq(expenses.id, params.id), eq(expenses.userId, user.id)));
+      .where(and(eq(expenses.id, id), eq(expenses.userId, user.id)));
 
     return NextResponse.json({ success: true });
   } catch (error) {

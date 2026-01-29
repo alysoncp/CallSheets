@@ -14,6 +14,7 @@ interface PaystubRecord {
   notes?: string | null;
   ocrStatus?: string | null;
   linkedIncomeId?: string | null;
+  stubDate?: string | null;
 }
 
 interface PaystubsPageClientProps {

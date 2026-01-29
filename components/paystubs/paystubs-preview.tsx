@@ -15,6 +15,7 @@ interface PaystubRecord {
   notes?: string | null;
   ocrStatus?: string | null;
   linkedIncomeId?: string | null;
+  stubDate?: string | null;
 }
 
 interface PaystubsPreviewProps {
@@ -76,9 +77,13 @@ export function PaystubsPreview({ initialData, onDelete }: PaystubsPreviewProps)
               <div className="mt-2">
                 <p className="text-sm text-muted-foreground">
                   {format(
-                    typeof paystub.uploadedAt === "string"
-                      ? parseISO(paystub.uploadedAt)
-                      : paystub.uploadedAt,
+                    paystub.stubDate
+                      ? typeof paystub.stubDate === "string"
+                        ? parseISO(paystub.stubDate)
+                        : (paystub.stubDate as Date)
+                      : typeof paystub.uploadedAt === "string"
+                        ? parseISO(paystub.uploadedAt)
+                        : paystub.uploadedAt,
                     "MMM dd, yyyy"
                   )}
                 </p>

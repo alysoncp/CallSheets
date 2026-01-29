@@ -15,6 +15,7 @@ interface ReceiptRecord {
   ocrStatus?: string | null;
   linkedExpenseId?: string | null;
   linkedIncomeId?: string | null;
+  expenseDate?: string | null;
 }
 
 interface ReceiptsPageClientProps {

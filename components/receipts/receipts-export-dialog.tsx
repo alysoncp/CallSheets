@@ -20,6 +20,7 @@ interface ReceiptRecord {
   imageUrl: string;
   uploadedAt: string | Date;
   notes?: string | null;
+  expenseDate?: string | null;
 }
 
 interface ReceiptsExportDialogProps {
@@ -141,9 +142,13 @@ export function ReceiptsExportDialog({
                     <div className="font-medium">Receipt {receipt.id.slice(0, 8)}</div>
                     <div className="text-muted-foreground">
                       {format(
-                        typeof receipt.uploadedAt === "string"
-                          ? parseISO(receipt.uploadedAt)
-                          : receipt.uploadedAt,
+                        receipt.expenseDate
+                          ? typeof receipt.expenseDate === "string"
+                            ? parseISO(receipt.expenseDate)
+                            : (receipt.expenseDate as Date)
+                          : typeof receipt.uploadedAt === "string"
+                            ? parseISO(receipt.uploadedAt)
+                            : receipt.uploadedAt,
                         "MMM dd, yyyy"
                       )}
                     </div>

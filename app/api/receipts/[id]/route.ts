@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { receipts } from "@/lib/db/schema";
+import { receipts, expenses } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export async function DELETE(
@@ -9,6 +9,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const deleteEntry = request.nextUrl.searchParams.get("deleteEntry") === "true";
     const supabase = await createClient();
     const {
       data: { user },
@@ -32,6 +33,29 @@ export async function DELETE(
 
     if (!receipt) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // If deleteEntry=true, delete the linked expense first
+    if (deleteEntry && receipt.linkedExpenseId) {
+      await db
+        .delete(expenses)
+        .where(
+          and(
+            eq(expenses.id, receipt.linkedExpenseId),
+            eq(expenses.userId, user.id)
+          )
+        );
+    } else if (receipt.linkedExpenseId) {
+      // Delete receipt only: clear the expense's receipt image reference
+      await db
+        .update(expenses)
+        .set({ receiptImageUrl: null })
+        .where(
+          and(
+            eq(expenses.id, receipt.linkedExpenseId),
+            eq(expenses.userId, user.id)
+          )
+        );
     }
 
     // Delete from storage - extract file path from URL

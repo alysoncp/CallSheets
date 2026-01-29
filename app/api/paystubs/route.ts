@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { paystubs } from "@/lib/db/schema";
+import { paystubs, income } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -17,10 +17,23 @@ export async function GET(request: NextRequest) {
     }
 
     const results = await db
-      .select()
+      .select({
+        id: paystubs.id,
+        userId: paystubs.userId,
+        imageUrl: paystubs.imageUrl,
+        uploadedAt: paystubs.uploadedAt,
+        linkedIncomeId: paystubs.linkedIncomeId,
+        notes: paystubs.notes,
+        ocrStatus: paystubs.ocrStatus,
+        ocrJobId: paystubs.ocrJobId,
+        ocrResult: paystubs.ocrResult,
+        ocrProcessedAt: paystubs.ocrProcessedAt,
+        stubDate: income.date,
+      })
       .from(paystubs)
+      .leftJoin(income, eq(paystubs.linkedIncomeId, income.id))
       .where(eq(paystubs.userId, user.id))
-      .orderBy(desc(paystubs.uploadedAt));
+      .orderBy(desc(income.date), desc(paystubs.uploadedAt));
 
     return NextResponse.json(results);
   } catch (error) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { paystubs } from "@/lib/db/schema";
+import { paystubs, income } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export async function DELETE(
@@ -10,6 +10,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const deleteEntry = request.nextUrl.searchParams.get("deleteEntry") === "true";
     const supabase = await createClient();
     const {
       data: { user },
@@ -29,6 +30,18 @@ export async function DELETE(
 
     if (!paystub) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // If deleteEntry=true, delete the linked income first
+    if (deleteEntry && paystub.linkedIncomeId) {
+      await db
+        .delete(income)
+        .where(
+          and(
+            eq(income.id, paystub.linkedIncomeId),
+            eq(income.userId, user.id)
+          )
+        );
     }
 
     // Delete from storage

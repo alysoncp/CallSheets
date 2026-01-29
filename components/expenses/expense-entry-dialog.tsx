@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,16 @@ export function ExpenseEntryDialog({
   const [ocrData, setOcrData] = useState<any>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedReceipt, setUploadedReceipt] = useState<{ id: string; imageUrl: string } | null>(null);
+
+  // Reset state when dialog opens for a new entry (or when closing)
+  useEffect(() => {
+    if (open && !initialData?.id) {
+      setEntryMethod(null);
+      setOcrData(null);
+      setUploadedFile(null);
+      setUploadedReceipt(null);
+    }
+  }, [open, initialData?.id]);
 
   const handleFileSelect = async (file: File) => {
     setUploading(true);
@@ -92,6 +102,7 @@ export function ExpenseEntryDialog({
   };
 
   const handleReset = () => {
+    setUploading(false);
     setEntryMethod(null);
     setOcrData(null);
     setUploadedFile(null);
@@ -213,6 +224,7 @@ export function ExpenseEntryDialog({
             </DialogDescription>
           </DialogHeader>
           <ExpenseForm
+            key={initialData?.id ?? uploadedReceipt?.id ?? "new"}
             initialData={ocrData ? { 
               ...ocrData, 
               // Use the actual receipt image URL if available, otherwise empty string
@@ -221,7 +233,7 @@ export function ExpenseEntryDialog({
               title: ocrData.title || ocrData.vendor || "Receipt",
               category: ocrData.category || "",
               expenseType: ocrData.expenseType || "self_employment",
-            } : undefined}
+            } : uploadedReceipt ? { receiptImageUrl: uploadedReceipt.imageUrl } : undefined}
             onSuccess={() => handleClose(false)}
             ocrData={ocrData}
           />

@@ -19,6 +19,7 @@ interface ReceiptRecord {
   ocrStatus?: string | null;
   linkedExpenseId?: string | null;
   linkedIncomeId?: string | null;
+  expenseDate?: string | null;
 }
 
 interface ReceiptsPreviewProps {
@@ -126,10 +127,11 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
                 <p className="text-sm text-muted-foreground">
                   {(() => {
                     try {
-                      const dateValue = typeof receipt.uploadedAt === "string" ? parseISO(receipt.uploadedAt) : receipt.uploadedAt;
+                      const dateRaw = receipt.expenseDate ?? receipt.uploadedAt;
+                      const dateValue = typeof dateRaw === "string" ? parseISO(dateRaw) : dateRaw;
                       return format(dateValue, "MMM dd, yyyy");
                     } catch (e) {
-                      return receipt.uploadedAt?.toString() || 'Invalid date';
+                      return receipt.expenseDate?.toString() ?? receipt.uploadedAt?.toString() ?? "Invalid date";
                     }
                   })()}
                 </p>

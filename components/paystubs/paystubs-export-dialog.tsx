@@ -20,6 +20,7 @@ interface PaystubRecord {
   imageUrl: string;
   uploadedAt: string | Date;
   notes?: string | null;
+  stubDate?: string | null;
 }
 
 interface PaystubsExportDialogProps {
@@ -141,9 +142,13 @@ export function PaystubsExportDialog({
                     <div className="font-medium">Paystub {paystub.id.slice(0, 8)}</div>
                     <div className="text-muted-foreground">
                       {format(
-                        typeof paystub.uploadedAt === "string"
-                          ? parseISO(paystub.uploadedAt)
-                          : paystub.uploadedAt,
+                        paystub.stubDate
+                          ? typeof paystub.stubDate === "string"
+                            ? parseISO(paystub.stubDate)
+                            : (paystub.stubDate as Date)
+                          : typeof paystub.uploadedAt === "string"
+                            ? parseISO(paystub.uploadedAt)
+                            : paystub.uploadedAt,
                         "MMM dd, yyyy"
                       )}
                     </div>
