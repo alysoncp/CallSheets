@@ -9,7 +9,8 @@ import Image from "next/image";
 import { INCOME_TYPES } from "@/lib/validations/expense-categories";
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 import { ImageViewDialog } from "@/components/ui/image-view-dialog";
-import { storageImageToProxyUrl } from "@/lib/utils/storage-image-url";
+import { storageImageToProxyUrl, isPdfUrl } from "@/lib/utils/storage-image-url";
+import { FileText } from "lucide-react";
 
 interface IncomeRecord {
   id: string;
@@ -147,19 +148,31 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
                   <div className="flex-1">
                     <div className="flex items-center gap-4">
                       {getPaystubDisplayUrl(record) && (
-                        <div className="relative w-16 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
-                          <Image
-                            src={getPaystubDisplayUrl(record)!}
-                            alt="Paystub thumbnail"
-                            fill
-                            className="object-cover cursor-pointer"
-                            onClick={() => handleViewPaystub(record)}
-                            unoptimized
-                            onError={(e) => {
-                              console.error("Error loading paystub thumbnail:", getPaystubDisplayUrl(record));
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
+                        <div
+                          className="relative w-16 h-16 bg-muted rounded overflow-hidden flex-shrink-0 cursor-pointer flex flex-col items-center justify-center text-muted-foreground"
+                          onClick={() => handleViewPaystub(record)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === "Enter" && handleViewPaystub(record)}
+                        >
+                          {isPdfUrl(getPaystubImageUrl(record)) ? (
+                            <>
+                              <FileText className="h-6 w-6" />
+                              <span className="text-[10px] font-medium">PDF</span>
+                            </>
+                          ) : (
+                            <Image
+                              src={getPaystubDisplayUrl(record)!}
+                              alt="Paystub thumbnail"
+                              fill
+                              className="object-cover pointer-events-none"
+                              unoptimized
+                              onError={(e) => {
+                                console.error("Error loading paystub thumbnail:", getPaystubDisplayUrl(record));
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          )}
                         </div>
                       )}
                       <div>

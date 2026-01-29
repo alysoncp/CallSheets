@@ -8,7 +8,8 @@ import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 import { DocumentImageViewDialog } from "@/components/ui/document-image-view-dialog";
-import { storageImageToProxyUrl } from "@/lib/utils/storage-image-url";
+import { storageImageToProxyUrl, isPdfUrl } from "@/lib/utils/storage-image-url";
+import { FileText } from "lucide-react";
 
 interface PaystubRecord {
   id: string;
@@ -134,17 +135,24 @@ export function PaystubsGrid({ initialData, onPaystubsUpdated }: PaystubsGridPro
               className="relative block w-full aspect-video bg-muted cursor-pointer border-0 p-0 text-left overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               onClick={() => setViewingPaystub(paystub)}
             >
-              <Image
-                src={storageImageToProxyUrl(paystub.imageUrl) ?? paystub.imageUrl}
-                alt="Paystub"
-                fill
-                className="object-cover pointer-events-none"
-                unoptimized
-                onError={(e) => {
-                  console.error("Error loading paystub image:", paystub.imageUrl);
-                  e.currentTarget.style.display = "none";
-                }}
-              />
+              {isPdfUrl(paystub.imageUrl) ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none">
+                  <FileText className="h-12 w-12 mb-1" />
+                  <span className="text-xs font-medium">PDF</span>
+                </div>
+              ) : (
+                <Image
+                  src={storageImageToProxyUrl(paystub.imageUrl) ?? paystub.imageUrl}
+                  alt="Paystub"
+                  fill
+                  className="object-cover pointer-events-none"
+                  unoptimized
+                  onError={(e) => {
+                    console.error("Error loading paystub image:", paystub.imageUrl);
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
             </button>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground mb-2">

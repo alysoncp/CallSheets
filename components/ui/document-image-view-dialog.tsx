@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
+import { isPdfUrl } from "@/lib/utils/storage-image-url";
 
 export type DocumentType = "paystub" | "receipt";
 
@@ -93,13 +94,21 @@ export function DocumentImageViewDialog({
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
           <div className="relative w-full aspect-auto min-h-[400px] bg-muted rounded-lg overflow-hidden">
-            <Image
-              src={imageUrl}
-              alt={title}
-              fill
-              className="object-contain"
-              unoptimized
-            />
+            {isPdfUrl(imageUrl) ? (
+              <iframe
+                src={imageUrl}
+                title={title}
+                className="absolute inset-0 w-full h-full min-h-[400px] rounded-lg border-0"
+              />
+            ) : (
+              <Image
+                src={imageUrl}
+                alt={title}
+                fill
+                className="object-contain"
+                unoptimized
+              />
+            )}
           </div>
           <DialogFooter className="flex flex-wrap gap-2 sm:justify-end">
             {hasLinkedEntry && (

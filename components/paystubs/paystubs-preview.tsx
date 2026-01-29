@@ -6,7 +6,8 @@ import { Trash2, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
-import { storageImageToProxyUrl } from "@/lib/utils/storage-image-url";
+import { storageImageToProxyUrl, isPdfUrl } from "@/lib/utils/storage-image-url";
+import { FileText } from "lucide-react";
 
 interface PaystubRecord {
   id: string;
@@ -66,13 +67,20 @@ export function PaystubsPreview({ initialData, onDelete }: PaystubsPreviewProps)
           {previewPaystubs.map((paystub) => (
             <div key={paystub.id} className="relative group">
               <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                <Image
-                  src={storageImageToProxyUrl(paystub.imageUrl) ?? paystub.imageUrl}
-                  alt="Paystub"
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
+                {isPdfUrl(paystub.imageUrl) ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                    <FileText className="h-10 w-10 mb-1" />
+                    <span className="text-xs font-medium">PDF</span>
+                  </div>
+                ) : (
+                  <Image
+                    src={storageImageToProxyUrl(paystub.imageUrl) ?? paystub.imageUrl}
+                    alt="Paystub"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                )}
               </div>
               <div className="mt-2">
                 <p className="text-sm text-muted-foreground">
