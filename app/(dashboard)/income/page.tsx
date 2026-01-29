@@ -25,10 +25,23 @@ export default async function IncomePage() {
     .orderBy(desc(income.date));
 
   const paystubRecords = await db
-    .select()
+    .select({
+      id: paystubs.id,
+      userId: paystubs.userId,
+      imageUrl: paystubs.imageUrl,
+      uploadedAt: paystubs.uploadedAt,
+      linkedIncomeId: paystubs.linkedIncomeId,
+      notes: paystubs.notes,
+      ocrStatus: paystubs.ocrStatus,
+      ocrJobId: paystubs.ocrJobId,
+      ocrResult: paystubs.ocrResult,
+      ocrProcessedAt: paystubs.ocrProcessedAt,
+      stubDate: income.date,
+    })
     .from(paystubs)
+    .leftJoin(income, eq(paystubs.linkedIncomeId, income.id))
     .where(eq(paystubs.userId, user.id))
-    .orderBy(desc(paystubs.uploadedAt));
+    .orderBy(desc(income.date), desc(paystubs.uploadedAt));
 
   return (
     <IncomePageClient

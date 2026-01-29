@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ReceiptsGrid } from "@/components/receipts/receipts-grid";
 import { ReceiptsExportDialog } from "@/components/receipts/receipts-export-dialog";
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
 import { Button } from "@/components/ui/button";
 import { FileDown, Plus } from "lucide-react";
+import { useTaxYear } from "@/lib/contexts/tax-year-context";
 
 interface ReceiptRecord {
   id: string;
@@ -23,9 +24,23 @@ interface ReceiptsPageClientProps {
 }
 
 export function ReceiptsPageClient({ initialReceipts }: ReceiptsPageClientProps) {
+  const { taxYear } = useTaxYear();
   const [receipts, setReceipts] = useState(initialReceipts);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+
+  const filteredReceipts = useMemo(() => {
+    return receipts.filter((r) => {
+      try {
+        const dateRaw = r.expenseDate ?? r.uploadedAt;
+        if (!dateRaw) return false;
+        const d = typeof dateRaw === "string" ? new Date(dateRaw) : new Date(dateRaw);
+        return d.getFullYear() === taxYear;
+      } catch {
+        return false;
+      }
+    });
+  }, [receipts, taxYear]);
 
   const refreshReceipts = async () => {
     const response = await fetch("/api/receipts", { cache: "no-store" });
@@ -43,7 +58,7 @@ export function ReceiptsPageClient({ initialReceipts }: ReceiptsPageClientProps)
           <Button
             variant="outline"
             onClick={() => setExportDialogOpen(true)}
-            disabled={receipts.length === 0}
+            disabled={filteredReceipts.length === 0}
           >
             <FileDown className="mr-2 h-4 w-4" />
             Export to PDF
@@ -55,13 +70,13 @@ export function ReceiptsPageClient({ initialReceipts }: ReceiptsPageClientProps)
         </div>
       </div>
       <ReceiptsGrid
-        initialData={receipts}
+        initialData={filteredReceipts}
         onReceiptsUpdated={refreshReceipts}
       />
       <ReceiptsExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        receipts={receipts}
+        receipts={filteredReceipts}
       />
       <ExpenseEntryDialog
         open={uploadDialogOpen}

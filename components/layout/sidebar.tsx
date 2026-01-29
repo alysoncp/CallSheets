@@ -91,17 +91,22 @@ export function Sidebar() {
 
   const fetchAvailableYears = async () => {
     try {
-      const [incomeResponse, expenseResponse] = await Promise.all([
+      const [incomeResponse, expenseResponse, receiptsResponse, paystubsResponse] = await Promise.all([
         fetch("/api/income", { cache: "no-store" }),
         fetch("/api/expenses", { cache: "no-store" }),
+        fetch("/api/receipts", { cache: "no-store" }),
+        fetch("/api/paystubs", { cache: "no-store" }),
       ]);
 
       const incomeData = incomeResponse.ok ? await incomeResponse.json() : [];
       const expenseData = expenseResponse.ok ? await expenseResponse.json() : [];
+      const receiptsData = receiptsResponse.ok ? await receiptsResponse.json() : [];
+      const paystubsData = paystubsResponse.ok ? await paystubsResponse.json() : [];
 
       const years = new Set<number>();
       const currentYear = new Date().getFullYear();
-      years.add(currentYear); // Always include current year
+      years.add(currentYear);
+      years.add(currentYear - 1); // Always include previous year
 
       // Extract years from income records
       incomeData.forEach((record: any) => {
@@ -131,11 +136,42 @@ export function Sidebar() {
         }
       });
 
+      // Extract years from receipts (expenseDate or uploadedAt)
+      receiptsData.forEach((record: any) => {
+        try {
+          const dateRaw = record.expenseDate ?? record.uploadedAt;
+          if (!dateRaw) return;
+          const recordDate = typeof dateRaw === 'string' ? new Date(dateRaw) : new Date(dateRaw);
+          const year = recordDate.getFullYear();
+          if (!isNaN(year)) {
+            years.add(year);
+          }
+        } catch {
+          // Skip invalid dates
+        }
+      });
+
+      // Extract years from paystubs (stubDate or uploadedAt)
+      paystubsData.forEach((record: any) => {
+        try {
+          const dateRaw = record.stubDate ?? record.uploadedAt;
+          if (!dateRaw) return;
+          const recordDate = typeof dateRaw === 'string' ? new Date(dateRaw) : new Date(dateRaw);
+          const year = recordDate.getFullYear();
+          if (!isNaN(year)) {
+            years.add(year);
+          }
+        } catch {
+          // Skip invalid dates
+        }
+      });
+
       const sortedYears = Array.from(years).sort((a, b) => b - a); // Sort descending
       setAvailableYears(sortedYears);
     } catch (error) {
-      // If fetch fails, just show current year
-      setAvailableYears([new Date().getFullYear()]);
+      // If fetch fails, show at least current and previous year
+      const currentYear = new Date().getFullYear();
+      setAvailableYears([currentYear, currentYear - 1]);
     }
   };
 

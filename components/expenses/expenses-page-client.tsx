@@ -55,6 +55,20 @@ export function ExpensesPageClient({
     });
   }, [expenseList, taxYear]);
 
+  // Filter receipts by selected year (expense date or upload date)
+  const filteredReceiptsForYear = useMemo(() => {
+    return receipts.filter((r) => {
+      try {
+        const dateRaw = r.expenseDate ?? r.uploadedAt;
+        if (!dateRaw) return false;
+        const d = typeof dateRaw === "string" ? new Date(dateRaw) : new Date(dateRaw);
+        return d.getFullYear() === taxYear;
+      } catch {
+        return false;
+      }
+    });
+  }, [receipts, taxYear]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -64,8 +78,9 @@ export function ExpensesPageClient({
           Add Expense
         </Button>
       </div>
-      <ReceiptsPreview initialData={receipts} onDelete={(id) => { refreshReceipts(); }} />
+      <ReceiptsPreview initialData={filteredReceiptsForYear} onDelete={(id) => { refreshReceipts(); }} />
       <ExpenseList
+        key={taxYear}
         initialData={filteredExpenseList}
         receiptRecords={receipts}
         onEdit={(expense) => {
@@ -80,6 +95,7 @@ export function ExpensesPageClient({
           if (!open) {
             setEditingExpense(null);
             refreshExpenses(); // Refresh expense list when dialog closes
+            refreshReceipts(); // Refresh receipt gallery so new receipt appears
           }
         }}
         initialData={editingExpense || undefined}

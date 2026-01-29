@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
@@ -33,7 +33,14 @@ interface ExpenseListProps {
   onEdit?: (expense: ExpenseRecord) => void;
 }
 
-export function ExpenseList({ initialData, receiptRecords = [], onEdit }: ExpenseListProps) {const [expenseRecords, setExpenseRecords] = useState(initialData);
+export function ExpenseList({ initialData, receiptRecords = [], onEdit }: ExpenseListProps) {
+  const [expenseRecords, setExpenseRecords] = useState(initialData);
+
+  // Sync with parent when initialData changes (e.g. tax year filter)
+  useEffect(() => {
+    setExpenseRecords(initialData);
+  }, [initialData]);
+
   const [loading, setLoading] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);

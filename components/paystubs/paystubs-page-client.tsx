@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PaystubsGrid } from "@/components/paystubs/paystubs-grid";
 import { PaystubsExportDialog } from "@/components/paystubs/paystubs-export-dialog";
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 import { Button } from "@/components/ui/button";
 import { FileDown, Plus } from "lucide-react";
+import { useTaxYear } from "@/lib/contexts/tax-year-context";
 
 interface PaystubRecord {
   id: string;
@@ -22,9 +23,23 @@ interface PaystubsPageClientProps {
 }
 
 export function PaystubsPageClient({ initialPaystubs }: PaystubsPageClientProps) {
+  const { taxYear } = useTaxYear();
   const [paystubs, setPaystubs] = useState(initialPaystubs);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+
+  const filteredPaystubs = useMemo(() => {
+    return paystubs.filter((p) => {
+      try {
+        const dateRaw = p.stubDate ?? p.uploadedAt;
+        if (!dateRaw) return false;
+        const d = typeof dateRaw === "string" ? new Date(dateRaw) : new Date(dateRaw);
+        return d.getFullYear() === taxYear;
+      } catch {
+        return false;
+      }
+    });
+  }, [paystubs, taxYear]);
 
   const refreshPaystubs = async () => {
     const response = await fetch("/api/paystubs", { cache: "no-store" });
@@ -42,7 +57,7 @@ export function PaystubsPageClient({ initialPaystubs }: PaystubsPageClientProps)
           <Button
             variant="outline"
             onClick={() => setExportDialogOpen(true)}
-            disabled={paystubs.length === 0}
+            disabled={filteredPaystubs.length === 0}
           >
             <FileDown className="mr-2 h-4 w-4" />
             Export to PDF
@@ -54,13 +69,13 @@ export function PaystubsPageClient({ initialPaystubs }: PaystubsPageClientProps)
         </div>
       </div>
       <PaystubsGrid
-        initialData={paystubs}
+        initialData={filteredPaystubs}
         onPaystubsUpdated={refreshPaystubs}
       />
       <PaystubsExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        paystubs={paystubs}
+        paystubs={filteredPaystubs}
       />
       <IncomeEntryDialog
         open={uploadDialogOpen}

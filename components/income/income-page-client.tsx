@@ -35,6 +35,20 @@ export function IncomePageClient({
     });
   }, [incomeList, taxYear]);
 
+  // Filter paystubs by selected year (stub date or upload date)
+  const filteredPaystubsForYear = useMemo(() => {
+    return paystubs.filter((p) => {
+      try {
+        const dateRaw = p.stubDate ?? p.uploadedAt;
+        if (!dateRaw) return false;
+        const d = typeof dateRaw === "string" ? new Date(dateRaw) : new Date(dateRaw);
+        return d.getFullYear() === taxYear;
+      } catch {
+        return false;
+      }
+    });
+  }, [paystubs, taxYear]);
+
   const refreshPaystubs = async () => {
     const response = await fetch("/api/paystubs", { cache: "no-store" });
     if (response.ok) {
@@ -62,7 +76,7 @@ export function IncomePageClient({
           Add Income
         </Button>
       </div>
-      <PaystubsPreview initialData={paystubs} onDelete={refreshPaystubs} />
+      <PaystubsPreview initialData={filteredPaystubsForYear} onDelete={refreshPaystubs} />
       <IncomeList
         initialData={filteredIncomeList}
         paystubRecords={paystubs}
@@ -79,6 +93,7 @@ export function IncomePageClient({
           if (!open) {
             setEditingIncome(null);
             refreshIncome(); // Refresh income list when dialog closes
+            refreshPaystubs(); // Refresh paystub gallery so new paystub appears
           }
         }}
         initialData={editingIncome || undefined}
