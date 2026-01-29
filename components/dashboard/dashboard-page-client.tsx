@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Plus, DollarSign, Receipt, TrendingUp, Calculator } from "lucide-react";
 import { format } from "date-fns";
 import { MonthlyChart } from "@/components/charts/monthly-chart";
+import { ExpenseCategoryChart } from "@/components/charts/expense-category-chart";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";
 
 interface DashboardData {
@@ -160,6 +161,7 @@ export function DashboardPageClient({ allData }: DashboardPageClientProps) {
           </CardHeader>
           <CardContent>
             <MonthlyChart
+              taxYear={taxYear}
               income={filteredData.yearlyIncome}
               expenses={filteredData.yearlyExpenses}
             />
@@ -167,6 +169,18 @@ export function DashboardPageClient({ allData }: DashboardPageClientProps) {
         </Card>
 
         <Card>
+          <CardHeader>
+            <CardTitle>Expenses by category</CardTitle>
+            <CardDescription>
+              Expense breakdown for {taxYear}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExpenseCategoryChart expenses={filteredData.yearlyExpenses} />
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Recent Transactions</CardTitle>
             <CardDescription>Your latest income and expenses for {taxYear}</CardDescription>

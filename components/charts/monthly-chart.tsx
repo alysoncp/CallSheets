@@ -1,20 +1,21 @@
 "use client";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { format, parseISO, startOfYear, eachMonthOfInterval } from "date-fns";
+import { format, parseISO, startOfYear, endOfYear, eachMonthOfInterval } from "date-fns";
 
 interface MonthlyChartProps {
+  taxYear: number;
   income: Array<{ date: string; amount: string | number }>;
   expenses: Array<{ date: string; amount: string | number }>;
 }
 
-export function MonthlyChart({ income, expenses }: MonthlyChartProps) {
-  // Get all months for the current year
-  const now = new Date();
-  const yearStart = startOfYear(now);
+export function MonthlyChart({ taxYear, income, expenses }: MonthlyChartProps) {
+  // Use selected tax year for full Jan–Dec range
+  const yearStart = startOfYear(new Date(taxYear, 0, 1));
+  const yearEnd = endOfYear(new Date(taxYear, 0, 1));
   const months = eachMonthOfInterval({
     start: yearStart,
-    end: now,
+    end: yearEnd,
   });
 
   // Group by month (YYYY-MM format)
@@ -68,7 +69,7 @@ export function MonthlyChart({ income, expenses }: MonthlyChartProps) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" />
+        <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
         <XAxis dataKey="date" />
         <YAxis />
         <Tooltip
@@ -80,8 +81,20 @@ export function MonthlyChart({ income, expenses }: MonthlyChartProps) {
           }
         />
         <Legend />
-        <Line type="monotone" dataKey="income" stroke="#22c55e" name="Income" strokeWidth={2} />
-        <Line type="monotone" dataKey="expenses" stroke="#ef4444" name="Expenses" strokeWidth={2} />
+        <Line
+          type="monotoneX"
+          dataKey="income"
+          stroke="hsl(var(--chart-2))"
+          name="Income"
+          strokeWidth={2}
+        />
+        <Line
+          type="monotoneX"
+          dataKey="expenses"
+          stroke="hsl(var(--chart-1))"
+          name="Expenses"
+          strokeWidth={2}
+        />
       </LineChart>
     </ResponsiveContainer>
   );
