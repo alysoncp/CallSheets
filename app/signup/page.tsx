@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import { Check, ArrowLeft } from "lucide-react";
 type SubscriptionTier = "basic" | "personal" | "corporate";
 
 export default function SignUpPage() {
-  const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,22 +59,6 @@ export default function SignUpPage() {
       return;
     }
 
-    // Set subscription tier in user profile after signup
-    if (data.user) {
-      try {
-        await fetch("/api/auth/user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subscriptionTier: selectedPlan,
-            taxFilingStatus: selectedPlan === "corporate" ? "personal_and_corporate" : "personal_only",
-          }),
-        });
-      } catch (err) {
-        console.error("Error setting subscription tier:", err);
-      }
-    }
-
     setSuccess(true);
     setLoading(false);
   };
@@ -88,7 +70,7 @@ export default function SignUpPage() {
           <CardHeader>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
-              We've sent you a confirmation link to verify your email address.
+              We&apos;ve sent you a confirmation link to verify your email address.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -104,7 +86,6 @@ export default function SignUpPage() {
     );
   }
 
-  // Show plan selection first if no plan selected
   if (!selectedPlan) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -124,7 +105,6 @@ export default function SignUpPage() {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Basic Plan - Greyed out */}
             <Card className="opacity-50 cursor-not-allowed">
               <CardHeader>
                 <CardTitle>Basic</CardTitle>
@@ -156,7 +136,6 @@ export default function SignUpPage() {
               </CardContent>
             </Card>
 
-            {/* Personal Plan - Free during beta */}
             <Card className="border-primary border-2">
               <CardHeader>
                 <CardTitle>Personal</CardTitle>
@@ -195,8 +174,8 @@ export default function SignUpPage() {
                     <span>100 OCR requests/month</span>
                   </li>
                 </ul>
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={() => setSelectedPlan("personal")}
                 >
                   Select Personal Plan
@@ -204,7 +183,6 @@ export default function SignUpPage() {
               </CardContent>
             </Card>
 
-            {/* Corporate Plan - Coming soon */}
             <Card className="opacity-50 cursor-not-allowed">
               <CardHeader>
                 <CardTitle>Corporate</CardTitle>
@@ -241,7 +219,6 @@ export default function SignUpPage() {
     );
   }
 
-  // Show signup form after plan selection
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
