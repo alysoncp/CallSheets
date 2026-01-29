@@ -9,6 +9,7 @@ import { format, parseISO } from "date-fns";
 import Link from "next/link";
 import { ImageViewDialog } from "@/components/ui/image-view-dialog";
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
+import { storageImageToProxyUrl } from "@/lib/utils/storage-image-url";
 
 interface ReceiptRecord {
   id: string;
@@ -110,14 +111,11 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
               <div 
                 className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer"
                 onClick={() => {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'receipts-preview.tsx:87',message:'Receipt image clicked',data:{receiptId:receipt.id,imageUrl:receipt.imageUrl,imageUrlLength:receipt.imageUrl?.length,imageUrlIsEmpty:receipt.imageUrl==='',imageUrlIsNull:receipt.imageUrl===null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                  // #endregion
-                  setViewingImage(receipt.imageUrl);
+                  setViewingImage(storageImageToProxyUrl(receipt.imageUrl) ?? receipt.imageUrl);
                 }}
               >
                 <Image
-                  src={receipt.imageUrl}
+                  src={storageImageToProxyUrl(receipt.imageUrl) ?? receipt.imageUrl}
                   alt="Receipt"
                   fill
                   className="object-cover"

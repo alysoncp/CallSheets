@@ -7,6 +7,7 @@ import { Trash2, Upload } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
+import { storageImageToProxyUrl } from "@/lib/utils/storage-image-url";
 
 interface PaystubRecord {
   id: string;
@@ -91,14 +92,14 @@ export function PaystubsGrid({ initialData, onPaystubsUpdated }: PaystubsGridPro
           <Card key={paystub.id} className="overflow-hidden">
             <div className="relative aspect-video bg-muted">
               <Image
-                src={paystub.imageUrl}
+                src={storageImageToProxyUrl(paystub.imageUrl) ?? paystub.imageUrl}
                 alt="Paystub"
                 fill
                 className="object-cover"
                 unoptimized
                 onError={(e) => {
                   console.error("Error loading paystub image:", paystub.imageUrl);
-                  e.currentTarget.src = "/placeholder-image.png";
+                  e.currentTarget.style.display = "none";
                 }}
               />
             </div>

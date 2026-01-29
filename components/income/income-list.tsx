@@ -9,6 +9,7 @@ import Image from "next/image";
 import { INCOME_TYPES } from "@/lib/validations/expense-categories";
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 import { ImageViewDialog } from "@/components/ui/image-view-dialog";
+import { storageImageToProxyUrl } from "@/lib/utils/storage-image-url";
 
 interface IncomeRecord {
   id: string;
@@ -108,10 +109,16 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
     return linkedPaystub?.imageUrl || null;
   };
 
+  const getPaystubDisplayUrl = (income: IncomeRecord): string | null => {
+    const raw = getPaystubImageUrl(income);
+    if (!raw) return null;
+    return storageImageToProxyUrl(raw) ?? raw;
+  };
+
   const handleViewPaystub = (income: IncomeRecord) => {
-    const imageUrl = getPaystubImageUrl(income);
-    if (imageUrl) {
-      setViewingImageUrl(imageUrl);
+    const displayUrl = getPaystubDisplayUrl(income);
+    if (displayUrl) {
+      setViewingImageUrl(displayUrl);
       setImageDialogOpen(true);
     }
   };
@@ -139,17 +146,17 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-4">
-                      {getPaystubImageUrl(record) && (
+                      {getPaystubDisplayUrl(record) && (
                         <div className="relative w-16 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
                           <Image
-                            src={getPaystubImageUrl(record)!}
+                            src={getPaystubDisplayUrl(record)!}
                             alt="Paystub thumbnail"
                             fill
                             className="object-cover cursor-pointer"
                             onClick={() => handleViewPaystub(record)}
                             unoptimized
                             onError={(e) => {
-                              console.error("Error loading paystub thumbnail:", getPaystubImageUrl(record));
+                              console.error("Error loading paystub thumbnail:", getPaystubDisplayUrl(record));
                               e.currentTarget.style.display = "none";
                             }}
                           />
@@ -173,7 +180,7 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
                       })}
                     </span>
                     <div className="flex gap-2">
-                      {getPaystubImageUrl(record) && (
+                      {getPaystubDisplayUrl(record) && (
                         <Button
                           variant="ghost"
                           size="icon"

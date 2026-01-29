@@ -6,6 +6,7 @@ import { Trash2, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
+import { storageImageToProxyUrl } from "@/lib/utils/storage-image-url";
 
 interface PaystubRecord {
   id: string;
@@ -65,10 +66,11 @@ export function PaystubsPreview({ initialData, onDelete }: PaystubsPreviewProps)
             <div key={paystub.id} className="relative group">
               <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
                 <Image
-                  src={paystub.imageUrl}
+                  src={storageImageToProxyUrl(paystub.imageUrl) ?? paystub.imageUrl}
                   alt="Paystub"
                   fill
                   className="object-cover"
+                  unoptimized
                 />
               </div>
               <div className="mt-2">
