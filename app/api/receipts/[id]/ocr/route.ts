@@ -6,9 +6,10 @@ import { eq, and } from "drizzle-orm";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -49,7 +50,7 @@ export async function POST(
     const [receipt] = await db
       .select()
       .from(receipts)
-      .where(and(eq(receipts.id, params.id), eq(receipts.userId, user.id)))
+      .where(and(eq(receipts.id, id), eq(receipts.userId, user.id)))
       .limit(1);
 
     if (!receipt) {
@@ -60,7 +61,7 @@ export async function POST(
     await db
       .update(receipts)
       .set({ ocrStatus: "processing" })
-      .where(eq(receipts.id, params.id));
+      .where(eq(receipts.id, id));
 
     // TODO: Call Veryfi API here
     // const veryfiClient = new VeryfiClient();
@@ -83,7 +84,7 @@ export async function POST(
         ocrResult: ocrResult as any,
         ocrProcessedAt: new Date(),
       })
-      .where(eq(receipts.id, params.id));
+      .where(eq(receipts.id, id));
 
     // Increment OCR request count
     await db

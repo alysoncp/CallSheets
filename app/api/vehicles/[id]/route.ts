@@ -7,9 +7,10 @@ import { vehicleSchema } from "@/lib/validations/vehicle";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -29,7 +30,7 @@ export async function PATCH(
         ...validatedData,
         updatedAt: new Date(),
       })
-      .where(and(eq(vehicles.id, params.id), eq(vehicles.userId, user.id)))
+      .where(and(eq(vehicles.id, id), eq(vehicles.userId, user.id)))
       .returning();
 
     if (!updated) {
@@ -48,9 +49,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -63,7 +65,7 @@ export async function DELETE(
 
     await db
       .delete(vehicles)
-      .where(and(eq(vehicles.id, params.id), eq(vehicles.userId, user.id)));
+      .where(and(eq(vehicles.id, id), eq(vehicles.userId, user.id)));
 
     return NextResponse.json({ success: true });
   } catch (error) {
