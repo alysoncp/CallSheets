@@ -29,10 +29,30 @@ export default async function EditVehiclePage({
     redirect("/vehicles");
   }
 
+  // Convert DB nulls to undefined for form (form expects undefined, not null)
+  const initialData = {
+    ...vehicle,
+    make: vehicle.make ?? undefined,
+    model: vehicle.model ?? undefined,
+    year: vehicle.year ?? undefined,
+    licensePlate: vehicle.licensePlate ?? undefined,
+    isPrimary: vehicle.isPrimary ?? undefined,
+    usedExclusivelyForBusiness: vehicle.usedExclusivelyForBusiness ?? undefined,
+    claimsCca: vehicle.claimsCca ?? undefined,
+    ccaClass: vehicle.ccaClass ?? undefined,
+    currentMileage: vehicle.currentMileage ?? undefined,
+    mileageAtBeginningOfYear: vehicle.mileageAtBeginningOfYear ?? undefined,
+    totalAnnualMileage: vehicle.totalAnnualMileage ?? undefined,
+    estimatedYearlyMileage: vehicle.estimatedYearlyMileage ?? undefined,
+    mileageEstimate: vehicle.mileageEstimate ?? undefined,
+    purchasedThisYear: vehicle.purchasedThisYear ?? undefined,
+    purchasePrice: vehicle.purchasePrice != null ? Number(vehicle.purchasePrice) : undefined,
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Edit Vehicle</h1>
-      <VehicleForm initialData={vehicle} />
+      <VehicleForm initialData={initialData} />
     </div>
   );
 }
