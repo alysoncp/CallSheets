@@ -24,13 +24,29 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = expenseSchema.parse(body);
 
+    // Map form data to DB types (numeric columns expect string)
+    const updateData = {
+      amount: String(validatedData.amount),
+      date: validatedData.date,
+      title: validatedData.title,
+      category: validatedData.category,
+      subcategory: validatedData.subcategory ?? null,
+      vehicleId: validatedData.vehicleId && validatedData.vehicleId !== "" ? validatedData.vehicleId : null,
+      description: validatedData.description ?? null,
+      vendor: validatedData.vendor ?? null,
+      receiptImageUrl: validatedData.receiptImageUrl && validatedData.receiptImageUrl !== "" ? validatedData.receiptImageUrl : null,
+      isTaxDeductible: validatedData.isTaxDeductible,
+      baseCost: validatedData.baseCost != null ? String(validatedData.baseCost) : null,
+      gstAmount: String(validatedData.gstAmount ?? 0),
+      pstAmount: String(validatedData.pstAmount ?? 0),
+      expenseType: validatedData.expenseType,
+      businessUsePercentage: validatedData.businessUsePercentage != null ? String(validatedData.businessUsePercentage) : null,
+      updatedAt: new Date(),
+    };
+
     const [updated] = await db
       .update(expenses)
-      .set({
-        ...validatedData,
-        vehicleId: validatedData.vehicleId || null,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(and(eq(expenses.id, id), eq(expenses.userId, user.id)))
       .returning();
 
