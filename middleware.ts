@@ -6,54 +6,66 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.next({ request });
+    return NextResponse.next();
   }
 
-  try {
-    let supabaseResponse = NextResponse.next({ request });
+  // Create a response we can attach cookies to
+  let response = NextResponse.next();
 
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    });
+      setAll(cookiesToSet) {
+        // IMPORTANT: do NOT mutate request.cookies in middleware
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
 
+  try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (
-      !user &&
-      !request.nextUrl.pathname.startsWith("/signin") &&
-      !request.nextUrl.pathname.startsWith("/signup") &&
-      !request.nextUrl.pathname.startsWith("/pricing") &&
-      request.nextUrl.pathname !== "/"
-    ) {
+    const path = request.nextUrl.pathname;
+
+    const isPublic =
+      path === "/" ||
+      path.startsWith("/signin") ||
+      path.startsWith("/signup") ||
+      path.startsWith("/pricing");
+
+    if (!user && !isPublic) {
       const url = request.nextUrl.clone();
       url.pathname = "/signin";
-      return NextResponse.redirect(url);
+
+      // Preserve any cookies set during getUser()
+      const redirectResponse = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((c) => {
+        redirectResponse.cookies.set(c.name, c.value, c);
+      });
+      return redirectResponse;
     }
 
-    if (user && request.nextUrl.pathname === "/") {
+    if (user && path === "/") {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
+
+      const redirectResponse = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((c) => {
+        redirectResponse.cookies.set(c.name, c.value, c);
+      });
+      return redirectResponse;
     }
 
-    return supabaseResponse;
-  } catch {
-    return NextResponse.next({ request });
+    return response;
+  } catch (e) {
+    // Don’t hard-fail your whole app if auth fetch flakes
+    return NextResponse.next();
   }
 }
 
