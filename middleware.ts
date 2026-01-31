@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch (e) {
-    // Don’t hard-fail your whole app if auth fetch flakes
+      console.error("MIDDLEWARE ERROR", e);
     return NextResponse.next();
   }
 }
