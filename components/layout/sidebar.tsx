@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Info,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
@@ -42,8 +43,28 @@ const allNavigation = [
   { name: "About", href: "/about", icon: Info },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isMobileMenuOpen?: boolean;
+  onCloseMobileMenu?: () => void;
+}
+
+export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: SidebarProps) {
   const pathname = usePathname();
+
+  const handleLinkClick = () => {
+    onCloseMobileMenu?.();
+  };
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
   const { taxYear, setTaxYear } = useTaxYear();
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -244,17 +265,26 @@ export function Sidebar() {
     return null;
   }
 
-  return (
+  const sidebarContent = (
     <div className="flex h-full w-64 flex-col border-r bg-background">
-      <div className="flex h-16 items-center border-b px-6">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b px-4 sm:px-6">
         <Link
           href="/dashboard"
-          className="text-2xl font-extrabold tracking-tight text-foreground"
+          onClick={handleLinkClick}
+          className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl"
         >
           <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             CallSheets
           </span>
         </Link>
+        <button
+          type="button"
+          onClick={onCloseMobileMenu}
+          className="lg:hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          aria-label="Close menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
       <div className="border-b bg-primary/5 px-4 py-3">
         <div className="space-y-2">
@@ -294,6 +324,7 @@ export function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={handleLinkClick}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
@@ -322,5 +353,33 @@ export function Sidebar() {
         )}
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* Mobile overlay backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onCloseMobileMenu?.()}
+          onKeyDown={(e) => e.key === "Escape" && onCloseMobileMenu?.()}
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          aria-label="Close menu"
+        />
+      )}
+      {/* Sidebar: hidden overlay on mobile (hamburger only), visible on desktop - never affects signin (different layout) */}
+      <aside
+        className={cn(
+          "flex h-full w-64 flex-col border-r bg-background transition-transform duration-200 ease-in-out",
+          "fixed inset-y-0 left-0 z-50 lg:relative lg:z-auto lg:shrink-0 lg:pointer-events-auto",
+          isMobileMenuOpen
+            ? "translate-x-0 shadow-xl pointer-events-auto"
+            : "-translate-x-full pointer-events-none lg:translate-x-0 lg:shadow-none"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

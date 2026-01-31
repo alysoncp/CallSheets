@@ -3,11 +3,15 @@
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { LogOut, Moon, Sun, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-export function Header() {
+interface HeaderProps {
+  onToggleMobileMenu?: () => void;
+}
+
+export function Header({ onToggleMobileMenu }: HeaderProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -24,27 +28,37 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-background px-6">
-      <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold">Financial Management</h1>
+    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-background px-4 sm:px-5 md:px-6">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleMobileMenu}
+          className="lg:hidden h-9 w-9 shrink-0"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <h1 className="truncate text-base font-semibold sm:text-lg">Financial Management</h1>
       </div>
-      <div className="flex items-center gap-4">
-        <h2 className="text-sm font-bold">CallSheets</h2>
+      <div className="flex shrink-0 items-center gap-1 sm:gap-4">
+        <h2 className="hidden text-sm font-bold sm:block">CallSheets</h2>
         {mounted && (
           <Button
             variant="ghost"
             size="icon"
+            className="h-9 w-9"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
+              <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
             ) : (
-              <Moon className="h-5 w-5" />
+              <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
             )}
           </Button>
         )}
-        <Button variant="ghost" size="icon" onClick={handleSignOut}>
-          <LogOut className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleSignOut}>
+          <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
       </div>
     </header>
