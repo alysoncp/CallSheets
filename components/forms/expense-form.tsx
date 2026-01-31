@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { expenseSchema, type ExpenseFormData } from "@/lib/validations/expense";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
     setValue,
     formState: { errors },
   } = useForm<ExpenseFormData>({
-    resolver: zodResolver(expenseSchema),
+    resolver: zodResolver(expenseSchema) as Resolver<ExpenseFormData>,
     defaultValues: mergedData,
   });
 

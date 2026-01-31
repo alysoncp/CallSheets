@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { mileageLogSchema, type MileageLogFormData } from "@/lib/validations/mileage-log";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
     setValue,
     formState: { errors },
   } = useForm<MileageLogFormData>({
-    resolver: zodResolver(mileageLogSchema),
+    resolver: zodResolver(mileageLogSchema) as Resolver<MileageLogFormData>,
     defaultValues: {
       ...initialData,
       isBusinessUse: initialData?.isBusinessUse ?? true,

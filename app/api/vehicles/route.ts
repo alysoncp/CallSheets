@@ -48,12 +48,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = vehicleSchema.parse(body);
 
+    // Map form data to DB types (numeric columns expect string, ccaClass expects "10" | "10.1")
+    const validCcaClass = validatedData.ccaClass && (validatedData.ccaClass === "10" || validatedData.ccaClass === "10.1")
+      ? (validatedData.ccaClass as "10" | "10.1")
+      : null;
+    const insertData = {
+      userId: user.id,
+      name: validatedData.name,
+      make: validatedData.make ?? null,
+      model: validatedData.model ?? null,
+      year: validatedData.year ?? null,
+      licensePlate: validatedData.licensePlate ?? null,
+      isPrimary: validatedData.isPrimary,
+      usedExclusivelyForBusiness: validatedData.usedExclusivelyForBusiness,
+      claimsCca: validatedData.claimsCca,
+      ccaClass: validCcaClass,
+      currentMileage: validatedData.currentMileage ?? null,
+      mileageAtBeginningOfYear: validatedData.mileageAtBeginningOfYear ?? null,
+      totalAnnualMileage: validatedData.totalAnnualMileage ?? null,
+      estimatedYearlyMileage: validatedData.estimatedYearlyMileage ?? null,
+      mileageEstimate: validatedData.mileageEstimate,
+      purchasedThisYear: validatedData.purchasedThisYear,
+      purchasePrice: validatedData.purchasePrice != null ? String(validatedData.purchasePrice) : null,
+    };
+
     const [newVehicle] = await db
       .insert(vehicles)
-      .values({
-        userId: user.id,
-        ...validatedData,
-      })
+      .values(insertData)
       .returning();
 
     return NextResponse.json(newVehicle, { status: 201 });

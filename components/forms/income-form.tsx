@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { incomeSchema, type IncomeFormData } from "@/lib/validations/income";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
     setValue,
     formState: { errors },
   } = useForm<IncomeFormData>({
-    resolver: zodResolver(incomeSchema),
+    resolver: zodResolver(incomeSchema) as Resolver<IncomeFormData>,
     defaultValues: {
       ...mergedData,
       paystubIssuer: (mergedData as any)?.paystubIssuer ?? "EP",

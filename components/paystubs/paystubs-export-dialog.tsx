@@ -117,7 +117,7 @@ export function PaystubsExportDialog({
             <Checkbox
               id="select-all"
               checked={selectedIds.size === paystubs.length && paystubs.length > 0}
-              onCheckedChange={handleToggleAll}
+              onChange={handleToggleAll}
             />
             <Label htmlFor="select-all" className="cursor-pointer font-medium">
               Select All ({paystubs.length} paystubs)
@@ -132,7 +132,7 @@ export function PaystubsExportDialog({
                 <Checkbox
                   id={`paystub-${paystub.id}`}
                   checked={selectedIds.has(paystub.id)}
-                  onCheckedChange={() => handleToggle(paystub.id)}
+                  onChange={() => handleToggle(paystub.id)}
                 />
                 <Label
                   htmlFor={`paystub-${paystub.id}`}

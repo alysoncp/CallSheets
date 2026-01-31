@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userProfileSchema, type UserProfileFormData } from "@/lib/validations/user";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     watch,
     setValue,
   } = useForm<UserProfileFormData>({
-    resolver: zodResolver(userProfileSchema),
+    resolver: zodResolver(userProfileSchema) as Resolver<UserProfileFormData>,
     defaultValues: {
       ...initialData,
       enabledExpenseCategories: initialData?.enabledExpenseCategories || ALL_EXPENSE_CATEGORIES,
@@ -396,7 +396,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
             <Checkbox
               id="trackPersonalExpenses"
               checked={watch("trackPersonalExpenses") !== false}
-              onCheckedChange={(checked) => setValue("trackPersonalExpenses", checked === true)}
+              onChange={(e) => setValue("trackPersonalExpenses", e.target.checked)}
             />
             <Label
               htmlFor="trackPersonalExpenses"

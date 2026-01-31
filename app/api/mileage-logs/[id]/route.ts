@@ -24,12 +24,19 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = mileageLogSchema.parse(body);
 
+    const updateData = {
+      vehicleId: validatedData.vehicleId,
+      date: validatedData.date,
+      odometerReading: validatedData.odometerReading ?? null,
+      tripDistance: validatedData.tripDistance ?? null,
+      description: validatedData.description ?? null,
+      isBusinessUse: validatedData.isBusinessUse,
+      updatedAt: new Date(),
+    };
+
     const [updated] = await db
       .update(vehicleMileageLogs)
-      .set({
-        ...validatedData,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(and(eq(vehicleMileageLogs.id, id), eq(vehicleMileageLogs.userId, user.id)))
       .returning();
 

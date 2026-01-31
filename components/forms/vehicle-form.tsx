@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { vehicleSchema, type VehicleFormData } from "@/lib/validations/vehicle";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
     setValue,
     formState: { errors },
   } = useForm<VehicleFormData>({
-    resolver: zodResolver(vehicleSchema),
+    resolver: zodResolver(vehicleSchema) as Resolver<VehicleFormData>,
     defaultValues: initialData,
   });
 

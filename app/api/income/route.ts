@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { income, paystubs } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { incomeSchema } from "@/lib/validations/income";
 
 export async function GET(request: NextRequest) {
@@ -22,13 +22,19 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
     const incomeType = searchParams.get("incomeType");
 
-    let query = db.select().from(income).where(eq(income.userId, user.id));
-
-    if (startDate) {
-      query = query.where(eq(income.date, startDate));
+    const validIncomeTypes = ["union_production", "non_union_production", "royalty_residual", "cash"] as const;
+    const conditions = [eq(income.userId, user.id)];
+    if (startDate) conditions.push(gte(income.date, startDate));
+    if (endDate) conditions.push(lte(income.date, endDate));
+    if (incomeType && validIncomeTypes.includes(incomeType as typeof validIncomeTypes[number])) {
+      conditions.push(eq(income.incomeType, incomeType as typeof validIncomeTypes[number]));
     }
 
-    const results = await query.orderBy(desc(income.date));
+    const results = await db
+      .select()
+      .from(income)
+      .where(and(...conditions))
+      .orderBy(desc(income.date));
 
     return NextResponse.json(results);
   } catch (error) {
@@ -57,14 +63,28 @@ export async function POST(request: NextRequest) {
     const validatedData = incomeSchema.parse(incomeData);
 
     // Omit form-only fields not in DB (paystubIssuer, reimbursements, totalDeductions)
-    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, ...dbData } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number };
+    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, ...rest } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number };
+
+    // Map form data to DB types (numeric columns expect string)
+    const insertData = {
+      userId: user.id,
+      ...rest,
+      amount: String(rest.amount),
+      grossPay: rest.grossPay != null ? String(rest.grossPay) : null,
+      gstHstCollected: String(rest.gstHstCollected ?? 0),
+      cppContribution: String(rest.cppContribution ?? 0),
+      eiContribution: String(rest.eiContribution ?? 0),
+      incomeTaxDeduction: String(rest.incomeTaxDeduction ?? 0),
+      dues: String(rest.dues ?? 0),
+      retirement: String(rest.retirement ?? 0),
+      pension: String(rest.pension ?? 0),
+      insurance: String(rest.insurance ?? 0),
+      paystubImageUrl: rest.paystubImageUrl && rest.paystubImageUrl !== "" ? rest.paystubImageUrl : null,
+    };
 
     const [newIncome] = await db
       .insert(income)
-      .values({
-        userId: user.id,
-        ...dbData,
-      })
+      .values(insertData)
       .returning();
 
     // Link paystub to income if paystubId is provided

@@ -117,7 +117,7 @@ export function ReceiptsExportDialog({
             <Checkbox
               id="select-all"
               checked={selectedIds.size === receipts.length && receipts.length > 0}
-              onCheckedChange={handleToggleAll}
+              onChange={handleToggleAll}
             />
             <Label htmlFor="select-all" className="cursor-pointer font-medium">
               Select All ({receipts.length} receipts)
@@ -132,7 +132,7 @@ export function ReceiptsExportDialog({
                 <Checkbox
                   id={`receipt-${receipt.id}`}
                   checked={selectedIds.has(receipt.id)}
-                  onCheckedChange={() => handleToggle(receipt.id)}
+                  onChange={() => handleToggle(receipt.id)}
                 />
                 <Label
                   htmlFor={`receipt-${receipt.id}`}

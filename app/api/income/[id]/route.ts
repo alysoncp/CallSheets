@@ -24,14 +24,28 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = incomeSchema.parse(body);
 
-    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, ...dbData } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number };
+    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, ...rest } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number };
+
+    // Map form data to DB types (numeric columns expect string)
+    const updateData = {
+      ...rest,
+      amount: String(rest.amount),
+      grossPay: rest.grossPay != null ? String(rest.grossPay) : null,
+      gstHstCollected: String(rest.gstHstCollected ?? 0),
+      cppContribution: String(rest.cppContribution ?? 0),
+      eiContribution: String(rest.eiContribution ?? 0),
+      incomeTaxDeduction: String(rest.incomeTaxDeduction ?? 0),
+      dues: String(rest.dues ?? 0),
+      retirement: String(rest.retirement ?? 0),
+      pension: String(rest.pension ?? 0),
+      insurance: String(rest.insurance ?? 0),
+      paystubImageUrl: rest.paystubImageUrl && rest.paystubImageUrl !== "" ? rest.paystubImageUrl : null,
+      updatedAt: new Date(),
+    };
 
     const [updated] = await db
       .update(income)
-      .set({
-        ...dbData,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(and(eq(income.id, id), eq(income.userId, user.id)))
       .returning();
 

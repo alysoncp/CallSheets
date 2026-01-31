@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       });
 
     // If bucket doesn't exist, try to create it and retry upload
-    if (uploadError && (uploadError.message === "Bucket not found" || uploadError.statusCode === "404")) {
+    if (uploadError && (uploadError.message === "Bucket not found" || uploadError.message === "Not Found" || uploadError.message?.includes("row-level security"))) {
       // Use admin client for bucket creation (requires service role key)
       const adminClient = createAdminClient();
       const { data: bucketData, error: bucketError } = await adminClient.storage.createBucket(bucketName, {
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
             
             // Map line items to description
             const description = veryfiResult.line_items
-              ?.map((item) => item.description || item.text || "")
+              ?.map((item) => item.description || (item as { text?: string }).text || "")
               .filter(Boolean)
               .join(', ') || "";
             
@@ -181,6 +181,7 @@ export async function POST(request: NextRequest) {
               tax: 0,
               date: new Date().toISOString(),
               line_items: [],
+              currency_code: "CAD",
             };
             
             ocrResult = transformVeryfiToExpense(veryfiPlaceholder);

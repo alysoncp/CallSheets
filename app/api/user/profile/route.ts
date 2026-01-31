@@ -58,12 +58,18 @@ export async function PATCH(request: NextRequest) {
 
     const validatedData = userProfileSchema.parse(cleanedBody);
 
+    // Map form data to DB types (numeric columns expect string)
+    const updateData = {
+      ...validatedData,
+      agentCommission: validatedData.agentCommission != null ? String(validatedData.agentCommission) : null,
+      homeOfficePercentage: validatedData.homeOfficePercentage != null ? String(validatedData.homeOfficePercentage) : null,
+      profileImageUrl: validatedData.profileImageUrl && validatedData.profileImageUrl !== "" ? validatedData.profileImageUrl : null,
+      updatedAt: new Date(),
+    };
+
     const [updated] = await db
       .update(users)
-      .set({
-        ...validatedData,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(users.id, user.id))
       .returning();
 

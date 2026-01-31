@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userProfileSchema, type UserProfileFormData } from "@/lib/validations/user";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
     formState: { errors },
     watch,
   } = useForm<UserProfileFormData>({
-    resolver: zodResolver(userProfileSchema),
+    resolver: zodResolver(userProfileSchema) as Resolver<UserProfileFormData>,
     defaultValues: initialData,
   });
 

@@ -73,8 +73,8 @@ export function MonthlyChart({ taxYear, income, expenses }: MonthlyChartProps) {
         <XAxis dataKey="date" />
         <YAxis />
         <Tooltip
-          formatter={(value: number) =>
-            `$${value.toLocaleString("en-CA", {
+          formatter={(value: number | undefined) =>
+            `$${(value ?? 0).toLocaleString("en-CA", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}`

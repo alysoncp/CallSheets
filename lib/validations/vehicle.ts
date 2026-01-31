@@ -10,7 +10,7 @@ export const vehicleSchema = z.object({
   isPrimary: z.boolean().default(false),
   usedExclusivelyForBusiness: z.boolean().default(false),
   claimsCca: z.boolean().default(false),
-  ccaClass: z.enum(CCA_CLASSES as [string, ...string[]]).optional(),
+  ccaClass: z.enum(CCA_CLASSES as unknown as [string, ...string[]]).optional(),
   currentMileage: z.coerce.number().int().nonnegative().optional(),
   mileageAtBeginningOfYear: z.coerce.number().int().nonnegative().optional(),
   totalAnnualMileage: z.coerce.number().int().nonnegative().optional(),

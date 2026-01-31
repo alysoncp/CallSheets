@@ -73,7 +73,7 @@ export function ExpenseCategoryChart({ expenses }: ExpenseCategoryChartProps) {
           cy="50%"
           outerRadius="70%"
           label={({ name, percent }) =>
-            `${name} ${(percent * 100).toFixed(0)}%`
+            `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
           }
         >
           {data.map((_, index) => (
@@ -84,7 +84,7 @@ export function ExpenseCategoryChart({ expenses }: ExpenseCategoryChartProps) {
           ))}
         </Pie>
         <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
+          formatter={(value: number | undefined) => formatCurrency(value ?? 0)}
           contentStyle={{ borderRadius: "var(--radius)" }}
         />
         <Legend />

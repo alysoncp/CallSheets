@@ -48,12 +48,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = mileageLogSchema.parse(body);
 
+    const insertData = {
+      userId: user.id,
+      vehicleId: validatedData.vehicleId,
+      date: validatedData.date,
+      odometerReading: validatedData.odometerReading ?? null,
+      tripDistance: validatedData.tripDistance ?? null,
+      description: validatedData.description ?? null,
+      isBusinessUse: validatedData.isBusinessUse,
+    };
+
     const [newLog] = await db
       .insert(vehicleMileageLogs)
-      .values({
-        userId: user.id,
-        ...validatedData,
-      })
+      .values(insertData)
       .returning();
 
     return NextResponse.json(newLog, { status: 201 });
