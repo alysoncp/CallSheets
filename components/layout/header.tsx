@@ -39,7 +39,7 @@ export function Header({ onToggleMobileMenu }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="truncate text-base font-semibold sm:text-lg">Financial Management</h1>
+        <h1 className="truncate text-base font-semibold sm:text-lg">CallSheets</h1>
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-4">
         <h2 className="hidden text-sm font-bold sm:block">CallSheets</h2>
