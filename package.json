@@ -15,7 +15,13 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
-    "supabase:reset": "supabase db reset"
+    "supabase:reset": "supabase db reset",
+  
+    "db:reset": "supabase db reset",
+    "db:push:dev": "supabase link --project-ref ovnmeqtablzyanpnytai && supabase db push",
+    "db:push:prod": "supabase link --project-ref zurwoqrlvbcvmbxggocv && supabase db push"
+  
+    
   },
   "keywords": [],
   "author": "",
@@ -54,3 +60,5 @@
     "zod": "^4.3.6"
   }
 }
+
+
