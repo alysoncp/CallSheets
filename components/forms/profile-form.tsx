@@ -31,12 +31,18 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
     watch,
   } = useForm<UserProfileFormData>({
     resolver: zodResolver(userProfileSchema) as Resolver<UserProfileFormData>,
-    defaultValues: initialData,
+    defaultValues: {
+      ...initialData,
+      province: "BC",
+      ubcpActraStatus: initialData?.ubcpActraStatus ?? "none",
+      iatseStatus: initialData?.iatseStatus ?? "none",
+    },
   });
 
   // Watch for conditional field rendering
   const hasAgent = watch("hasAgent");
   const hasGstNumber = watch("hasGstNumber");
+  const userType = watch("userType");
 
   const onSubmit = async (data: UserProfileFormData) => {
     setLoading(true);
@@ -142,22 +148,17 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
               <Label htmlFor="province">
                 Province <span className="text-destructive">*</span>
               </Label>
-              <Select id="province" {...register("province")} required={isSetupMode}>
-                <option value="">Select a province</option>
-                <option value="BC">British Columbia</option>
-                <option value="AB">Alberta</option>
-                <option value="SK">Saskatchewan</option>
-                <option value="MB">Manitoba</option>
-                <option value="ON">Ontario</option>
-                <option value="QC">Quebec</option>
-                <option value="NB">New Brunswick</option>
-                <option value="NS">Nova Scotia</option>
-                <option value="PE">Prince Edward Island</option>
-                <option value="NL">Newfoundland and Labrador</option>
-                <option value="YT">Yukon</option>
-                <option value="NT">Northwest Territories</option>
-                <option value="NU">Nunavut</option>
-              </Select>
+              <input type="hidden" {...register("province")} defaultValue="BC" />
+              <Input
+                id="province"
+                value="British Columbia"
+                readOnly
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <p className="text-sm text-muted-foreground">
+                Support for other provinces coming soon
+              </p>
               {errors.province && (
                 <p className="text-sm text-destructive">{errors.province.message}</p>
               )}
@@ -173,6 +174,11 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
                 <option value="crew">Crew</option>
                 <option value="both">Both</option>
               </Select>
+              {userType === "both" && (
+                <p className="text-sm text-muted-foreground">
+                  Support for separating benefit amounts between UBCP/IATSE coming soon
+                </p>
+              )}
               {errors.userType && (
                 <p className="text-sm text-destructive">{errors.userType.message}</p>
               )}
@@ -181,10 +187,10 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
         </CardContent>
       </Card>
 
-      {/* UBCP/ACTRA Status Section */}
+      {/* Union Status Section */}
       <Card>
         <CardHeader>
-          <CardTitle>UBCP/ACTRA Status</CardTitle>
+          <CardTitle>Union Status</CardTitle>
           <CardDescription>Your union membership status</CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,6 +207,19 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
               </Select>
               {errors.ubcpActraStatus && (
                 <p className="text-sm text-destructive">{errors.ubcpActraStatus.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="iatseStatus">
+                IATSE Union Status
+              </Label>
+              <Select id="iatseStatus" {...register("iatseStatus")}>
+                <option value="none">None</option>
+                <option value="full">Full</option>
+                <option value="permittee">Permittee</option>
+              </Select>
+              {errors.iatseStatus && (
+                <p className="text-sm text-destructive">{errors.iatseStatus.message}</p>
               )}
             </div>
           </div>
@@ -292,7 +311,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
       </Card>
 
       {/* Subscription Section */}
-      <SubscriptionSection subscriptionTier={initialData?.subscriptionTier || "basic"} />
+      <SubscriptionSection subscriptionTier={initialData?.subscriptionTier || "personal"} />
 
       <div className="flex gap-4">
         <Button 

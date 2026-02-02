@@ -24,7 +24,7 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = incomeSchema.parse(body);
 
-    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, ...rest } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number };
+    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, agentCommissionAmount: aca, ...rest } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number; agentCommissionAmount?: number };
 
     // Map form data to DB types (numeric columns expect string)
     const updateData = {
@@ -39,6 +39,7 @@ export async function PATCH(
       retirement: String(rest.retirement ?? 0),
       pension: String(rest.pension ?? 0),
       insurance: String(rest.insurance ?? 0),
+      agentCommissionAmount: aca != null ? String(aca) : null,
       paystubImageUrl: rest.paystubImageUrl && rest.paystubImageUrl !== "" ? rest.paystubImageUrl : null,
       updatedAt: new Date(),
     };

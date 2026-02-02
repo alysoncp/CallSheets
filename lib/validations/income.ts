@@ -27,6 +27,7 @@ export const incomeSchema = z.object({
   retirement: z.coerce.number().nonnegative().default(0),
   pension: z.coerce.number().nonnegative().default(0),
   insurance: z.coerce.number().nonnegative().default(0),
+  agentCommissionAmount: z.coerce.number().nonnegative().optional(),
 });
 
 export type IncomeFormData = z.infer<typeof incomeSchema>;
