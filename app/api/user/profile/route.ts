@@ -58,10 +58,14 @@ export async function PATCH(request: NextRequest) {
 
     const validatedData = userProfileSchema.parse(cleanedBody);
 
-    // Map form data to DB types (numeric columns expect string)
+    // Map form data to DB types (numeric columns expect string). Round commission % to 2 decimals.
+    const agentCommissionRounded =
+      validatedData.agentCommission != null
+        ? Math.round(validatedData.agentCommission * 100) / 100
+        : null;
     const updateData = {
       ...validatedData,
-      agentCommission: validatedData.agentCommission != null ? String(validatedData.agentCommission) : null,
+      agentCommission: agentCommissionRounded != null ? String(agentCommissionRounded) : null,
       homeOfficePercentage: validatedData.homeOfficePercentage != null ? String(validatedData.homeOfficePercentage) : null,
       profileImageUrl: validatedData.profileImageUrl && validatedData.profileImageUrl !== "" ? validatedData.profileImageUrl : null,
       updatedAt: new Date(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +47,7 @@ export function IncomeEntryDialog({
     hasAgent?: boolean;
     agentCommission?: number;
   } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state when dialog opens for a new entry; always fetch user profile when dialog opens
   useEffect(() => {
@@ -331,10 +332,12 @@ export function IncomeEntryDialog({
             {entryMethod === "upload" && (
               <div className="space-y-2">
                 <Label htmlFor="file-upload">Select Paystub</Label>
-                <Input
+                <input
                   id="file-upload"
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*,.pdf"
+                  className="sr-only"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -343,6 +346,19 @@ export function IncomeEntryDialog({
                   }}
                   disabled={uploading}
                 />
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Browse / Select Photo
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Choose an image or PDF of your paystub
+                </p>
               </div>
             )}
             {entryMethod === "camera" && (

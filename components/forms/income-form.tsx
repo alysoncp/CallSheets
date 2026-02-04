@@ -80,19 +80,21 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
   const amountVal = watch("amount");
   const netIncomeNonUnion = Math.max(0, Number(grossPayVal) - Number(totalDeductionsVal));
 
+  // Non-union: always sync amount to calculated net (allow zero)
   useEffect(() => {
-    if (!isUnionProduction && netIncomeNonUnion > 0 && (!amountVal || amountVal === 0)) {
+    if (!isUnionProduction) {
       setValue("amount", netIncomeNonUnion);
     }
-  }, [isUnionProduction, netIncomeNonUnion, amountVal, setValue]);
+  }, [isUnionProduction, netIncomeNonUnion, setValue]);
 
-  // Pre-fill agent commission estimate when amount changes (new entries only)
+  // Pre-fill agent commission estimate when amount changes (new entries only). Round % to 2 decimals.
   const amountForCommission = watch("amount");
   useEffect(() => {
     if (hasAgent && agentCommission != null && !initialData?.id) {
       const net = Number(amountForCommission) || 0;
-      if (net > 0) {
-        setValue("agentCommissionAmount", net * (agentCommission / 100));
+      if (net >= 0) {
+        const pct = Math.round(agentCommission * 100) / 100;
+        setValue("agentCommissionAmount", net * (pct / 100));
       }
     }
   }, [hasAgent, agentCommission, initialData?.id, amountForCommission, setValue]);
