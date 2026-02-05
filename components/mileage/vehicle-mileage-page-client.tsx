@@ -3,11 +3,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Filter } from "lucide-react";
 import { MileageLogEntryDialog } from "@/components/mileage/mileage-log-entry-dialog";
 import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";
+import { Select } from "@/components/ui/select";
 
 interface MileageLogRecord {
   id: string;
@@ -38,9 +39,10 @@ export function VehicleMileagePageClient({
   const [editingLog, setEditingLog] = useState<MileageLogRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [mileageLoggingStyle, setMileageLoggingStyle] = useState<"odometer" | "trip_distance">("trip_distance");
+  const [vehicleFilterId, setVehicleFilterId] = useState<string | "all">("all");
 
   // Filter logs by selected year from context
-  const filteredLogs = useMemo(() => {
+  const filteredLogsByYear = useMemo(() => {
     return logs.filter((log) => {
       try {
         const logDate = new Date(log.date);
@@ -50,6 +52,44 @@ export function VehicleMileagePageClient({
       }
     });
   }, [logs, taxYear]);
+
+  // Total business mileage per vehicle (for filtered year; all records are business)
+  const totalMileageByVehicle = useMemo(() => {
+    const byVehicle: Record<string, number> = {};
+    vehicles.forEach((v) => {
+      byVehicle[v.id] = 0;
+    });
+    const vehicleLogs = filteredLogsByYear.reduce<Record<string, MileageLogRecord[]>>((acc, log) => {
+      (acc[log.vehicleId] = acc[log.vehicleId] ?? []).push(log);
+      return acc;
+    }, {});
+    Object.entries(vehicleLogs).forEach(([vehicleId, vehicleLogList]) => {
+      let total = 0;
+      const withTrip = vehicleLogList.filter((l) => l.tripDistance != null && l.tripDistance > 0);
+      const withOdometer = vehicleLogList.filter((l) => l.odometerReading != null);
+      withTrip.forEach((l) => {
+        total += l.tripDistance ?? 0;
+      });
+      if (withOdometer.length >= 2) {
+        const sorted = [...withOdometer].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        for (let i = 0; i < sorted.length - 1; i++) {
+          const curr = sorted[i].odometerReading ?? 0;
+          const next = sorted[i + 1].odometerReading ?? 0;
+          if (next >= curr) total += next - curr;
+        }
+      }
+      byVehicle[vehicleId] = total;
+    });
+    return byVehicle;
+  }, [filteredLogsByYear, vehicles]);
+
+  // Apply vehicle filter to log list
+  const filteredLogs = useMemo(() => {
+    if (vehicleFilterId === "all") return filteredLogsByYear;
+    return filteredLogsByYear.filter((log) => log.vehicleId === vehicleFilterId);
+  }, [filteredLogsByYear, vehicleFilterId]);
 
   // Fetch user profile for mileage logging style
   useEffect(() => {
@@ -142,11 +182,53 @@ export function VehicleMileagePageClient({
       )}
 
       {vehicles.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Mileage Logs</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Business Mileage ({taxYear})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {vehicles.map((vehicle) => (
+                  <div
+                    key={vehicle.id}
+                    className="rounded-lg border bg-muted/40 px-4 py-3"
+                  >
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {vehicle.name}
+                    </p>
+                    <p className="text-2xl font-semibold">
+                      {(totalMileageByVehicle[vehicle.id] ?? 0).toLocaleString()}{" "}
+                      km
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle>Mileage Logs</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select
+                    value={vehicleFilterId}
+                    onChange={(e) => setVehicleFilterId(e.target.value)}
+                    className="w-[180px]"
+                  >
+                    <option value="all">All vehicles</option>
+                    {vehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
             {filteredLogs.length === 0 ? (
               <div className="py-10 text-center">
                 <p className="text-muted-foreground mb-4">
@@ -180,11 +262,6 @@ export function VehicleMileagePageClient({
                             <p className="text-sm text-muted-foreground">
                               {format(parseISO(log.date), "MMM dd, yyyy")} • {valueLabel}
                               {log.description && ` • ${log.description}`}
-                              {log.isBusinessUse && (
-                                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                                  Business
-                                </span>
-                              )}
                             </p>
                           </div>
                         </div>
@@ -213,6 +290,7 @@ export function VehicleMileagePageClient({
             )}
           </CardContent>
         </Card>
+        </>
       )}
 
       <MileageLogEntryDialog

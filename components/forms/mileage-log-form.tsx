@@ -82,8 +82,8 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
     setError(null);
 
     try {
-      // Ensure only the appropriate field is set based on logging style
-      const submitData = { ...data };
+      // Ensure only the appropriate field is set based on logging style; all records are business use
+      const submitData = { ...data, isBusinessUse: true };
       if (mileageLoggingStyle === "odometer") {
         submitData.tripDistance = undefined;
       } else {
@@ -198,16 +198,6 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
             {...register("description")}
             placeholder="Optional description"
           />
-        </div>
-
-        <div className="space-y-2 flex items-center">
-          <input
-            id="isBusinessUse"
-            type="checkbox"
-            {...register("isBusinessUse")}
-            className="mr-2"
-          />
-          <Label htmlFor="isBusinessUse">Business Use</Label>
         </div>
       </div>
 
