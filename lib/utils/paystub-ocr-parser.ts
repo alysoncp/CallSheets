@@ -214,22 +214,25 @@ function extractCCGrossIncome(ocrText: string): number | undefined {
 
 /**
  * Extract net income from paystub
- * Looks for "NET PAY" pattern (works for both EP and CC)
+ * Looks for "NET PAY" or "AMOUNT DEPOSITED" pattern (works for both EP and CC)
  */
 function extractNetIncome(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const netPayPattern = /NET\s+PAY[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
-  const match = upperText.match(netPayPattern);
-
-  if (match && match[1]) {
-    const amount = parseAmount(match[1]);
-    if (!isNaN(amount) && amount > 0) {
-      return amount;
+  const patterns = [
+    /NET\s+PAY[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /AMOUNT\s+DEPOSITED[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+  ];
+  for (const netPayPattern of patterns) {
+    const match = upperText.match(netPayPattern);
+    if (match && match[1]) {
+      const amount = parseAmount(match[1]);
+      if (!isNaN(amount) && amount >= 0) {
+        return amount;
+      }
     }
   }
-
   return undefined;
 }
 
@@ -298,7 +301,7 @@ function extractCCReimbursements(ocrText: string): number | undefined {
 
 /**
  * Extract optional deduction amounts from CC paystub
- * Labels: Ins. Ded (insurance), Member Fee (dues), Retir. Emp (pension), Retire Deduct (retirement)
+ * Labels: Ins. Ded (insurance), Member Fee (dues), Retir. Emp (pension), Retire Ded / Retire Deduct (retirement)
  */
 function extractCCOptionalDeductions(ocrText: string): {
   insurance?: number;
@@ -313,7 +316,7 @@ function extractCCOptionalDeductions(ocrText: string): {
     { key: "insurance", regex: /INS\.\s*DED[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
     { key: "dues", regex: /MEMBER\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
     { key: "pension", regex: /RETIR\.\s+EMP[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
-    { key: "retirement", regex: /RETIRE\s+DEDUCT[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
+    { key: "retirement", regex: /RETIRE\s+DED(?:UCT)?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
   ];
   for (const { key, regex } of patterns) {
     const match = upperText.match(regex);
@@ -327,7 +330,7 @@ function extractCCOptionalDeductions(ocrText: string): {
 
 /**
  * Extract optional deduction amounts from EP paystub
- * Labels: Insurance, Dues / Permit Fee / Member Fee (dues), Pension, Retire (retirement)
+ * Labels: Insurance/Insure, Dues/Permit Fee/Member Fee (dues), Pension, Retire/Retire Ded (retirement)
  */
 function extractEPOptionalDeductions(ocrText: string): {
   insurance?: number;
@@ -338,8 +341,8 @@ function extractEPOptionalDeductions(ocrText: string): {
   const result: { insurance?: number; dues?: number; pension?: number; retirement?: number } = {};
   if (!ocrText) return result;
   const upperText = ocrText.toUpperCase();
-  // Insurance
-  const insMatch = upperText.match(/INSURANCE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i);
+  // Insurance or Insure
+  const insMatch = upperText.match(/INSURE?(?:ANCE)?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i);
   if (insMatch?.[1]) {
     const amount = parseAmount(insMatch[1]);
     if (!isNaN(amount) && amount >= 0) result.insurance = amount;
@@ -362,11 +365,20 @@ function extractEPOptionalDeductions(ocrText: string): {
     const amount = parseAmount(pensionMatch[1]);
     if (!isNaN(amount) && amount >= 0) result.pension = amount;
   }
-  // Retirement (Retire)
-  const retireMatch = upperText.match(/RETIRE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i);
-  if (retireMatch?.[1]) {
-    const amount = parseAmount(retireMatch[1]);
-    if (!isNaN(amount) && amount >= 0) result.retirement = amount;
+  // Retirement: Retire, Retire Ded, or Retire Deduct
+  const retirePatterns = [
+    /RETIRE\s+DED(?:UCT)?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /RETIRE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+  ];
+  for (const re of retirePatterns) {
+    const retireMatch = upperText.match(re);
+    if (retireMatch?.[1]) {
+      const amount = parseAmount(retireMatch[1]);
+      if (!isNaN(amount) && amount >= 0) {
+        result.retirement = amount;
+        break;
+      }
+    }
   }
   return result;
 }

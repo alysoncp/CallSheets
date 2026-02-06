@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const validatedData = incomeSchema.parse(incomeData);
 
     // Omit form-only fields not in DB (paystubIssuer, reimbursements, totalDeductions)
-    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, ...rest } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number };
+    const { paystubIssuer: _pi, reimbursements: _r, totalDeductions: _td, agentCommissionAmount: aca, ...rest } = validatedData as typeof validatedData & { paystubIssuer?: string; reimbursements?: number; totalDeductions?: number; agentCommissionAmount?: number };
 
     // Map form data to DB types (numeric columns expect string)
     const insertData = {
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       retirement: String(rest.retirement ?? 0),
       pension: String(rest.pension ?? 0),
       insurance: String(rest.insurance ?? 0),
+      agentCommissionAmount: aca != null ? String(aca) : null,
       paystubImageUrl: rest.paystubImageUrl && rest.paystubImageUrl !== "" ? rest.paystubImageUrl : null,
     };
 

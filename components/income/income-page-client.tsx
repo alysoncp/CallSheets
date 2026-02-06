@@ -71,7 +71,7 @@ export function IncomePageClient({
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold sm:text-3xl">Income</h1>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={() => { setEditingIncome(null); setDialogOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Add Income
         </Button>
@@ -84,6 +84,10 @@ export function IncomePageClient({
           setEditingIncome(income);
           setDialogOpen(true);
         }}
+        onAddClick={() => {
+          setEditingIncome(null);
+          setDialogOpen(true);
+        }}
         onRefresh={refreshIncome}
       />
       <IncomeEntryDialog
@@ -91,7 +95,6 @@ export function IncomePageClient({
         onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) {
-            setEditingIncome(null);
             refreshIncome(); // Refresh income list when dialog closes
             refreshPaystubs(); // Refresh paystub gallery so new paystub appears
           }

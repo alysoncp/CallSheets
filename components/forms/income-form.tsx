@@ -18,10 +18,13 @@ interface IncomeFormProps {
   ocrData?: any;
   incomeType?: IncomeType;
   userUbcpStatus?: string;
+  userType?: "performer" | "crew" | "both";
   paystubId?: string;
+  hasAgent?: boolean;
+  agentCommission?: number;
 }
 
-export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUbcpStatus, paystubId }: IncomeFormProps) {
+export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUbcpStatus, userType, paystubId, hasAgent, agentCommission }: IncomeFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,8 +46,13 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
       : initialData;
 
   const isUnionProduction = incomeType === "union_production" || mergedData?.incomeType === "union_production";
-  const showOnlyDues = isUnionProduction && userUbcpStatus !== "full_member"; // Non-full members: only Dues
-  const showOptionalFields = isUnionProduction; // Full members: Retirement, Insurance, Pension, Dues
+  const isCrewOrBoth = userType === "crew" || userType === "both";
+  // Performer: non-full members see only Dues; full members see all 4 fields
+  // Crew/Both: always show all 4 fields (retire, pension, insurance, dues) for union, all optional
+  const showOnlyDues = isUnionProduction && userUbcpStatus !== "full_member" && !isCrewOrBoth;
+  const showOptionalFields = isUnionProduction && (
+    (userUbcpStatus === "full_member" && !isCrewOrBoth) || isCrewOrBoth
+  );
   const productionLabel = isUnionProduction ? "Production Name" : "Production / Employer";
 
   const {
@@ -72,11 +80,24 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
   const amountVal = watch("amount");
   const netIncomeNonUnion = Math.max(0, Number(grossPayVal) - Number(totalDeductionsVal));
 
+  // Non-union: always sync amount to calculated net (allow zero)
   useEffect(() => {
-    if (!isUnionProduction && netIncomeNonUnion > 0 && (!amountVal || amountVal === 0)) {
+    if (!isUnionProduction) {
       setValue("amount", netIncomeNonUnion);
     }
-  }, [isUnionProduction, netIncomeNonUnion, amountVal, setValue]);
+  }, [isUnionProduction, netIncomeNonUnion, setValue]);
+
+  // Pre-fill agent commission estimate when amount changes (new entries only). Round % to 2 decimals.
+  const amountForCommission = watch("amount");
+  useEffect(() => {
+    if (hasAgent && agentCommission != null && !initialData?.id) {
+      const net = Number(amountForCommission) || 0;
+      if (net >= 0) {
+        const pct = Math.round(agentCommission * 100) / 100;
+        setValue("agentCommissionAmount", net * (pct / 100));
+      }
+    }
+  }, [hasAgent, agentCommission, initialData?.id, amountForCommission, setValue]);
 
   const onSubmit = async (data: IncomeFormData) => {
     setLoading(true);
@@ -202,14 +223,13 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
             {isUnionProduction && (
               <div className="space-y-2">
                 <Label htmlFor="paystubIssuer">Paystub issuer *</Label>
-                <select
+                <Select
                   id="paystubIssuer"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   {...register("paystubIssuer")}
                 >
                   <option value="EP">EP (Entertainment Partners)</option>
                   <option value="CC">CC (Cast and Crew)</option>
-                </select>
+                </Select>
               </div>
             )}
 
@@ -464,6 +484,26 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
                   )}
                 </div>
               </>
+            )}
+
+            {/* Agent Commission - when user has agent (new or edit) */}
+            {hasAgent && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="agentCommissionAmount">Agent Commission ($)</Label>
+                <Input
+                  id="agentCommissionAmount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register("agentCommissionAmount")}
+                />
+                <p className="text-sm text-amber-600">
+                  Please verify the amount against your paystub/contract.
+                </p>
+                {errors.agentCommissionAmount && (
+                  <p className="text-sm text-destructive">{errors.agentCommissionAmount.message}</p>
+                )}
+              </div>
             )}
 
           </div>

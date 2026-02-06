@@ -31,13 +31,15 @@ export default async function ProfilePage({
 
   // Auto-create user profile if it doesn't exist
   if (!userProfile) {
+    const subscriptionTier = (user.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
+    const taxFilingStatus = subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
     const [newUser] = await db
       .insert(users)
       .values({
         id: user.id,
         email: user.email!,
-        subscriptionTier: "basic",
-        taxFilingStatus: "personal_only",
+        subscriptionTier,
+        taxFilingStatus,
         province: "BC",
       })
       .returning();

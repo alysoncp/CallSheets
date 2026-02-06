@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { Pencil, Trash2, Eye } from "lucide-react";
 import Image from "next/image";
-import { INCOME_TYPES } from "@/lib/validations/expense-categories";
-import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 import { ImageViewDialog } from "@/components/ui/image-view-dialog";
 import { storageImageToProxyUrl, isPdfUrl } from "@/lib/utils/storage-image-url";
 import { FileText } from "lucide-react";
@@ -33,14 +31,13 @@ interface IncomeListProps {
   initialData: IncomeRecord[];
   paystubRecords?: PaystubRecord[];
   onEdit?: (income: IncomeRecord) => void;
+  onAddClick?: () => void;
   onRefresh?: () => void;
 }
 
-export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh }: IncomeListProps) {
+export function IncomeList({ initialData, paystubRecords = [], onEdit, onAddClick, onRefresh }: IncomeListProps) {
   const [incomeRecords, setIncomeRecords] = useState(initialData);
   const [loading, setLoading] = useState(false);
-  const [editingIncome, setEditingIncome] = useState<IncomeRecord | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
 
@@ -86,16 +83,15 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
   };
 
   const handleEdit = (income: IncomeRecord) => {
-    setEditingIncome(income);
-    setDialogOpen(true);
     if (onEdit) {
       onEdit(income);
     }
   };
 
   const handleAddClick = () => {
-    setEditingIncome(null);
-    setDialogOpen(true);
+    if (onAddClick) {
+      onAddClick();
+    }
   };
 
   const getPaystubImageUrl = (income: IncomeRecord): string | null => {
@@ -226,17 +222,6 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onRefresh
           )}
         </CardContent>
       </Card>
-      <IncomeEntryDialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) {
-            setEditingIncome(null);
-            refreshIncome(); // Refresh income list when dialog closes
-          }
-        }}
-        initialData={editingIncome || undefined}
-      />
       {viewingImageUrl && (
         <ImageViewDialog
           open={imageDialogOpen}

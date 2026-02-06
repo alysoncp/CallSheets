@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   mileageLoggingStyle: text("mileage_logging_style").$type<"trip_distance" | "odometer">().default("trip_distance"),
   trackPersonalExpenses: boolean("track_personal_expenses").default(true),
   ubcpActraStatus: text("ubcp_actra_status").$type<"none" | "background" | "apprentice" | "full_member">().default("none"),
+  iatseStatus: text("iatse_status").$type<"full" | "permittee" | "none">().default("none"),
   ocrRequestsThisMonth: integer("ocr_requests_this_month").default(0),
   lastOcrReset: timestamp("last_ocr_reset"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -57,6 +58,7 @@ export const income = pgTable("income", {
   retirement: numeric("retirement", { precision: 12, scale: 2 }).default("0"),
   pension: numeric("pension", { precision: 12, scale: 2 }).default("0"),
   insurance: numeric("insurance", { precision: 12, scale: 2 }).default("0"),
+  agentCommissionAmount: numeric("agent_commission_amount", { precision: 12, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

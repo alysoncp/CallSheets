@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,27 +41,38 @@ export function IncomeEntryDialog({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedPaystub, setUploadedPaystub] = useState<{ id: string; imageUrl: string } | null>(null);
   const [enableOcr, setEnableOcr] = useState(true);
-  const [userProfile, setUserProfile] = useState<{ ubcpActraStatus?: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    ubcpActraStatus?: string;
+    userType?: string;
+    hasAgent?: boolean;
+    agentCommission?: number;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset state when dialog opens for a new entry
+  // Reset state when dialog opens for a new entry; always fetch user profile when dialog opens
   useEffect(() => {
-    if (open && !initialData?.id) {
-      // Reset all state when opening for a new entry
-      setStep("type");
-      setSelectedIncomeType(null);
-      setEntryMethod(null);
-      setOcrData(null);
-      setUploadedFile(null);
-      setUploadedPaystub(null);
-      setEnableOcr(true);
+    if (open) {
+      if (!initialData?.id) {
+        // Reset all state when opening for a new entry
+        setStep("type");
+        setSelectedIncomeType(null);
+        setEntryMethod(null);
+        setOcrData(null);
+        setUploadedFile(null);
+        setUploadedPaystub(null);
+        setEnableOcr(true);
+      }
       
-      // Fetch user profile to get UBCP status
+      // Fetch user profile (UBCP status, user type, agent info)
       fetch("/api/user/profile")
         .then((res) => res.json())
         .then((data) => {
           if (data && !data.error) {
             setUserProfile({
               ubcpActraStatus: data.ubcpActraStatus || "none",
+              userType: data.userType || "performer",
+              hasAgent: data.hasAgent === true,
+              agentCommission: data.agentCommission != null ? Number(data.agentCommission) : 0,
             });
           }
         })
@@ -175,7 +186,11 @@ export function IncomeEntryDialog({
 
   const handleClose = (open: boolean) => {
     if (!open) {
-      handleReset();
+      // Only reset when closing the add flow (step-based); never reset when closing edit
+      // so content doesn't switch mid-close. useEffect resets when opening for new entry.
+      if (!initialData?.id) {
+        handleReset();
+      }
     }
     onOpenChange(open);
   };
@@ -197,6 +212,9 @@ export function IncomeEntryDialog({
             ocrData={null}
             incomeType={initialData.incomeType}
             userUbcpStatus={userProfile?.ubcpActraStatus}
+            userType={userProfile?.userType as "performer" | "crew" | "both" | undefined}
+            hasAgent={userProfile?.hasAgent}
+            agentCommission={userProfile?.agentCommission}
           />
         </DialogContent>
       </Dialog>
@@ -314,10 +332,12 @@ export function IncomeEntryDialog({
             {entryMethod === "upload" && (
               <div className="space-y-2">
                 <Label htmlFor="file-upload">Select Paystub</Label>
-                <Input
+                <input
                   id="file-upload"
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*,.pdf"
+                  className="sr-only"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -326,6 +346,19 @@ export function IncomeEntryDialog({
                   }}
                   disabled={uploading}
                 />
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Browse / Select Photo
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Choose an image or PDF of your paystub
+                </p>
               </div>
             )}
             {entryMethod === "camera" && (
@@ -370,9 +403,6 @@ export function IncomeEntryDialog({
 
   // Step 4: Income Form
   if (step === "form") {
-    const isUnionProduction = selectedIncomeType === "union_production";
-    const isFullMember = userProfile?.ubcpActraStatus === "full_member";
-    
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -395,11 +425,14 @@ export function IncomeEntryDialog({
             ocrData={ocrData}
             incomeType={selectedIncomeType || undefined}
             userUbcpStatus={userProfile?.ubcpActraStatus}
+            userType={userProfile?.userType as "performer" | "crew" | "both" | undefined}
             paystubId={uploadedPaystub?.id}
+            hasAgent={userProfile?.hasAgent}
+            agentCommission={userProfile?.agentCommission}
           />
         </DialogContent>
       </Dialog>
-    );
+  );
   }
 
   return null;
