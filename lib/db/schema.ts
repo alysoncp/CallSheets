@@ -31,6 +31,8 @@ export const users = pgTable("users", {
   iatseStatus: text("iatse_status").$type<"full" | "permittee" | "none">().default("none"),
   ocrRequestsThisMonth: integer("ocr_requests_this_month").default(0),
   lastOcrReset: timestamp("last_ocr_reset"),
+  disclaimerAcceptedAt: timestamp("disclaimer_accepted_at", { withTimezone: true }),
+  disclaimerVersion: text("disclaimer_version"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
