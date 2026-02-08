@@ -189,9 +189,6 @@ export function ReceiptsPreview({ initialData, onDelete }: ReceiptsPreviewProps)
         <ImageViewDialog
           open={viewingImage !== null}
           onOpenChange={(open) => {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'receipts-preview.tsx:186',message:'ImageViewDialog onOpenChange',data:{open,viewingImage,viewingImageIsNull:viewingImage===null,viewingImageIsEmpty:viewingImage===''},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
             if (!open) setViewingImage(null);
           }}
           imageUrl={viewingImage}

@@ -204,10 +204,6 @@ export class VeryfiClient {
     console.log("Date:", data.date);
     console.log("Company name:", data.company_name);
     
-    // #region agent log
-    await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'veryfi/client.ts:129',message:'Veryfi Paystub OCR raw response',data:{rawResponse:data,dataKeys:Object.keys(data),hasEmployer:!!data.employer,hasEmployee:!!data.employee,hasGrossPay:!!data.gross_pay,hasNetPay:!!data.net_pay,hasDeductions:!!data.deductions,hasPayPeriod:!!data.pay_period,ocrText:data.ocr_text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-    // #endregion
-    
     // Map Veryfi response to our interface
     const mappedResult = {
       employer: data.employer?.name || data.employer?.raw_name || data.company_name || "",
@@ -226,10 +222,6 @@ export class VeryfiClient {
     
     console.log("=== MAPPED PAYSTUB RESULT ===");
     console.log("Mapped result:", JSON.stringify(mappedResult, null, 2));
-    
-    // #region agent log
-    await fetch('http://127.0.0.1:7242/ingest/c7f9371c-25c8-41a6-9350-a0ea722a33f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'veryfi/client.ts:143',message:'Veryfi Paystub OCR mapped result',data:{mappedResult,hasOcrText:!!mappedResult.ocr_text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-    // #endregion
     
     return mappedResult;
   }
