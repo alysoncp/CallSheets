@@ -68,10 +68,10 @@ export function MonthlyChart({ taxYear, income, expenses }: MonthlyChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={chartData}>
+      <LineChart data={chartData} margin={{ left: -8, right: 8, top: 5, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
         <XAxis dataKey="date" />
-        <YAxis />
+        <YAxis width={32} tick={{ fontSize: 10 }} />
         <Tooltip
           formatter={(value: number | undefined) =>
             `$${(value ?? 0).toLocaleString("en-CA", {

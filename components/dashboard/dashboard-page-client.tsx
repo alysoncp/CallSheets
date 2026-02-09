@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -9,6 +10,8 @@ import { format } from "date-fns";
 import { MonthlyChart } from "@/components/charts/monthly-chart";
 import { ExpenseCategoryChart } from "@/components/charts/expense-category-chart";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";
+import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
+import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 
 const INCOME_TYPE_LABELS: Record<string, string> = {
   union_production: "Union Production",
@@ -42,7 +45,10 @@ interface DashboardPageClientProps {
 }
 
 export function DashboardPageClient({ allData }: DashboardPageClientProps) {
+  const router = useRouter();
   const { taxYear } = useTaxYear();
+  const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
 
   // Filter all data by selected year
   const filteredData = useMemo(() => {
@@ -92,18 +98,14 @@ export function DashboardPageClient({ allData }: DashboardPageClientProps) {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold sm:text-3xl">Dashboard</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link href="/income/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Income
-            </Link>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <Button size="sm" className="text-xs sm:text-sm" onClick={() => setIncomeDialogOpen(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
+            Add Income
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/expenses/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Expense
-            </Link>
+          <Button size="sm" className="text-xs sm:text-sm" onClick={() => setExpenseDialogOpen(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
+            Add Expense
           </Button>
         </div>
       </div>
@@ -175,7 +177,7 @@ export function DashboardPageClient({ allData }: DashboardPageClientProps) {
               Income and expenses for {taxYear}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pl-1 pr-2 sm:px-6">
             <MonthlyChart
               taxYear={taxYear}
               income={filteredData.yearlyIncome}
@@ -253,6 +255,30 @@ export function DashboardPageClient({ allData }: DashboardPageClientProps) {
           </CardContent>
         </Card>
       </div>
+
+      <IncomeEntryDialog
+        open={incomeDialogOpen}
+        onOpenChange={(open) => {
+          setIncomeDialogOpen(open);
+          if (!open) {
+            router.refresh();
+            window.dispatchEvent(new Event("incomeUpdated"));
+          }
+        }}
+        initialData={undefined}
+        onPaystubUploaded={() => router.refresh()}
+      />
+      <ExpenseEntryDialog
+        open={expenseDialogOpen}
+        onOpenChange={(open) => {
+          setExpenseDialogOpen(open);
+          if (!open) {
+            router.refresh();
+            window.dispatchEvent(new Event("expenseUpdated"));
+          }
+        }}
+        initialData={undefined}
+      />
     </div>
   );
 }
