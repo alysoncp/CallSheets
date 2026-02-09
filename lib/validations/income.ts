@@ -20,7 +20,7 @@ export const incomeSchema = z.object({
   businessName: z.string().optional(),
   description: z.string().optional(),
   paystubImageUrl: z.string().url().optional().or(z.literal("")),
-  gstHstCollected: requiredNum("GST is required"),
+  gstHstCollected: z.coerce.number().refine((n) => !Number.isNaN(n) && n >= 0).default(0).optional(),
   totalDeductions: z.coerce.number().refine((n) => !Number.isNaN(n) && n >= 0).default(0),
   reimbursements: z.coerce.number().refine((n) => !Number.isNaN(n) && n >= 0).default(0),
   paystubIssuer: paystubIssuerEnum.optional(),

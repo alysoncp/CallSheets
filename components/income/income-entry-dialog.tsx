@@ -46,6 +46,7 @@ export function IncomeEntryDialog({
     userType?: string;
     hasAgent?: boolean;
     agentCommission?: number;
+    hasGstNumber?: boolean;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +74,7 @@ export function IncomeEntryDialog({
               userType: data.userType || "performer",
               hasAgent: data.hasAgent === true,
               agentCommission: data.agentCommission != null ? Number(data.agentCommission) : 0,
+              hasGstNumber: data.hasGstNumber === true,
             });
           }
         })
@@ -215,6 +217,7 @@ export function IncomeEntryDialog({
             userType={userProfile?.userType as "performer" | "crew" | "both" | undefined}
             hasAgent={userProfile?.hasAgent}
             agentCommission={userProfile?.agentCommission}
+            hasGstNumber={userProfile?.hasGstNumber}
           />
         </DialogContent>
       </Dialog>
@@ -429,6 +432,7 @@ export function IncomeEntryDialog({
             paystubId={uploadedPaystub?.id}
             hasAgent={userProfile?.hasAgent}
             agentCommission={userProfile?.agentCommission}
+            hasGstNumber={userProfile?.hasGstNumber}
           />
         </DialogContent>
       </Dialog>
