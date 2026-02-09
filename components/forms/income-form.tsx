@@ -22,9 +22,10 @@ interface IncomeFormProps {
   paystubId?: string;
   hasAgent?: boolean;
   agentCommission?: number;
+  hasGstNumber?: boolean;
 }
 
-export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUbcpStatus, userType, paystubId, hasAgent, agentCommission }: IncomeFormProps) {
+export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUbcpStatus, userType, paystubId, hasAgent, agentCommission, hasGstNumber }: IncomeFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,7 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
       ...mergedData,
       paystubIssuer: (mergedData as any)?.paystubIssuer ?? "EP",
       reimbursements: (mergedData as any)?.reimbursements ?? 0,
+      gstHstCollected: hasGstNumber === true ? (mergedData as any)?.gstHstCollected : 0,
     },
   });
 
@@ -87,6 +89,13 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
     }
   }, [isUnionProduction, netIncomeNonUnion, setValue]);
 
+  // When user does not collect GST, ensure gstHstCollected is 0
+  useEffect(() => {
+    if (hasGstNumber !== true) {
+      setValue("gstHstCollected", 0);
+    }
+  }, [hasGstNumber, setValue]);
+
   // Pre-fill agent commission estimate when amount changes (new entries only). Round % to 2 decimals.
   const amountForCommission = watch("amount");
   useEffect(() => {
@@ -105,9 +114,12 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
 
     try {
       let finalData: IncomeFormData = { ...data };
+      if (!hasGstNumber) {
+        finalData.gstHstCollected = 0;
+      }
       if (isUnionProduction) {
         const grossPayEntry = Number(data.grossPay) || 0;
-        const gstEntry = Number(data.gstHstCollected) || 0;
+        const gstEntry = Number(finalData.gstHstCollected) || 0;
         const netPayEntry = Number(data.amount) || 0;
         const reimbEntry = Number(data.reimbursements) || 0;
         if (data.paystubIssuer === "EP") {
@@ -277,23 +289,25 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
                     Calculated: Gross Income - Deductions
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gstHstCollected">GST *</Label>
-                  <Input
-                    id="gstHstCollected"
-                    type="number"
-                    step="0.01"
-                    {...register("gstHstCollected")}
-                    required
-                  />
-                  {errors.gstHstCollected && (
-                    <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
-                  )}
-                </div>
+                {hasGstNumber && (
+                  <div className="space-y-2">
+                    <Label htmlFor="gstHstCollected">GST *</Label>
+                    <Input
+                      id="gstHstCollected"
+                      type="number"
+                      step="0.01"
+                      {...register("gstHstCollected")}
+                      required
+                    />
+                    {errors.gstHstCollected && (
+                      <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
-            {/* Union EP: Gross Pay, GST, Total Deductions, Net Pay */}
+            {/* Union EP: Gross Pay, GST (if hasGstNumber), Total Deductions, Net Pay */}
             {isUnionProduction && isEP && (
               <>
                 <div className="space-y-2">
@@ -309,19 +323,21 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
                     <p className="text-sm text-destructive">{errors.grossPay.message}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gstHstCollected">GST *</Label>
-                  <Input
-                    id="gstHstCollected"
-                    type="number"
-                    step="0.01"
-                    {...register("gstHstCollected")}
-                    required
-                  />
-                  {errors.gstHstCollected && (
-                    <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
-                  )}
-                </div>
+                {hasGstNumber && (
+                  <div className="space-y-2">
+                    <Label htmlFor="gstHstCollected">GST *</Label>
+                    <Input
+                      id="gstHstCollected"
+                      type="number"
+                      step="0.01"
+                      {...register("gstHstCollected")}
+                      required
+                    />
+                    {errors.gstHstCollected && (
+                      <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="totalDeductions">Total Deductions *</Label>
                   <Input
@@ -351,7 +367,7 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
               </>
             )}
 
-            {/* Union CC: Gross Pay, GST, Deductions, Reimbursements, Net Pay */}
+            {/* Union CC: Gross Pay, GST (if hasGstNumber), Deductions, Reimbursements, Net Pay */}
             {isUnionProduction && isCC && (
               <>
                 <div className="space-y-2">
@@ -367,19 +383,21 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
                     <p className="text-sm text-destructive">{errors.grossPay.message}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gstHstCollected">GST *</Label>
-                  <Input
-                    id="gstHstCollected"
-                    type="number"
-                    step="0.01"
-                    {...register("gstHstCollected")}
-                    required
-                  />
-                  {errors.gstHstCollected && (
-                    <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
-                  )}
-                </div>
+                {hasGstNumber && (
+                  <div className="space-y-2">
+                    <Label htmlFor="gstHstCollected">GST *</Label>
+                    <Input
+                      id="gstHstCollected"
+                      type="number"
+                      step="0.01"
+                      {...register("gstHstCollected")}
+                      required
+                    />
+                    {errors.gstHstCollected && (
+                      <p className="text-sm text-destructive">{errors.gstHstCollected.message}</p>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="totalDeductions">Deductions *</Label>
                   <Input
