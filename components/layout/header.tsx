@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Moon, Sun, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useTaxYear } from "@/lib/contexts/tax-year-context";
 
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
@@ -14,6 +15,7 @@ interface HeaderProps {
 export function Header({ onToggleMobileMenu }: HeaderProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { taxYear } = useTaxYear();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -40,6 +42,9 @@ export function Header({ onToggleMobileMenu }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </Button>
         <h1 className="truncate text-base font-semibold sm:text-lg">CallSheets</h1>
+        <span className="lg:hidden shrink-0 rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          {taxYear}
+        </span>
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-4">
         <h2 className="hidden text-sm font-bold sm:block">CallSheets</h2>
