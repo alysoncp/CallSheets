@@ -1,12 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
-export default function AuthConfirmedPage() {
+function AuthConfirmedContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
@@ -58,5 +59,27 @@ export default function AuthConfirmedPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function AuthConfirmedPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Loading...</CardTitle>
+              <CardDescription>Confirming your email.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-10 rounded-md bg-muted animate-pulse" />
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <AuthConfirmedContent />
+    </Suspense>
   );
 }
