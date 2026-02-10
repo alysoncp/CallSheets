@@ -28,7 +28,7 @@
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0;">
                 <tr>
                   <td style="border-radius: 6px; background-color: #18181b;">
-                    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 24px; font-size: 15px; font-weight: 500; color: #ffffff; text-decoration: none;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 24px; font-size: 15px; font-weight: 500; color: #ffffff; text-decoration: none;">
                       Confirm your email
                     </a>
                   </td>
@@ -36,7 +36,7 @@
               </table>
               <p style="margin: 24px 0 0 0; font-size: 13px; color: #71717a;">
                 Or copy and paste this link into your browser:<br>
-                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email" style="color: #3b82f6; word-break: break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email</a>
+                <a href="{{ .ConfirmationURL }}" style="color: #3b82f6; word-break: break-all;">{{ .ConfirmationURL }}</a>
               </p>
             </td>
           </tr>

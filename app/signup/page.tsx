@@ -54,7 +54,7 @@ export default function SignUpPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirmed`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           subscriptionTier: selectedPlan,
           disclaimer_version: DISCLAIMER_VERSION,
