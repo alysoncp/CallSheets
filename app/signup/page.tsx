@@ -54,7 +54,7 @@ export default function SignUpPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/auth/confirmed`,
         data: {
           subscriptionTier: selectedPlan,
           disclaimer_version: DISCLAIMER_VERSION,
@@ -86,6 +86,9 @@ export default function SignUpPage() {
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
               Please check your email and click the confirmation link to complete your registration.
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              If you don&apos;t see it, check your spam or junk folder.
             </p>
             <Button asChild variant="outline" className="w-full">
               <Link href="/signin">Back to Sign In</Link>
