@@ -57,8 +57,13 @@ export class VeryfiClient {
     }
 
     console.log("Veryfi credentials found, fetching image...");
-    // Fetch the image from the URL
-    const imageResponse = await fetch(imageUrl);
+    // Fetch the image from the URL (User-Agent helps avoid 400 from some CDNs/storage)
+    const imageResponse = await fetch(imageUrl, {
+      headers: {
+        "User-Agent": "CallSheets-OCR/1.0",
+        "Accept": "image/*,*/*",
+      },
+    });
     if (!imageResponse.ok) {
       console.error("Failed to fetch image:", imageResponse.statusText);
       throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
@@ -143,8 +148,13 @@ export class VeryfiClient {
     }
 
     console.log("Veryfi credentials found, fetching image...");
-    // Fetch the image from the URL
-    const imageResponse = await fetch(imageUrl);
+    // Fetch the image from the URL (User-Agent helps avoid 400 from some CDNs/storage)
+    const imageResponse = await fetch(imageUrl, {
+      headers: {
+        "User-Agent": "CallSheets-OCR/1.0",
+        "Accept": "image/*,*/*",
+      },
+    });
     if (!imageResponse.ok) {
       console.error("Failed to fetch image:", imageResponse.statusText);
       throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
