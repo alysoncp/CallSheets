@@ -150,10 +150,16 @@ export async function POST(request: NextRequest) {
             process.env.VERYFI_USERNAME && 
             process.env.VERYFI_API_KEY;
 
+          // Use signed URL for OCR - works with private buckets and avoids 400 from public URL fetch
+          const { data: signedData } = await supabase.storage
+            .from(bucketName)
+            .createSignedUrl(filePath, 300); // 5 min expiry
+          const imageUrlForOcr = signedData?.signedUrl ?? publicUrl;
+
           if (hasVeryfiCredentials) {
             try {
               const veryfiClient = new VeryfiClient();
-              const veryfiResult = await veryfiClient.processReceipt(publicUrl);
+              const veryfiResult = await veryfiClient.processReceipt(imageUrlForOcr);
               
               // Log the full Veryfi response
               console.log("Veryfi OCR result received:", JSON.stringify(veryfiResult, null, 2));
