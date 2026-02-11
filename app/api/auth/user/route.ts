@@ -153,10 +153,12 @@ export async function PATCH(request: NextRequest) {
       disclaimerAcceptedAt: now,
       disclaimerVersion: DISCLAIMER_VERSION,
     });
+    let insertError: unknown;
     try {
       const [created] = await db.insert(users).values(values).returning();
       if (created) return NextResponse.json(created);
-    } catch {
+    } catch (err) {
+      insertError = err;
       // Race: user may have been created by another request; try update again
     }
     const [retryUpdated] = await db
@@ -169,7 +171,11 @@ export async function PATCH(request: NextRequest) {
       .where(eq(users.id, authUser.id))
       .returning();
     if (retryUpdated) return NextResponse.json(retryUpdated);
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    const body: { error: string; detail?: string } = { error: "Update failed" };
+    if (isDev && insertError !== undefined) {
+      body.detail = insertError instanceof Error ? insertError.message : String(insertError);
+    }
+    return NextResponse.json(body, { status: 500 });
   } catch (error) {
     console.error("Error in PATCH /api/auth/user:", error);
     return json500(error);

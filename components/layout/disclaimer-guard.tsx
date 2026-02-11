@@ -54,8 +54,9 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ acceptDisclaimer: true }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to accept");
+        const err = (await res.json().catch(() => ({}))) as { error?: string; detail?: string };
+        const msg = err.detail ? `${err.error ?? "Failed"}: ${err.detail}` : (err.error ?? "Failed to accept");
+        throw new Error(msg);
       }
       const data = (await res.json()) as User;
       setUser(data);
