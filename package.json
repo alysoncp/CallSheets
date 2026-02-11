@@ -18,8 +18,8 @@
     "supabase:reset": "supabase db reset",
   
     "db:reset": "supabase db reset",
-    "db:push:dev": "supabase link --project-ref ovnmeqtablzyanpnytai && supabase db push",
-    "db:push:prod": "supabase link --project-ref zurwoqrlvbcvmbxggocv && supabase db push"
+    "db:push:dev": "npx supabase link --project-ref ovnmeqtablzyanpnytai && npx supabase db push",
+    "db:push:prod": "npx supabase link --project-ref zurwoqrlvbcvmbxggocv && npx supabase db push"
   
     
   },

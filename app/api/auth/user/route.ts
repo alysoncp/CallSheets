@@ -40,6 +40,12 @@ function buildUserFromAuth(
   };
 }
 
+/**
+ * GET /api/auth/user — load or create app user; used by DisclaimerGuard and profile.
+ * For the disclaimer to never show twice on preview/_dev: auth user must have email after
+ * confirm, _dev DB must have same migrations as prod, and preview DATABASE_URL must allow
+ * INSERT/UPDATE on users. See docs/DISCLAIMER_DEV_SETUP.md.
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -128,21 +134,25 @@ export async function PATCH(request: NextRequest) {
     }
 
     const now = new Date();
-    const [updated] = await db
-      .update(users)
-      .set({
-        disclaimerAcceptedAt: now,
-        disclaimerVersion: DISCLAIMER_VERSION,
-        updatedAt: now,
-      })
-      .where(eq(users.id, authUser.id))
-      .returning();
-
+    let updated: Awaited<ReturnType<typeof db.update<typeof users>["returning"]>>[0] | undefined;
+    try {
+      [updated] = await db
+        .update(users)
+        .set({
+          disclaimerAcceptedAt: now,
+          disclaimerVersion: DISCLAIMER_VERSION,
+          updatedAt: now,
+        })
+        .where(eq(users.id, authUser.id))
+        .returning();
+    } catch {
+      // _dev may have no row or UPDATE may throw (e.g. RLS/permissions); fall through to create
+    }
     if (updated) {
       return NextResponse.json(updated);
     }
 
-    // User row may not exist yet (e.g. GET failed before creating). Create with disclaimer accepted.
+    // User row may not exist yet (e.g. GET never created it in _dev). Create with disclaimer accepted.
     if (!authUser.email?.trim()) {
       return NextResponse.json(
         { error: "Email not available. Please sign out and sign in again." },

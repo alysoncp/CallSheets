@@ -178,6 +178,8 @@ CallSheets/
 
 The application is configured for Vercel deployment. Set up environment variables in your Vercel project settings.
 
+For **preview / _dev** (so the signup disclaimer does not show again after email confirmation), see [docs/DISCLAIMER_DEV_SETUP.md](docs/DISCLAIMER_DEV_SETUP.md) for Supabase and Vercel checklist.
+
 ## License
 
 ISC
