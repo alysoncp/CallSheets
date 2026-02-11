@@ -59,7 +59,7 @@ export function SignUpForm({ baseUrl }: SignUpFormProps) {
       email,
       password,
       options: {
-        emailRedirectTo: `${baseUrl}/auth/callback`,
+        emailRedirectTo: baseUrl,
         data: {
           subscriptionTier: selectedPlan,
           disclaimer_version: DISCLAIMER_VERSION,
