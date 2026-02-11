@@ -24,7 +24,7 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth/user")
+    fetch("/api/auth/user", { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("Unauthorized");
         return res.json();
@@ -49,13 +49,19 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/auth/user", {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ acceptDisclaimer: true }),
       });
-      if (!res.ok) throw new Error("Failed to accept");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error ?? "Failed to accept");
+      }
+      const data = (await res.json()) as User;
+      setUser(data);
       setNeedsAcceptance(false);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
     } finally {
       setAccepting(false);
     }

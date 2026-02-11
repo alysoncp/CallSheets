@@ -50,6 +50,25 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     if (existingUser) {
+      // If DB has no disclaimer but user accepted at signup (metadata), sync to DB so we don't show disclaimer again
+      const metaVersion = authUser.user_metadata?.disclaimer_version as string | undefined;
+      const metaAccepted = authUser.user_metadata?.disclaimer_accepted_at as string | undefined;
+      const needsSync =
+        metaVersion === DISCLAIMER_VERSION &&
+        metaAccepted &&
+        (existingUser.disclaimerAcceptedAt == null || existingUser.disclaimerVersion !== DISCLAIMER_VERSION);
+      if (needsSync) {
+        const [synced] = await db
+          .update(users)
+          .set({
+            disclaimerVersion: DISCLAIMER_VERSION,
+            disclaimerAcceptedAt: new Date(metaAccepted),
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, authUser.id))
+          .returning();
+        if (synced) return NextResponse.json(synced);
+      }
       return NextResponse.json(existingUser);
     }
 
@@ -106,6 +125,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     // User row may not exist yet (e.g. GET failed before creating). Create with disclaimer accepted.
+    if (!authUser.email?.trim()) {
+      return NextResponse.json(
+        { error: "Email not available. Please sign out and sign in again." },
+        { status: 400 }
+      );
+    }
     const values = buildUserFromAuth(authUser, {
       disclaimerAcceptedAt: now,
       disclaimerVersion: DISCLAIMER_VERSION,
