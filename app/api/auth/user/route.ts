@@ -134,7 +134,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const now = new Date();
-    let updated: Awaited<ReturnType<typeof db.update<typeof users>["returning"]>>[0] | undefined;
+    let updated: (typeof users.$inferSelect) | undefined;
     try {
       [updated] = await db
         .update(users)
