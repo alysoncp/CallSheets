@@ -13,10 +13,11 @@ function buildUserFromAuth(
   const subscriptionTier = (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
   const taxFilingStatus = subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
   const disclaimerVersion = disclaimerOverrides?.disclaimerVersion ?? (authUser.user_metadata?.disclaimer_version as string) ?? null;
+  const metaAccepted = authUser.user_metadata?.disclaimer_accepted_at as string | undefined;
   const disclaimerAcceptedAt = disclaimerOverrides
     ? disclaimerOverrides.disclaimerAcceptedAt
-    : (authUser.user_metadata?.disclaimer_accepted_at as string | undefined)
-      ? new Date(authUser.user_metadata.disclaimer_accepted_at as string)
+    : metaAccepted
+      ? new Date(metaAccepted)
       : null;
   return {
     id: authUser.id,
