@@ -5,6 +5,15 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { DISCLAIMER_VERSION } from "@/lib/constants";
 
+const isDev = process.env.NODE_ENV !== "production" || process.env.VERCEL_ENV === "preview";
+
+function json500(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const body: { error: string; detail?: string } = { error: "Internal server error" };
+  if (isDev) body.detail = message;
+  return NextResponse.json(body, { status: 500 });
+}
+
 /** Build default user row values from auth user (for create). */
 function buildUserFromAuth(
   authUser: { id: string; email?: string | null; user_metadata?: Record<string, unknown> },
@@ -58,37 +67,46 @@ export async function GET(request: NextRequest) {
         metaAccepted &&
         (existingUser.disclaimerAcceptedAt == null || existingUser.disclaimerVersion !== DISCLAIMER_VERSION);
       if (needsSync) {
-        const [synced] = await db
-          .update(users)
-          .set({
-            disclaimerVersion: DISCLAIMER_VERSION,
-            disclaimerAcceptedAt: new Date(metaAccepted),
-            updatedAt: new Date(),
-          })
-          .where(eq(users.id, authUser.id))
-          .returning();
-        if (synced) return NextResponse.json(synced);
+        try {
+          const [synced] = await db
+            .update(users)
+            .set({
+              disclaimerVersion: DISCLAIMER_VERSION,
+              disclaimerAcceptedAt: new Date(metaAccepted),
+              updatedAt: new Date(),
+            })
+            .where(eq(users.id, authUser.id))
+            .returning();
+          if (synced) return NextResponse.json(synced);
+        } catch {
+          // Non-fatal (e.g. _dev DB schema): return existing user so page loads; PATCH can update
+        }
       }
       return NextResponse.json(existingUser);
     }
 
     // Auto-create user if doesn't exist (from signup metadata, including disclaimer)
+    // _dev can have no email until confirmed; avoid insert so we don't 500 — return minimal user, PATCH will create
+    if (!authUser.email?.trim()) {
+      return NextResponse.json({
+        id: authUser.id,
+        email: null,
+        disclaimerAcceptedAt: null,
+        disclaimerVersion: null,
+      });
+    }
     const values = buildUserFromAuth(authUser);
     try {
       const [newUser] = await db.insert(users).values(values).returning();
       return NextResponse.json(newUser);
     } catch (insertError) {
-      // Race: another request may have created the user; fetch and return
       const [raceUser] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
       if (raceUser) return NextResponse.json(raceUser);
       throw insertError;
     }
   } catch (error) {
     console.error("Error in GET /api/auth/user:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return json500(error);
   }
 }
 
@@ -154,9 +172,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   } catch (error) {
     console.error("Error in PATCH /api/auth/user:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return json500(error);
   }
 }
