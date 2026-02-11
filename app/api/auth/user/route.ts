@@ -171,11 +171,11 @@ export async function PATCH(request: NextRequest) {
       .where(eq(users.id, authUser.id))
       .returning();
     if (retryUpdated) return NextResponse.json(retryUpdated);
-    const body: { error: string; detail?: string } = { error: "Update failed" };
+    const errorBody: { error: string; detail?: string } = { error: "Update failed" };
     if (isDev && insertError !== undefined) {
-      body.detail = insertError instanceof Error ? insertError.message : String(insertError);
+      errorBody.detail = insertError instanceof Error ? insertError.message : String(insertError);
     }
-    return NextResponse.json(body, { status: 500 });
+    return NextResponse.json(errorBody, { status: 500 });
   } catch (error) {
     console.error("Error in PATCH /api/auth/user:", error);
     return json500(error);
