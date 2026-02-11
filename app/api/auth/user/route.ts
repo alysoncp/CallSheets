@@ -7,7 +7,7 @@ import { DISCLAIMER_VERSION } from "@/lib/constants";
 
 /** Build default user row values from auth user (for create). */
 function buildUserFromAuth(
-  authUser: { id: string; email: string | null; user_metadata?: Record<string, unknown> },
+  authUser: { id: string; email?: string | null; user_metadata?: Record<string, unknown> },
   disclaimerOverrides?: { disclaimerAcceptedAt: Date; disclaimerVersion: string }
 ) {
   const subscriptionTier = (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
