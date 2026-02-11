@@ -11,7 +11,8 @@ function buildUserFromAuth(
   disclaimerOverrides?: { disclaimerAcceptedAt: Date; disclaimerVersion: string }
 ) {
   const subscriptionTier = (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
-  const taxFilingStatus = subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
+  const taxFilingStatus: "personal_only" | "personal_and_corporate" =
+    subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
   const disclaimerVersion = disclaimerOverrides?.disclaimerVersion ?? (authUser.user_metadata?.disclaimer_version as string) ?? null;
   const metaAccepted = authUser.user_metadata?.disclaimer_accepted_at as string | undefined;
   const disclaimerAcceptedAt = disclaimerOverrides
