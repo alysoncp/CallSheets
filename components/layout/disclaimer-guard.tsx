@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ type User = {
 };
 
 export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsAcceptance, setNeedsAcceptance] = useState(false);
@@ -26,10 +28,16 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetch("/api/auth/user")
       .then((res) => {
-        if (!res.ok) throw new Error("Unauthorized");
+        // Unauthenticated: redirect to sign-in; do not show disclaimer
+        if (res.status === 401) {
+          router.replace("/signin");
+          return null;
+        }
+        if (!res.ok) throw new Error("Request failed");
         return res.json();
       })
-      .then((data: User) => {
+      .then((data: User | null) => {
+        if (data == null) return;
         setUser(data);
         const accepted = data.disclaimerAcceptedAt != null;
         const versionMatch = data.disclaimerVersion === DISCLAIMER_VERSION;
@@ -37,7 +45,7 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
       })
       .catch(() => setNeedsAcceptance(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   const handleAccept = async () => {
     if (!agreed) {

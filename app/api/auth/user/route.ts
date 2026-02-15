@@ -90,11 +90,31 @@ export async function PATCH(request: NextRequest) {
       .where(eq(users.id, authUser.id))
       .returning();
 
-    if (!updated) {
-      return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    if (updated) {
+      return NextResponse.json(updated);
     }
 
-    return NextResponse.json(updated);
+    // User row may not exist yet (e.g. first load returned 401). Create it with disclaimer accepted.
+    const subscriptionTier = (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
+    const taxFilingStatus = subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
+    const [inserted] = await db
+      .insert(users)
+      .values({
+        id: authUser.id,
+        email: authUser.email!,
+        subscriptionTier,
+        taxFilingStatus,
+        province: "BC",
+        disclaimerVersion: DISCLAIMER_VERSION,
+        disclaimerAcceptedAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    if (!inserted) {
+      return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    }
+    return NextResponse.json(inserted);
   } catch (error) {
     console.error("Error in PATCH /api/auth/user:", error);
     return NextResponse.json(
