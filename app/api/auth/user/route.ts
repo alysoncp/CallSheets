@@ -17,42 +17,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user exists in database
+    // Always read disclaimer from database (users table) - never from user_metadata.
+    // This keeps disclaimer orthogonal to email confirmation.
     const [existingUser] = await db
       .select()
       .from(users)
       .where(eq(users.id, authUser.id))
       .limit(1);
 
-    // Auto-create user if doesn't exist
-    if (!existingUser) {
-      // Get subscription tier from user metadata (set during signup)
-      const subscriptionTier = (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
-      
-      // Determine tax filing status based on subscription tier
-      const taxFilingStatus = subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
-
-      // Disclaimer acceptance from signup (stored in auth user_metadata)
-      const disclaimerVersion = (authUser.user_metadata?.disclaimer_version as string) ?? null;
-      const disclaimerAcceptedAt = (authUser.user_metadata?.disclaimer_accepted_at as string) ?? null;
-      
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          id: authUser.id,
-          email: authUser.email!,
-          subscriptionTier: subscriptionTier,
-          taxFilingStatus: taxFilingStatus,
-          province: "BC",
-          disclaimerVersion: disclaimerVersion,
-          disclaimerAcceptedAt: disclaimerAcceptedAt ? new Date(disclaimerAcceptedAt) : null,
-        })
-        .returning();
-
-      return NextResponse.json(newUser);
+    if (existingUser) {
+      // DB is source of truth for disclaimer - works with confirmation on or off
+      return NextResponse.json(existingUser);
     }
 
-    return NextResponse.json(existingUser);
+    // No users row: trigger may not have run yet, or edge case.
+    // Return minimal user with disclaimer NOT accepted - do NOT trust metadata.
+    // User will see disclaimer, accept, and PATCH will create the row.
+    return NextResponse.json({
+      id: authUser.id,
+      email: authUser.email ?? "",
+      disclaimerAcceptedAt: null,
+      disclaimerVersion: null,
+    });
   } catch (error) {
     console.error("Error in GET /api/auth/user:", error);
     return NextResponse.json(
