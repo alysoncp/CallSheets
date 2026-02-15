@@ -150,8 +150,9 @@ export async function POST(request: NextRequest) {
             process.env.VERYFI_USERNAME && 
             process.env.VERYFI_API_KEY;
 
-          // Use signed URL for OCR - works with private buckets and avoids 400 from public URL fetch
-          const { data: signedData } = await supabase.storage
+          // Use admin client for signed URL - bypasses RLS, works with private buckets, avoids 400
+          const adminClient = createAdminClient();
+          const { data: signedData } = await adminClient.storage
             .from(bucketName)
             .createSignedUrl(filePath, 300); // 5 min expiry
           const imageUrlForOcr = signedData?.signedUrl ?? publicUrl;
