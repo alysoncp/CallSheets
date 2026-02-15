@@ -15,7 +15,7 @@ Change the link from:
 
 To:
 ```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/dashboard
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/dashboard
 ```
 
 Or copy the full template from `confirmation.html`.
