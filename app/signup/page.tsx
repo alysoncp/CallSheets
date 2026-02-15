@@ -50,11 +50,15 @@ export default function SignUpPage() {
     setLoading(true);
 
     const supabase = createClient();
+    // Use NEXT_PUBLIC_SITE_URL if set (for explicit env override),
+    // otherwise use the current origin (works for Vercel preview deploys
+    // as long as the URL pattern is in Supabase's redirect allow list).
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard`,
         data: {
           subscriptionTier: selectedPlan,
           disclaimer_version: DISCLAIMER_VERSION,

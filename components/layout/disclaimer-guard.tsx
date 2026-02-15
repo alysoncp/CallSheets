@@ -43,7 +43,11 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
         const versionMatch = data.disclaimerVersion === DISCLAIMER_VERSION;
         setNeedsAcceptance(!accepted || !versionMatch);
       })
-      .catch(() => setNeedsAcceptance(true))
+      .catch(() => {
+        // On API failure, redirect to sign-in rather than showing the
+        // disclaimer again (which causes the double-disclaimer bug).
+        router.replace("/signin");
+      })
       .finally(() => setLoading(false));
   }, [router]);
 
