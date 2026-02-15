@@ -225,7 +225,7 @@ otp_expiry = 3600
 # Confirmation email uses token_hash direct link (bypasses PKCE code_verifier)
 [auth.email.template.confirmation]
 subject = "Confirm Your Signup"
-content_path = "./templates/confirmation.html"
+content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
