@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Your Signup</title>
+</head>
+<body>
+  <h2>Confirm your signup</h2>
+  <p>Follow this link to confirm your email address:</p>
+  <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/dashboard">Confirm your email</a></p>
+  <p>If you didn't sign up for this account, you can safely ignore this email.</p>
+</body>
+</html>

@@ -54,7 +54,8 @@ export default function SignUpPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        // Use /auth/confirm for token_hash flow - bypasses PKCE code_verifier cookie issues
+        emailRedirectTo: `${window.location.origin}/auth/confirm?next=/dashboard`,
         data: {
           subscriptionTier: selectedPlan,
           disclaimer_version: DISCLAIMER_VERSION,
