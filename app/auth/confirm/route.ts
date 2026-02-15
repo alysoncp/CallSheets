@@ -11,7 +11,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next")?.startsWith("/") ? searchParams.get("next") : "/dashboard";
+  const nextParam = searchParams.get("next");
+  const next: string = nextParam?.startsWith("/") ? nextParam ?? "/dashboard" : "/dashboard";
 
   if (!token_hash || !type) {
     return NextResponse.redirect(
