@@ -35,11 +35,15 @@ function identifyIssuerType(ocrText: string): "EP" | "CC" | undefined {
   const upperText = ocrText.toUpperCase();
   const firstLines = upperText.split('\n').slice(0, 50).join('\n');
 
-  // Check for Entertainment Partners indicators
+  // Check for Entertainment Partners indicators (OCR often splits "Entertainment" and "ep Partners")
   if (
     firstLines.includes("ENTERTAINMENT PARTNERS") ||
     firstLines.includes("ENTERTAINMENTPARTNERS") ||
-    (firstLines.includes("EP") && firstLines.includes("PAYROLL"))
+    (firstLines.includes("EP") && firstLines.includes("PAYROLL")) ||
+    firstLines.includes("EP PARTNERS") ||
+    (firstLines.includes("ENTERTAINMENT") && firstLines.includes("PARTNERS")) ||
+    firstLines.includes("TIME REPORT SUMMARY") ||
+    (firstLines.includes("PERIOD ENDING") && !firstLines.includes("PAY PERIOD"))
   ) {
     return "EP";
   }
@@ -330,7 +334,8 @@ function extractCCOptionalDeductions(ocrText: string): {
 
 /**
  * Extract optional deduction amounts from EP paystub
- * Labels: Insurance/Insure, Dues/Permit Fee/Member Fee (dues), Pension, Retire/Retire Ded (retirement)
+ * Labels: Insurance/Insure/Ins., Dues/Permit Fee/Member Fee, Pension/Retir. Emp, Retire/Retire Ded (retirement)
+ * EP stubs use a DEDUCTIONS table: "DESC.\tCURRENT\tYEAR TO DATE" with rows like "Dues\t93.07\t137.5"
  */
 function extractEPOptionalDeductions(ocrText: string): {
   insurance?: number;
@@ -341,45 +346,82 @@ function extractEPOptionalDeductions(ocrText: string): {
   const result: { insurance?: number; dues?: number; pension?: number; retirement?: number } = {};
   if (!ocrText) return result;
   const upperText = ocrText.toUpperCase();
-  // Insurance or Insure
-  const insMatch = upperText.match(/INSURE?(?:ANCE)?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i);
-  if (insMatch?.[1]) {
-    const amount = parseAmount(insMatch[1]);
-    if (!isNaN(amount) && amount >= 0) result.insurance = amount;
+  // Restrict to DEDUCTIONS section so we don't match labels elsewhere (e.g. in headers)
+  const deductionsIndex = upperText.indexOf("DEDUCTIONS");
+  const searchText = deductionsIndex >= 0 ? upperText.slice(deductionsIndex) : upperText;
+
+  // Debug: log OCR text used for optional deductions (DEDUCTIONS section or full if no section)
+  console.log("[EP optional deductions] OCR text length:", ocrText.length);
+  console.log("[EP optional deductions] Search text (from DEDUCTIONS onward):", JSON.stringify(searchText.slice(0, 1200)));
+
+  // Insurance: EP stubs use "Insure" as label; also Ins. Ded, Insurance (table row: "Insure\t12.34")
+  const insPatterns = [
+    /\bINSURE\b[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /INS\.\s*DED[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /INSURE?(?:ANCE)?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /\bINS\.?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+  ];
+  for (const re of insPatterns) {
+    const m = searchText.match(re);
+    if (m?.[1]) {
+      const amount = parseAmount(m[1]);
+      if (!isNaN(amount) && amount >= 0) {
+        result.insurance = amount;
+        break;
+      }
+    }
   }
-  // Dues: Dues, Permit Fee, or Member Fee (first match wins; typically one appears)
-  const duesPatterns = [/DUES[:\s]*\$?[\s]*([\d,]+\.?\d*)/i, /PERMIT\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i, /MEMBER\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i];
+
+  // Dues: Dues, Permit Fee, Member Fee (table row: "Dues\t93.07\t137.5")
+  const duesPatterns = [
+    /\bDUES[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /\bPERMIT\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /\bMEMBER\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+  ];
   for (const re of duesPatterns) {
-    const match = upperText.match(re);
-    if (match?.[1]) {
-      const amount = parseAmount(match[1]);
+    const m = searchText.match(re);
+    if (m?.[1]) {
+      const amount = parseAmount(m[1]);
       if (!isNaN(amount) && amount >= 0) {
         result.dues = amount;
         break;
       }
     }
   }
-  // Pension
-  const pensionMatch = upperText.match(/PENSION[:\s]*\$?[\s]*([\d,]+\.?\d*)/i);
-  if (pensionMatch?.[1]) {
-    const amount = parseAmount(pensionMatch[1]);
-    if (!isNaN(amount) && amount >= 0) result.pension = amount;
+
+  // Pension: Pension, Retir. Emp (table row)
+  const pensionPatterns = [
+    /\bPENSION[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /\bRETIR\.\s+EMP[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+  ];
+  for (const re of pensionPatterns) {
+    const m = searchText.match(re);
+    if (m?.[1]) {
+      const amount = parseAmount(m[1]);
+      if (!isNaN(amount) && amount >= 0) {
+        result.pension = amount;
+        break;
+      }
+    }
   }
-  // Retirement: Retire, Retire Ded, or Retire Deduct
+
+  // Retirement: Retire Ded, Retire Deduct, Retire (table row: "Retire\t50.00")
   const retirePatterns = [
-    /RETIRE\s+DED(?:UCT)?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
-    /RETIRE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /\bRETIRE\s+DED(?:UCT)?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
+    /\bRETIRE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
   ];
   for (const re of retirePatterns) {
-    const retireMatch = upperText.match(re);
-    if (retireMatch?.[1]) {
-      const amount = parseAmount(retireMatch[1]);
+    const m = searchText.match(re);
+    if (m?.[1]) {
+      const amount = parseAmount(m[1]);
       if (!isNaN(amount) && amount >= 0) {
         result.retirement = amount;
         break;
       }
     }
   }
+
+  console.log("[EP optional deductions] Extracted:", result);
   return result;
 }
 
@@ -449,6 +491,8 @@ export function parsePaystubOcr(
 
   // Identify issuer type
   result.issuerType = identifyIssuerType(ocrText);
+  console.log("[parsePaystubOcr] OCR text length:", ocrText.length, "| issuerType:", result.issuerType);
+  console.log("[parsePaystubOcr] OCR text (first 2500 chars):", JSON.stringify(ocrText.slice(0, 2500)));
 
   if (result.issuerType === "EP") {
     // Parse EP paystub
@@ -480,13 +524,24 @@ export function parsePaystubOcr(
     if (ccOptional.pension !== undefined) result.pension = ccOptional.pension;
     if (ccOptional.retirement !== undefined) result.retirement = ccOptional.retirement;
   } else {
-    // Unknown issuer type, try generic patterns
+    // Unknown issuer type, try generic patterns and both EP/CC optional deductions
     result.date = extractEPDate(ocrText) || extractCCDate(ocrText);
     result.gst = extractEPGst(ocrText) || extractCCGst(ocrText);
     result.grossIncome = extractEPGrossIncome(ocrText, result.gst || 0) || extractCCGrossIncome(ocrText);
     result.netIncome = extractNetIncome(ocrText);
     result.deductions = extractEPDeductions(ocrText) || extractCCDeductions(ocrText);
     result.productionName = extractEPProductionName(ocrText) || extractCCProductionName(ocrText);
+    // Still extract optional fields (retire, insurance, dues, pension) from either format
+    const epOptional = extractEPOptionalDeductions(ocrText);
+    const ccOptional = extractCCOptionalDeductions(ocrText);
+    if (epOptional.insurance !== undefined) result.insurance = epOptional.insurance;
+    if (epOptional.dues !== undefined) result.dues = epOptional.dues;
+    if (epOptional.pension !== undefined) result.pension = epOptional.pension;
+    if (epOptional.retirement !== undefined) result.retirement = epOptional.retirement;
+    if (ccOptional.insurance !== undefined) result.insurance = ccOptional.insurance;
+    if (ccOptional.dues !== undefined) result.dues = ccOptional.dues;
+    if (ccOptional.pension !== undefined) result.pension = ccOptional.pension;
+    if (ccOptional.retirement !== undefined) result.retirement = ccOptional.retirement;
   }
 
   // Fallback to structured data if OCR parsing didn't find values
