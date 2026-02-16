@@ -49,6 +49,10 @@ export function IncomeEntryDialog({
     hasGstNumber?: boolean;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** Prevents dialog closing when native file/camera picker opens (mobile can fire "outside" events) */
+  const filePickerOpenRef = useRef(false);
+  /** Prevents double submission when file input fires onchange twice (e.g. on some mobile browsers) */
+  const uploadInProgressRef = useRef(false);
 
   // Reset state when dialog opens for a new entry; always fetch user profile when dialog opens
   useEffect(() => {
@@ -101,6 +105,8 @@ export function IncomeEntryDialog({
   };
 
   const handleFileSelect = async (file: File) => {
+    if (uploadInProgressRef.current) return;
+    uploadInProgressRef.current = true;
     setUploading(true);
     setUploadedFile(file);
 
@@ -158,21 +164,28 @@ export function IncomeEntryDialog({
       console.error("Error uploading paystub:", error);
       alert(error instanceof Error ? error.message : "Failed to upload paystub. Please try again.");
     } finally {
+      uploadInProgressRef.current = false;
       setUploading(false);
     }
   };
 
-  const handleCameraCapture = async () => {
+  const handleCameraCapture = () => {
+    filePickerOpenRef.current = true;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*,.pdf";
     input.capture = "environment";
     input.onchange = (e) => {
+      filePickerOpenRef.current = false;
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         handleFileSelect(file);
       }
     };
+    // If user cancels the picker, we never get onchange; clear ref after a delay
+    setTimeout(() => {
+      filePickerOpenRef.current = false;
+    }, 60000);
     input.click();
   };
 
@@ -300,10 +313,20 @@ export function IncomeEntryDialog({
   // Step 3: Upload/Camera Interface
   if (step === "upload") {
     const isUnionProduction = selectedIncomeType === "union_production";
-    
+
+    const preventCloseWhilePickerOrUploading = (e: Event) => {
+      if (filePickerOpenRef.current || uploading) {
+        e.preventDefault();
+      }
+    };
+
     return (
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent
+          className="max-w-md"
+          onInteractOutside={preventCloseWhilePickerOrUploading}
+          onPointerDownOutside={preventCloseWhilePickerOrUploading}
+        >
           <DialogHeader>
             <DialogTitle>
               {entryMethod === "upload" ? "Upload Paystub" : "Take Picture"}
