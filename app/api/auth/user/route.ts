@@ -68,24 +68,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     const now = new Date();
-    const [updated] = await db
-      .update(users)
-      .set({
-        disclaimerAcceptedAt: now,
-        disclaimerVersion: DISCLAIMER_VERSION,
-        updatedAt: now,
-      })
-      .where(eq(users.id, authUser.id))
-      .returning();
-
-    if (updated) {
-      return NextResponse.json(updated);
-    }
-
-    // User row may not exist yet (e.g. first load returned 401). Create it with disclaimer accepted.
     const subscriptionTier = (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
     const taxFilingStatus = subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
-    const [inserted] = await db
+
+    // Upsert: update if user exists (from trigger), insert if not. Avoids 500 when trigger already created row.
+    const [result] = await db
       .insert(users)
       .values({
         id: authUser.id,
@@ -97,14 +84,23 @@ export async function PATCH(request: NextRequest) {
         disclaimerAcceptedAt: now,
         updatedAt: now,
       })
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          disclaimerAcceptedAt: now,
+          disclaimerVersion: DISCLAIMER_VERSION,
+          updatedAt: now,
+        },
+      })
       .returning();
 
-    if (!inserted) {
+    if (!result) {
       return NextResponse.json({ error: "Update failed" }, { status: 500 });
     }
-    return NextResponse.json(inserted);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error in PATCH /api/auth/user:", error);
+    console.error("PATCH error details:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
