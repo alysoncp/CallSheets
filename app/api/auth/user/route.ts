@@ -71,8 +71,9 @@ export async function PATCH(request: NextRequest) {
     const subscriptionTier = (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") || "personal";
     const taxFilingStatus = subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
 
-    // Upsert: update if user exists (from trigger), insert if not. Avoids 500 when trigger already created row.
-    const [result] = await db
+    // Upsert: update if user exists (from trigger), insert if not.
+    // Avoid .returning() — serverless + pooled connections can fail on RETURNING with onConflictDoUpdate.
+    await db
       .insert(users)
       .values({
         id: authUser.id,
@@ -91,13 +92,15 @@ export async function PATCH(request: NextRequest) {
           disclaimerVersion: DISCLAIMER_VERSION,
           updatedAt: now,
         },
-      })
-      .returning();
+      });
 
-    if (!result) {
-      return NextResponse.json({ error: "Update failed" }, { status: 500 });
-    }
-    return NextResponse.json(result);
+    const [updatedUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, authUser.id))
+      .limit(1);
+
+    return NextResponse.json(updatedUser);
   } catch (error) {
     console.error("Error in PATCH /api/auth/user:", error);
     console.error("PATCH error details:", error instanceof Error ? error.message : String(error));
