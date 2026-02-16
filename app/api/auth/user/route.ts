@@ -28,6 +28,64 @@ export async function GET(request: NextRequest) {
     console.log("GET /api/auth/user:", { userId: authUser.id, hasRow: !!existingUser });
     console.log("disclaimer:", existingUser?.disclaimerAcceptedAt);
 
+    // One-time sync for production safety:
+    // If signup metadata already has disclaimer acceptance but DB row is missing/stale,
+    // persist it so users are not asked to accept a second time.
+    const metadataAcceptedAt = authUser.user_metadata?.disclaimer_accepted_at;
+    const metadataVersion = authUser.user_metadata?.disclaimer_version;
+    const canSyncFromMetadata =
+      typeof metadataAcceptedAt === "string" &&
+      metadataAcceptedAt.length > 0 &&
+      metadataVersion === DISCLAIMER_VERSION;
+
+    if (canSyncFromMetadata) {
+      const acceptedAt = new Date(metadataAcceptedAt);
+      if (!Number.isNaN(acceptedAt.getTime())) {
+        const needsSync =
+          !existingUser ||
+          existingUser.disclaimerAcceptedAt == null ||
+          existingUser.disclaimerVersion !== DISCLAIMER_VERSION;
+
+        if (needsSync) {
+          const subscriptionTier =
+            (authUser.user_metadata?.subscriptionTier as "basic" | "personal" | "corporate") ||
+            "personal";
+          const taxFilingStatus =
+            subscriptionTier === "corporate" ? "personal_and_corporate" : "personal_only";
+
+          await db
+            .insert(users)
+            .values({
+              id: authUser.id,
+              email: authUser.email!,
+              subscriptionTier,
+              taxFilingStatus,
+              province: "BC",
+              disclaimerVersion: DISCLAIMER_VERSION,
+              disclaimerAcceptedAt: acceptedAt,
+            })
+            .onConflictDoUpdate({
+              target: users.id,
+              set: {
+                disclaimerVersion: DISCLAIMER_VERSION,
+                disclaimerAcceptedAt: acceptedAt,
+                updatedAt: new Date(),
+              },
+            });
+
+          const [syncedUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, authUser.id))
+            .limit(1);
+
+          if (syncedUser) {
+            return NextResponse.json(syncedUser);
+          }
+        }
+      }
+    }
+
     if (existingUser) {
       return NextResponse.json(existingUser);
     }
