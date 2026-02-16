@@ -18,15 +18,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Always read disclaimer from database (users table) - never from user_metadata.
-    // This keeps disclaimer orthogonal to email confirmation.
     const [existingUser] = await db
       .select()
       .from(users)
       .where(eq(users.id, authUser.id))
       .limit(1);
 
+    // Diagnostic: check server logs (terminal / Vercel preview) after login
+    console.log("GET /api/auth/user:", { userId: authUser.id, hasRow: !!existingUser });
+    console.log("disclaimer:", existingUser?.disclaimerAcceptedAt);
+
     if (existingUser) {
-      // DB is source of truth for disclaimer - works with confirmation on or off
       return NextResponse.json(existingUser);
     }
 
