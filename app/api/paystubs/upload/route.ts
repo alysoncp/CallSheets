@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiPaystubResult } from "@/lib/veryfi/client";
 import { parsePaystubOcr } from "@/lib/utils/paystub-ocr-parser";
 
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   console.log("=== PAYSTUB UPLOAD ROUTE CALLED ===");
   console.log("Timestamp:", new Date().toISOString());
