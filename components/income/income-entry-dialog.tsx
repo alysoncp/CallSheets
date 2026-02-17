@@ -49,6 +49,7 @@ export function IncomeEntryDialog({
     hasGstNumber?: boolean;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   /** Prevents dialog closing when native file/camera picker opens (mobile can fire "outside" events) */
   const filePickerOpenRef = useRef(false);
   /** Reactive: picker/camera is open so we can disable the button and prevent double-tap */
@@ -56,6 +57,34 @@ export function IncomeEntryDialog({
   /** Prevents double submission when file input fires onchange twice (e.g. on some mobile browsers) */
   const uploadInProgressRef = useRef(false);
   const pickerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+
+    const clearPickerOpen = () => {
+      // Give the browser a short beat to dispatch input onChange first.
+      setTimeout(() => {
+        if (!uploading) {
+          filePickerOpenRef.current = false;
+          setPickerOpen(false);
+        }
+      }, 300);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        clearPickerOpen();
+      }
+    };
+
+    window.addEventListener("focus", clearPickerOpen);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", clearPickerOpen);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pickerOpen, uploading]);
 
   // Reset state when dialog opens for a new entry; always fetch user profile when dialog opens
   useEffect(() => {
@@ -193,29 +222,14 @@ export function IncomeEntryDialog({
       pickerTimeoutRef.current = null;
     }
 
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*,.pdf";
-    input.capture = "environment";
-    input.onchange = (e) => {
-      filePickerOpenRef.current = false;
-      setPickerOpen(false);
-      if (pickerTimeoutRef.current) {
-        clearTimeout(pickerTimeoutRef.current);
-        pickerTimeoutRef.current = null;
-      }
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        handleFileSelect(file);
-      }
-    };
-    // If user cancels the picker, we never get onchange; clear state after a delay
+    // If user cancels the picker, we may never get onChange; clear state after a delay.
     pickerTimeoutRef.current = setTimeout(() => {
       filePickerOpenRef.current = false;
       setPickerOpen(false);
       pickerTimeoutRef.current = null;
-    }, 60000);
-    input.click();
+    }, 15000);
+
+    cameraInputRef.current?.click();
   };
 
   const handleReset = () => {
@@ -419,6 +433,28 @@ export function IncomeEntryDialog({
             )}
             {entryMethod === "camera" && (
               <div className="space-y-4">
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="sr-only"
+                  onChange={(e) => {
+                    filePickerOpenRef.current = false;
+                    setPickerOpen(false);
+                    if (pickerTimeoutRef.current) {
+                      clearTimeout(pickerTimeoutRef.current);
+                      pickerTimeoutRef.current = null;
+                    }
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleFileSelect(file);
+                    }
+                    // Clear value so selecting the same image again still triggers onChange.
+                    e.currentTarget.value = "";
+                  }}
+                  disabled={uploading}
+                />
                 <Button
                   onClick={handleCameraCapture}
                   disabled={uploading || pickerOpen}
