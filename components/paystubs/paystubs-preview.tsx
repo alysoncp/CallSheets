@@ -52,7 +52,7 @@ export function PaystubsPreview({ initialData, onDelete }: PaystubsPreviewProps)
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Recent Paystubs</CardTitle>
           <Link href="/paystubs">
             <Button variant="outline" size="sm">
