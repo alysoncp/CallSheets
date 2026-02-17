@@ -49,6 +49,42 @@ export function IncomeEntryDialog({
     hasGstNumber?: boolean;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  /** Prevents dialog closing when native file/camera picker opens (mobile can fire "outside" events) */
+  const filePickerOpenRef = useRef(false);
+  /** Reactive: picker/camera is open so we can disable the button and prevent double-tap */
+  const [pickerOpen, setPickerOpen] = useState(false);
+  /** Prevents double submission when file input fires onchange twice (e.g. on some mobile browsers) */
+  const uploadInProgressRef = useRef(false);
+  const pickerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+
+    const clearPickerOpen = () => {
+      // Give the browser a short beat to dispatch input onChange first.
+      setTimeout(() => {
+        if (!uploading) {
+          filePickerOpenRef.current = false;
+          setPickerOpen(false);
+        }
+      }, 300);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        clearPickerOpen();
+      }
+    };
+
+    window.addEventListener("focus", clearPickerOpen);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", clearPickerOpen);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pickerOpen, uploading]);
 
   // Reset state when dialog opens for a new entry; always fetch user profile when dialog opens
   useEffect(() => {
@@ -62,6 +98,7 @@ export function IncomeEntryDialog({
         setUploadedFile(null);
         setUploadedPaystub(null);
         setEnableOcr(true);
+        setPickerOpen(false);
       }
       
       // Fetch user profile (UBCP status, user type, agent info)
@@ -101,8 +138,13 @@ export function IncomeEntryDialog({
   };
 
   const handleFileSelect = async (file: File) => {
+    if (uploadInProgressRef.current) return;
+    uploadInProgressRef.current = true;
     setUploading(true);
     setUploadedFile(file);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min - OCR can be slow
 
     try {
       const formData = new FormData();
@@ -112,11 +154,12 @@ export function IncomeEntryDialog({
       const response = await fetch("/api/paystubs/upload", {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Store paystub data (including imageUrl)
         if (data.id && data.imageUrl) {
           setUploadedPaystub({ id: data.id, imageUrl: data.imageUrl });
@@ -125,14 +168,14 @@ export function IncomeEntryDialog({
             onPaystubUploaded();
           }
         }
-        
+
         // If OCR is enabled and available, process it; otherwise clear ocrData
         if (enableOcr && data.ocrResult) {
           setOcrData(data.ocrResult);
         } else {
           setOcrData(null); // Clear OCR data if disabled
         }
-        
+
         // Proceed to form
         setStep("form");
       } else {
@@ -155,25 +198,38 @@ export function IncomeEntryDialog({
         throw new Error(message);
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error("Error uploading paystub:", error);
-      alert(error instanceof Error ? error.message : "Failed to upload paystub. Please try again.");
+      const isAbort = error instanceof Error && error.name === "AbortError";
+      const message = isAbort
+        ? "Upload took too long. Please try again and keep this screen open."
+        : (error instanceof Error ? error.message : "Failed to upload paystub. Please try again.");
+      alert(message);
     } finally {
+      clearTimeout(timeoutId);
+      uploadInProgressRef.current = false;
       setUploading(false);
     }
   };
 
-  const handleCameraCapture = async () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*,.pdf";
-    input.capture = "environment";
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        handleFileSelect(file);
-      }
-    };
-    input.click();
+  const handleCameraCapture = () => {
+    if (pickerOpen || uploading) return;
+    filePickerOpenRef.current = true;
+    setPickerOpen(true);
+
+    if (pickerTimeoutRef.current) {
+      clearTimeout(pickerTimeoutRef.current);
+      pickerTimeoutRef.current = null;
+    }
+
+    // If user cancels the picker, we may never get onChange; clear state after a delay.
+    pickerTimeoutRef.current = setTimeout(() => {
+      filePickerOpenRef.current = false;
+      setPickerOpen(false);
+      pickerTimeoutRef.current = null;
+    }, 15000);
+
+    cameraInputRef.current?.click();
   };
 
   const handleReset = () => {
@@ -184,6 +240,7 @@ export function IncomeEntryDialog({
     setUploadedFile(null);
     setUploadedPaystub(null);
     setEnableOcr(true);
+    setPickerOpen(false);
   };
 
   const handleClose = (open: boolean) => {
@@ -300,10 +357,20 @@ export function IncomeEntryDialog({
   // Step 3: Upload/Camera Interface
   if (step === "upload") {
     const isUnionProduction = selectedIncomeType === "union_production";
-    
+
+    const preventCloseWhilePickerOrUploading = (e: Event) => {
+      if (filePickerOpenRef.current || uploading) {
+        e.preventDefault();
+      }
+    };
+
     return (
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent
+          className="max-w-md"
+          onInteractOutside={preventCloseWhilePickerOrUploading}
+          onPointerDownOutside={preventCloseWhilePickerOrUploading}
+        >
           <DialogHeader>
             <DialogTitle>
               {entryMethod === "upload" ? "Upload Paystub" : "Take Picture"}
@@ -366,15 +433,42 @@ export function IncomeEntryDialog({
             )}
             {entryMethod === "camera" && (
               <div className="space-y-4">
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="sr-only"
+                  onChange={(e) => {
+                    filePickerOpenRef.current = false;
+                    setPickerOpen(false);
+                    if (pickerTimeoutRef.current) {
+                      clearTimeout(pickerTimeoutRef.current);
+                      pickerTimeoutRef.current = null;
+                    }
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleFileSelect(file);
+                    }
+                    // Clear value so selecting the same image again still triggers onChange.
+                    e.currentTarget.value = "";
+                  }}
+                  disabled={uploading}
+                />
                 <Button
                   onClick={handleCameraCapture}
-                  disabled={uploading}
+                  disabled={uploading || pickerOpen}
                   className="w-full"
                 >
                   {uploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
+                    </>
+                  ) : pickerOpen ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Opening camera...
                     </>
                   ) : (
                     <>
@@ -390,6 +484,9 @@ export function IncomeEntryDialog({
                 <Loader2 className="h-8 w-8 animate-spin mx-auto" />
                 <p className="mt-2 text-sm text-muted-foreground">
                   Uploading and processing paystub...
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This can take up to 1–2 minutes. Please keep this screen open.
                 </p>
               </div>
             )}

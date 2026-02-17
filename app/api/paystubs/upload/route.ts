@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiPaystubResult } from "@/lib/veryfi/client";
 import { parsePaystubOcr } from "@/lib/utils/paystub-ocr-parser";
 
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   console.log("=== PAYSTUB UPLOAD ROUTE CALLED ===");
   console.log("Timestamp:", new Date().toISOString());
@@ -185,13 +187,20 @@ export async function POST(request: NextRequest) {
             console.log("Has USERNAME:", !!process.env.VERYFI_USERNAME);
             console.log("Has API_KEY:", !!process.env.VERYFI_API_KEY);
 
-            // Use admin client for signed URL - bypasses RLS, works with private buckets, avoids 400
-            const adminClient = createAdminClient();
-            const { data: signedData } = await adminClient.storage
-              .from(bucketName)
-              .createSignedUrl(filePath, 300); // 5 min expiry
-            const imageUrlForOcr = signedData?.signedUrl ?? publicUrl;
-            console.log("Image URL for OCR:", imageUrlForOcr ? "(signed URL)" : "publicUrl fallback");
+            // Only create signed URL when we will call Veryfi (avoids createAdminClient() when service role key is missing)
+            let imageUrlForOcr = publicUrl;
+            if (hasVeryfiCredentials) {
+              try {
+                const adminClient = createAdminClient();
+                const { data: signedData } = await adminClient.storage
+                  .from(bucketName)
+                  .createSignedUrl(filePath, 300); // 5 min expiry
+                if (signedData?.signedUrl) imageUrlForOcr = signedData.signedUrl;
+              } catch (signedUrlError) {
+                console.warn("Signed URL failed, using public URL for Veryfi:", signedUrlError);
+              }
+            }
+            console.log("Image URL for OCR:", imageUrlForOcr === publicUrl ? "publicUrl" : "(signed URL)");
 
             if (hasVeryfiCredentials) {
               try {
