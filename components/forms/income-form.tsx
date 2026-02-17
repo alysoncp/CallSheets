@@ -15,6 +15,7 @@ import type { IncomeType } from "@/lib/validations/expense-categories";
 interface IncomeFormProps {
   initialData?: Partial<IncomeFormData> & { id?: string };
   onSuccess?: () => void;
+  onCancel?: () => void;
   ocrData?: any;
   incomeType?: IncomeType;
   userUbcpStatus?: string;
@@ -25,7 +26,7 @@ interface IncomeFormProps {
   hasGstNumber?: boolean;
 }
 
-export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUbcpStatus, userType, paystubId, hasAgent, agentCommission, hasGstNumber }: IncomeFormProps) {
+export function IncomeForm({ initialData, onSuccess, onCancel, ocrData, incomeType, userUbcpStatus, userType, paystubId, hasAgent, agentCommission, hasGstNumber }: IncomeFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -530,11 +531,11 @@ export function IncomeForm({ initialData, onSuccess, ocrData, incomeType, userUb
             <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : initialData?.id ? "Update" : "Create"}
             </Button>
-            {onSuccess && (
+            {(onCancel || onSuccess) && (
               <Button
                 type="button"
                 variant="outline"
-                onClick={onSuccess}
+                onClick={onCancel || onSuccess}
               >
                 Cancel
               </Button>
