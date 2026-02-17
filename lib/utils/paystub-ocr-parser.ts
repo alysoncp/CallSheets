@@ -305,7 +305,7 @@ function extractCCReimbursements(ocrText: string): number | undefined {
 
 /**
  * Extract optional deduction amounts from CC paystub
- * Labels: Ins. Ded (insurance), Member Fee (dues), Retir. Emp (pension), Retire Ded / Retire Deduct (retirement)
+ * Labels: Ins. Ded (insurance), Member Fee / Permit Fee / Dues (dues), Retir. Emp (pension), Retire Ded / Retire Deduct (retirement)
  */
 function extractCCOptionalDeductions(ocrText: string): {
   insurance?: number;
@@ -318,7 +318,8 @@ function extractCCOptionalDeductions(ocrText: string): {
   const upperText = ocrText.toUpperCase();
   const patterns: { key: keyof typeof result; regex: RegExp }[] = [
     { key: "insurance", regex: /INS\.\s*DED[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
-    { key: "dues", regex: /MEMBER\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
+    { key: "dues", regex: /(?:MEMBER|PERMIT)\s+FEE[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
+    { key: "dues", regex: /\bDUES[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
     { key: "pension", regex: /RETIR\.\s+EMP[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
     { key: "retirement", regex: /RETIRE\s+DED(?:UCT)?[:\s]*\$?[\s]*([\d,]+\.?\d*)/i },
   ];
