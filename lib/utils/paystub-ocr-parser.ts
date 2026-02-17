@@ -147,13 +147,20 @@ function extractCCGst(ocrText: string): number | undefined {
   if (!ocrText) return undefined;
 
   const upperText = ocrText.toUpperCase();
-  const gstPattern = /GST\/?HST[:\s]*\$?[\s]*([\d,]+\.?\d*)/i;
-  const match = upperText.match(gstPattern);
+  const patterns = [
+    // GST/HST: 12.34 or GST HST $12.34
+    /\bGST\s*\/?\s*HST[:\s]+\$?\s*([\d,]+(?:\.\d{2})?)\b/i,
+    // G.S.T. 12.34
+    /\bG\.?\s*S\.?\s*T\.?[:\s]+\$?\s*([\d,]+(?:\.\d{2})?)\b/i,
+  ];
 
-  if (match && match[1]) {
-    const amount = parseAmount(match[1]);
-    if (!isNaN(amount) && amount >= 0) {
-      return amount;
+  for (const gstPattern of patterns) {
+    const match = upperText.match(gstPattern);
+    if (match && match[1]) {
+      const amount = parseAmount(match[1]);
+      if (!isNaN(amount) && amount >= 0) {
+        return amount;
+      }
     }
   }
 
@@ -498,7 +505,8 @@ export function parsePaystubOcr(
   if (result.issuerType === "EP") {
     // Parse EP paystub
     result.date = extractEPDate(ocrText);
-    result.gst = extractEPGst(ocrText);
+    // EP stubs may omit GST entirely; default to 0 instead of noisy fallback values.
+    result.gst = extractEPGst(ocrText) ?? 0;
     result.grossPayRaw = extractEPGrossPayRaw(ocrText);
     result.grossIncome = extractEPGrossIncome(ocrText, result.gst || 0);
     result.netIncome = extractNetIncome(ocrText);
@@ -512,7 +520,8 @@ export function parsePaystubOcr(
   } else if (result.issuerType === "CC") {
     // Parse CC paystub
     result.date = extractCCDate(ocrText);
-    result.gst = extractCCGst(ocrText);
+    // CC stubs may omit GST entirely; default to 0 instead of noisy fallback values.
+    result.gst = extractCCGst(ocrText) ?? 0;
     result.grossPayRaw = extractCCGrossPayRaw(ocrText);
     result.grossIncome = extractCCGrossIncome(ocrText);
     result.netIncome = extractNetIncome(ocrText);
@@ -549,7 +558,7 @@ export function parsePaystubOcr(
   if (!result.date && (ocrData?.date || ocrData?.pay_period)) {
     result.date = ocrData.date || ocrData.pay_period;
   }
-  if (!result.gst && (ocrData?.tax || ocrData?.gst)) {
+  if (result.gst === undefined && (ocrData?.tax || ocrData?.gst)) {
     result.gst = ocrData.tax || ocrData.gst;
   }
   if (!result.grossIncome && (ocrData?.gross_pay || ocrData?.gross || ocrData?.total)) {
