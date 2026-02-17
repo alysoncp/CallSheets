@@ -89,11 +89,11 @@ export function DocumentImageViewDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
-          <div className="relative w-full aspect-auto min-h-[400px] bg-muted rounded-lg overflow-hidden">
+          <div className="relative w-full aspect-auto min-h-[260px] bg-muted rounded-lg overflow-hidden sm:min-h-[400px]">
             {isPdfUrl(imageUrl) ? (
               <iframe
                 src={imageUrl}
@@ -110,19 +110,19 @@ export function DocumentImageViewDialog({
               />
             )}
           </div>
-          <DialogFooter className="flex flex-wrap gap-2 sm:justify-end">
+          <DialogFooter className="flex w-full flex-wrap gap-2 sm:justify-end">
             {hasLinkedEntry && (
               <>
-                <Button variant="outline" asChild>
+                <Button variant="outline" asChild className="w-full sm:w-auto">
                   <Link href={viewHref}>{labels.viewEntry}</Link>
                 </Button>
-                <Button variant="outline" onClick={onEdit}>
+                <Button variant="outline" onClick={onEdit} className="w-full sm:w-auto">
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit {labels.entry} entry
                 </Button>
               </>
             )}
-            <Button variant="destructive" onClick={handleDeleteClick}>
+            <Button variant="destructive" onClick={handleDeleteClick} className="w-full sm:w-auto">
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </Button>
@@ -131,7 +131,7 @@ export function DocumentImageViewDialog({
       </Dialog>
 
       <Dialog open={deleteConfirmOpen} onOpenChange={handleConfirmClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Delete {labels.document}?</DialogTitle>
             <DialogDescription>
@@ -145,6 +145,7 @@ export function DocumentImageViewDialog({
               variant="outline"
               onClick={() => handleConfirmClose(false)}
               disabled={deleting}
+              className="w-full whitespace-normal sm:w-auto"
             >
               Cancel
             </Button>
@@ -154,6 +155,7 @@ export function DocumentImageViewDialog({
                   variant="secondary"
                   onClick={() => handleDeleteConfirm(false)}
                   disabled={deleting}
+                  className="w-full whitespace-normal sm:w-auto"
                 >
                   Delete {labels.document} only
                 </Button>
@@ -161,6 +163,7 @@ export function DocumentImageViewDialog({
                   variant="destructive"
                   onClick={() => handleDeleteConfirm(true)}
                   disabled={deleting}
+                  className="w-full whitespace-normal sm:w-auto"
                 >
                   Delete {labels.document} and associated entry
                 </Button>
@@ -170,6 +173,7 @@ export function DocumentImageViewDialog({
                 variant="destructive"
                 onClick={() => handleDeleteConfirm(false)}
                 disabled={deleting}
+                className="w-full whitespace-normal sm:w-auto"
               >
                 Delete {labels.document}
               </Button>

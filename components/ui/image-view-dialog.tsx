@@ -28,11 +28,11 @@ export function ImageViewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="relative w-full aspect-auto min-h-[400px] bg-muted rounded-lg overflow-hidden">
+        <div className="relative w-full aspect-auto min-h-[260px] bg-muted rounded-lg overflow-hidden sm:min-h-[400px]">
           {isPdfUrl(imageUrl) ? (
             <iframe
               src={imageUrl}

@@ -214,10 +214,10 @@ export function DashboardPageClient({ allData }: DashboardPageClientProps) {
                     filteredData.recentIncome.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between text-sm"
+                        className="flex min-w-0 items-center justify-between gap-3 text-sm"
                       >
-                        <span>{getIncomeDisplayName(item)}</span>
-                        <span className="font-medium text-green-600">
+                        <span className="min-w-0 truncate">{getIncomeDisplayName(item)}</span>
+                        <span className="shrink-0 font-medium text-green-600">
                           ${Number(item.amount).toLocaleString("en-CA", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
@@ -237,10 +237,10 @@ export function DashboardPageClient({ allData }: DashboardPageClientProps) {
                     filteredData.recentExpenses.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between text-sm"
+                        className="flex min-w-0 items-center justify-between gap-3 text-sm"
                       >
-                        <span>{item.title}</span>
-                        <span className="font-medium text-red-600">
+                        <span className="min-w-0 truncate">{item.title}</span>
+                        <span className="shrink-0 font-medium text-red-600">
                           ${Number(item.amount).toLocaleString("en-CA", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
