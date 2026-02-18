@@ -80,7 +80,6 @@ export function IncomeForm({ initialData, onSuccess, onCancel, ocrData, incomeTy
   // Non-union: net income = gross - deductions
   const grossPayVal = watch("grossPay") || 0;
   const totalDeductionsVal = watch("totalDeductions") || 0;
-  const amountVal = watch("amount");
   const netIncomeNonUnion = Math.max(0, Number(grossPayVal) - Number(totalDeductionsVal));
 
   // Non-union: always sync amount to calculated net (allow zero)

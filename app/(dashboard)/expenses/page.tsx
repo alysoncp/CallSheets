@@ -1,10 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { ExpenseList } from "@/components/expenses/expense-list";
-import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
-import { ReceiptsGrid } from "@/components/receipts/receipts-grid";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { db } from "@/lib/db";
 import { expenses, receipts } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";

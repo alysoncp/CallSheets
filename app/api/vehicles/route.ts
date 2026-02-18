@@ -5,7 +5,7 @@ import { vehicles } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { vehicleSchema } from "@/lib/validations/vehicle";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
     const {

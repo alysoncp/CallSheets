@@ -1,4 +1,25 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV === "production";
+const cspReportOnly = process.env.CSP_REPORT_ONLY === "true";
+
+const cspDirectives = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https: wss:",
+  "frame-src 'self'",
+  "worker-src 'self' blob:",
+  ...(isProd ? ["upgrade-insecure-requests"] : []),
+];
+
+const cspValue = cspDirectives.join("; ");
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -17,6 +38,36 @@ const nextConfig = {
         port: '54321',
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          ...(isProd
+            ? [
+                {
+                  key: "Strict-Transport-Security",
+                  value: "max-age=31536000; includeSubDomains; preload",
+                },
+              ]
+            : []),
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=()",
+          },
+          {
+            key: cspReportOnly
+              ? "Content-Security-Policy-Report-Only"
+              : "Content-Security-Policy",
+            value: cspValue,
+          },
+        ],
+      },
+    ];
   },
 };
 

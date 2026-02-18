@@ -93,7 +93,12 @@ export async function POST(request: NextRequest) {
       await db
         .update(paystubs)
         .set({ linkedIncomeId: newIncome.id })
-        .where(eq(paystubs.id, paystubId));
+        .where(
+          and(
+            eq(paystubs.id, paystubId),
+            eq(paystubs.userId, user.id)
+          )
+        );
     }
 
     return NextResponse.json(newIncome, { status: 201 });

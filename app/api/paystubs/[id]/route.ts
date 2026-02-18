@@ -50,7 +50,6 @@ export async function DELETE(
     const urlParts = paystub.imageUrl.split("/paystubs/");
     const filePath = urlParts.length > 1 ? urlParts[1] : null;
     if (filePath) {
-      console.log("Deleting paystub file from storage:", filePath);
       const { error: storageError } = await supabase.storage.from("paystubs").remove([filePath]);
       if (storageError) {
         console.error("Error deleting from storage:", storageError);
@@ -65,8 +64,6 @@ export async function DELETE(
       .delete(paystubs)
       .where(and(eq(paystubs.id, id), eq(paystubs.userId, user.id)));
 
-    console.log("Paystub deleted successfully:", id);
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error in DELETE /api/paystubs/[id]:", error);
@@ -76,3 +73,4 @@ export async function DELETE(
     );
   }
 }
+

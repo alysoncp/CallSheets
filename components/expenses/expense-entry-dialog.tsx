@@ -13,6 +13,7 @@ import { ExpenseForm } from "@/components/forms/expense-form";
 import { Upload, Camera, FileText, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { compressImageIfNeeded } from "@/lib/utils/client-image-compression";
 
 type EntryMethod = "upload" | "camera" | "manual" | null;
 
@@ -30,7 +31,6 @@ export function ExpenseEntryDialog({
   const [entryMethod, setEntryMethod] = useState<EntryMethod>(null);
   const [uploading, setUploading] = useState(false);
   const [ocrData, setOcrData] = useState<any>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedReceipt, setUploadedReceipt] = useState<{ id: string; imageUrl: string } | null>(null);
 
   // Reset state when dialog opens for a new entry (or when closing)
@@ -38,18 +38,17 @@ export function ExpenseEntryDialog({
     if (open && !initialData?.id) {
       setEntryMethod(null);
       setOcrData(null);
-      setUploadedFile(null);
       setUploadedReceipt(null);
     }
   }, [open, initialData?.id]);
 
   const handleFileSelect = async (file: File) => {
     setUploading(true);
-    setUploadedFile(file);
+    const processedFile = await compressImageIfNeeded(file);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", processedFile);
 
       const response = await fetch("/api/receipts/upload", {
         method: "POST",
@@ -74,7 +73,7 @@ export function ExpenseEntryDialog({
         // Proceed to form (with or without OCR data)
         setEntryMethod("manual");
       } else {
-        const errorText = await response.text();
+        await response.text();
         throw new Error("Failed to upload receipt");
       }
     } catch (error) {
@@ -105,7 +104,6 @@ export function ExpenseEntryDialog({
     setUploading(false);
     setEntryMethod(null);
     setOcrData(null);
-    setUploadedFile(null);
     setUploadedReceipt(null);
   };
 

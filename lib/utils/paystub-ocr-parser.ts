@@ -358,10 +358,6 @@ function extractEPOptionalDeductions(ocrText: string): {
   const deductionsIndex = upperText.indexOf("DEDUCTIONS");
   const searchText = deductionsIndex >= 0 ? upperText.slice(deductionsIndex) : upperText;
 
-  // Debug: log OCR text used for optional deductions (DEDUCTIONS section or full if no section)
-  console.log("[EP optional deductions] OCR text length:", ocrText.length);
-  console.log("[EP optional deductions] Search text (from DEDUCTIONS onward):", JSON.stringify(searchText.slice(0, 1200)));
-
   // Insurance: EP stubs use "Insure" as label; also Ins. Ded, Insurance (table row: "Insure\t12.34")
   const insPatterns = [
     /\bINSURE\b[:\s]*\$?[\s]*([\d,]+\.?\d*)/i,
@@ -429,7 +425,6 @@ function extractEPOptionalDeductions(ocrText: string): {
     }
   }
 
-  console.log("[EP optional deductions] Extracted:", result);
   return result;
 }
 
@@ -499,8 +494,6 @@ export function parsePaystubOcr(
 
   // Identify issuer type
   result.issuerType = identifyIssuerType(ocrText);
-  console.log("[parsePaystubOcr] OCR text length:", ocrText.length, "| issuerType:", result.issuerType);
-  console.log("[parsePaystubOcr] OCR text (first 2500 chars):", JSON.stringify(ocrText.slice(0, 2500)));
 
   if (result.issuerType === "EP") {
     // Parse EP paystub

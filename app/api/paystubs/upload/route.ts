@@ -7,10 +7,18 @@ import { VeryfiClient, type VeryfiPaystubResult } from "@/lib/veryfi/client";
 import { parsePaystubOcr } from "@/lib/utils/paystub-ocr-parser";
 
 export const runtime = "nodejs";
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+const ALLOWED_PAYSTUB_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+]);
 
 export async function POST(request: NextRequest) {
-  console.log("=== PAYSTUB UPLOAD ROUTE CALLED ===");
-  console.log("Timestamp:", new Date().toISOString());
   try {
     const supabase = await createClient();
     const {
@@ -31,14 +39,23 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
+    if (file.size <= 0 || file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json({ error: "Invalid file size" }, { status: 400 });
+    }
+    if (!file.type || !ALLOWED_PAYSTUB_MIME_TYPES.has(file.type)) {
+      return NextResponse.json(
+        { error: "Unsupported file type. Paystubs must be an image or PDF." },
+        { status: 400 }
+      );
+    }
 
     // Upload to Supabase Storage
     const bucketName = "paystubs";
-    const fileExt = file.name.split(".").pop();
+    const fileExt = file.name.split(".").pop() || (file.type === "application/pdf" ? "pdf" : "jpg");
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
     const filePath = fileName;
 
-    let { data: uploadData, error: uploadError } = await supabase.storage
+    let { error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: "3600",
@@ -49,8 +66,8 @@ export async function POST(request: NextRequest) {
     if (uploadError && (uploadError.message === "Bucket not found" || uploadError.message === "Not Found" || uploadError.message?.includes("row-level security"))) {
       // Use admin client for bucket creation (requires service role key)
       const adminClient = createAdminClient();
-      const { data: bucketData, error: bucketError } = await adminClient.storage.createBucket(bucketName, {
-        public: true,
+      const { error: bucketError } = await adminClient.storage.createBucket(bucketName, {
+        public: false,
         allowedMimeTypes: ["image/*", "application/pdf"],
         fileSizeLimit: 52428800, // 50MB
       });
@@ -63,7 +80,6 @@ export async function POST(request: NextRequest) {
             cacheControl: "3600",
             upsert: false,
           });
-        uploadData = retryResult.data;
         uploadError = retryResult.error;
       }
     }
@@ -92,24 +108,16 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    console.log("=== BEFORE OCR PROCESSING BLOCK ===");
-    console.log("New paystub created:", newPaystub?.id);
-    console.log("Public URL:", publicUrl);
-    
     // Try to process OCR automatically (non-blocking) - only if enabled
     let ocrResult = null;
     if (enableOcr) {
       try {
-        console.log("=== STARTING OCR PROCESSING ===");
-        console.log("OCR is enabled, processing...");
         // Check user's subscription tier and OCR limits
         const [userProfile] = await db
           .select()
           .from(users)
           .where(eq(users.id, user.id))
           .limit(1);
-
-        console.log("User profile found:", !!userProfile);
         
         if (userProfile) {
           const ocrLimits: Record<string, number> = {
@@ -120,12 +128,6 @@ export async function POST(request: NextRequest) {
 
           const limit = ocrLimits[userProfile.subscriptionTier || "basic"];
           const canProcessOCR = !userProfile.ocrRequestsThisMonth || userProfile.ocrRequestsThisMonth < limit;
-
-          console.log("=== PAYSTUB OCR PROCESSING ===");
-          console.log("Can process OCR:", canProcessOCR);
-          console.log("Subscription tier:", userProfile.subscriptionTier);
-          console.log("OCR requests this month:", userProfile.ocrRequestsThisMonth);
-          console.log("Limit:", limit);
 
           if (canProcessOCR) {
             // Update paystub status to processing
@@ -180,39 +182,13 @@ export async function POST(request: NextRequest) {
               process.env.VERYFI_USERNAME && 
               process.env.VERYFI_API_KEY;
 
-            console.log("=== VERYFI CREDENTIALS CHECK ===");
-            console.log("Has Veryfi credentials:", hasVeryfiCredentials);
-            console.log("Has CLIENT_ID:", !!process.env.VERYFI_CLIENT_ID);
-            console.log("Has CLIENT_SECRET:", !!process.env.VERYFI_CLIENT_SECRET);
-            console.log("Has USERNAME:", !!process.env.VERYFI_USERNAME);
-            console.log("Has API_KEY:", !!process.env.VERYFI_API_KEY);
-
-            // Only create signed URL when we will call Veryfi (avoids createAdminClient() when service role key is missing)
-            let imageUrlForOcr = publicUrl;
             if (hasVeryfiCredentials) {
               try {
-                const adminClient = createAdminClient();
-                const { data: signedData } = await adminClient.storage
-                  .from(bucketName)
-                  .createSignedUrl(filePath, 300); // 5 min expiry
-                if (signedData?.signedUrl) imageUrlForOcr = signedData.signedUrl;
-              } catch (signedUrlError) {
-                console.warn("Signed URL failed, using public URL for Veryfi:", signedUrlError);
-              }
-            }
-            console.log("Image URL for OCR:", imageUrlForOcr === publicUrl ? "publicUrl" : "(signed URL)");
-
-            if (hasVeryfiCredentials) {
-              try {
-                console.log("=== CALLING VERYFI API ===");
                 const veryfiClient = new VeryfiClient();
-                console.log("VeryfiClient created, calling processPaystub...");
-                const veryfiResult = await veryfiClient.processPaystub(imageUrlForOcr);
-                
-                console.log("=== VERYFI RESULT RECEIVED ===");
-                console.log("Veryfi result:", JSON.stringify(veryfiResult, null, 2));
-                console.log("OCR text available:", !!veryfiResult.ocr_text);
-                console.log("OCR text length:", veryfiResult.ocr_text?.length || 0);
+                const veryfiResult = await veryfiClient.processPaystubBlob(
+                  file,
+                  file.name || `paystub-${Date.now()}.jpg`
+                );
 
                 // Transform to income form format, using OCR text parser if available
                 ocrResult = transformVeryfiToIncome(
@@ -221,23 +197,16 @@ export async function POST(request: NextRequest) {
                   veryfiResult.raw_data
                 );
                 
-                console.log("=== OCR RESULT TRANSFORMED ===");
-                console.log("Transformed OCR result:", JSON.stringify(ocrResult, null, 2));
               } catch (veryfiError) {
-                console.error("=== VERYFI OCR ERROR ===");
                 console.error("Error:", veryfiError);
                 console.error("Error message:", veryfiError instanceof Error ? veryfiError.message : String(veryfiError));
                 console.error("Error stack:", veryfiError instanceof Error ? veryfiError.stack : undefined);
                 // Fall through to placeholder if Veryfi fails
               }
-            } else {
-              console.log("=== VERYFI CREDENTIALS MISSING ===");
-              console.log("Skipping Veryfi OCR, will use placeholder");
             }
 
             // If OCR failed or Veryfi not configured, use placeholder
             if (!ocrResult) {
-              console.log("=== USING PLACEHOLDER OCR DATA ===");
               const veryfiPlaceholder: VeryfiPaystubResult = {
                 employer: "",
                 employee_name: "",
@@ -254,8 +223,6 @@ export async function POST(request: NextRequest) {
               };
               
               ocrResult = transformVeryfiToIncome(veryfiPlaceholder, undefined, undefined);
-              
-              console.log("Placeholder OCR result:", JSON.stringify(ocrResult, null, 2));
             }
 
             // Update paystub with OCR result (only if OCR was processed)
@@ -276,17 +243,11 @@ export async function POST(request: NextRequest) {
                   ocrRequestsThisMonth: (userProfile.ocrRequestsThisMonth || 0) + 1,
                 })
                 .where(eq(users.id, user.id));
-            } else {
-              // OCR limit reached
-              console.log("=== OCR LIMIT REACHED ===");
-              console.log("OCR requests this month:", userProfile.ocrRequestsThisMonth);
-              console.log("Limit:", limit);
             }
           }
         }
       } catch (ocrError) {
         // OCR is optional, don't fail the upload if it fails
-        console.error("=== OCR PROCESSING ERROR ===");
         console.error("Error:", ocrError);
         console.error("Error message:", ocrError instanceof Error ? ocrError.message : String(ocrError));
         console.error("Error stack:", ocrError instanceof Error ? ocrError.stack : undefined);
@@ -297,22 +258,10 @@ export async function POST(request: NextRequest) {
           .where(eq(paystubs.id, newPaystub.id))
           .catch(() => {});
       }
-    } else {
-      console.log("=== OCR DISABLED ===");
-      console.log("Skipping OCR processing as requested by user");
     }
-
-    console.log("=== AFTER OCR PROCESSING BLOCK ===");
-    console.log("OCR result:", ocrResult);
-    console.log("OCR result type:", typeof ocrResult);
     
     // Return paystub with OCR result if available
     const responseData = { ...newPaystub, ocrResult };
-    
-    console.log("=== RETURNING RESPONSE ===");
-    console.log("Has OCR result:", !!ocrResult);
-    console.log("OCR result:", JSON.stringify(ocrResult, null, 2));
-    console.log("Response data keys:", Object.keys(responseData));
 
     return NextResponse.json(responseData, { status: 201 });
   } catch (error) {

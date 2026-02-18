@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { receipts, expenses } from "@/lib/db/schema";
 import { eq, desc, isNotNull, and } from "drizzle-orm";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
     const {

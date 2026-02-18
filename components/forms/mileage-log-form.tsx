@@ -57,7 +57,6 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
   const {
     register,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<MileageLogFormData>({
@@ -69,7 +68,7 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
   });
 
   // Clear the other field when one is set
-  const handleValueChange = (field: "odometerReading" | "tripDistance", value: string) => {
+  const handleValueChange = (field: "odometerReading" | "tripDistance") => {
     if (field === "odometerReading") {
       setValue("tripDistance", undefined);
     } else {
@@ -167,7 +166,7 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
               step="1"
               min="0"
               {...register("odometerReading", {
-                onChange: (e) => handleValueChange("odometerReading", e.target.value),
+                onChange: () => handleValueChange("odometerReading"),
                 required: "Odometer reading is required",
               })}
             />
@@ -178,7 +177,7 @@ export function MileageLogForm({ initialData, onSuccess }: MileageLogFormProps) 
               step="1"
               min="0"
               {...register("tripDistance", {
-                onChange: (e) => handleValueChange("tripDistance", e.target.value),
+                onChange: () => handleValueChange("tripDistance"),
                 required: "Trip distance is required",
               })}
             />

@@ -173,6 +173,30 @@ CallSheets/
 - `npm run supabase:stop` - Stop local Supabase
 - `npm run supabase:status` - Check Supabase status
 - `npm run supabase:reset` - Reset database
+- `npm run security:secrets` - Scan working tree for secrets with gitleaks
+- `npm run security:secrets:staged` - Scan staged changes for secrets with gitleaks
+
+### Secret Scanning
+
+Install gitleaks locally:
+
+```bash
+brew install gitleaks
+```
+
+Or on Windows:
+
+```bash
+winget install gitleaks.gitleaks
+```
+
+Then run:
+
+```bash
+npm run security:secrets
+```
+
+GitHub Actions also runs a secret scan on pull requests and pushes to `main`.
 
 ## Deployment
 

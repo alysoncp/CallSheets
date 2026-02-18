@@ -47,42 +47,11 @@ export class VeryfiClient {
     this.apiKey = process.env.VERYFI_API_KEY || "";
   }
 
-  async processReceipt(imageUrl: string): Promise<VeryfiReceiptResult> {
-    console.log("=== VERYFI CLIENT: processReceipt START ===");
-    console.log("Image URL:", imageUrl);
-    
-    if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
-      console.error("=== VERYFI CREDENTIALS MISSING ===");
-      throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
-    }
-
-    console.log("Veryfi credentials found, fetching image...");
-    // Fetch the image from the URL (User-Agent helps avoid 400 from some CDNs/storage)
-    const imageResponse = await fetch(imageUrl, {
-      headers: {
-        "User-Agent": "CallSheets-OCR/1.0",
-        "Accept": "image/*,*/*",
-      },
-    });
-    if (!imageResponse.ok) {
-      console.error("Failed to fetch image:", imageResponse.statusText);
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-    }
-    const imageBlob = await imageResponse.blob();
-    console.log("Image fetched, size:", imageBlob.size, "bytes");
-
-    // Create form data for Veryfi API
+  private async submitDocument(fileBlob: Blob, filename: string): Promise<any> {
     const formData = new FormData();
-    formData.append("file", imageBlob, "receipt.jpg");
+    formData.append("file", fileBlob, filename);
 
-    console.log("=== CALLING VERYFI API (RECEIPT) ===");
-    console.log("Base URL:", this.baseUrl);
     const endpoint = `${this.baseUrl}/partner/documents`;
-    console.log("Endpoint:", endpoint);
-    console.log("CLIENT-ID:", this.clientId);
-    console.log("AUTHORIZATION:", `apikey ${this.username}:***`);
-    
-    // Veryfi API v8 document processing endpoint
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -92,31 +61,22 @@ export class VeryfiClient {
       body: formData,
     });
 
-    console.log("Veryfi API response status:", response.status, response.statusText);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("=== VERYFI API ERROR (RECEIPT) ===");
-      console.error("Status:", response.status);
-      console.error("Error text:", errorText);
       throw new Error(`Veryfi API error: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
-    
-    console.log("=== VERYFI API SUCCESS (RECEIPT) ===");
-    console.log("Veryfi Receipt OCR raw response:", JSON.stringify(data, null, 2));
-    console.log("Response keys:", Object.keys(data));
-    console.log("OCR text:", data.ocr_text || "NOT PRESENT");
-    console.log("OCR text length:", data.ocr_text?.length || 0);
-    console.log("Vendor:", data.vendor);
-    console.log("Total:", data.total);
-    console.log("Tax:", data.tax);
-    console.log("Date:", data.date);
-    console.log("Line items:", data.line_items);
-    
-    // Map Veryfi response to our interface
-    const mappedResult = {
+    return response.json();
+  }
+
+  async processReceiptBlob(imageBlob: Blob, filename: string = "receipt.jpg"): Promise<VeryfiReceiptResult> {
+    if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
+      throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
+    }
+
+    const data = await this.submitDocument(imageBlob, filename);
+
+    return {
       vendor: {
         name: data.vendor?.name || data.vendor?.raw_name || "",
       },
@@ -128,26 +88,39 @@ export class VeryfiClient {
       tax: data.tax || 0,
       date: data.date || new Date().toISOString(),
       currency_code: data.currency_code || "CAD",
-      ocr_text: data.ocr_text, // Include OCR text for fallback parsing
-      raw_data: data, // Include raw data for fallback parsing
+      ocr_text: data.ocr_text,
+      raw_data: data,
     };
-    
-    console.log("=== MAPPED RECEIPT RESULT ===");
-    console.log("Mapped result:", JSON.stringify(mappedResult, null, 2));
-    
-    return mappedResult;
   }
 
-  async processPaystub(imageUrl: string): Promise<VeryfiPaystubResult> {
-    console.log("=== VERYFI CLIENT: processPaystub START ===");
-    console.log("Image URL:", imageUrl);
-    
+  async processPaystubBlob(imageBlob: Blob, filename: string = "paystub.jpg"): Promise<VeryfiPaystubResult> {
     if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
-      console.error("=== VERYFI CREDENTIALS MISSING ===");
       throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
     }
 
-    console.log("Veryfi credentials found, fetching image...");
+    const data = await this.submitDocument(imageBlob, filename);
+
+    return {
+      employer: data.employer?.name || data.employer?.raw_name || data.company_name || "",
+      employee_name: data.employee?.name || data.employee_name || "",
+      gross_pay: data.gross_pay || data.total || data.gross || 0,
+      net_pay: data.net_pay || data.net || 0,
+      deductions: {
+        cpp: data.deductions?.cpp || data.deductions?.canada_pension_plan || 0,
+        ei: data.deductions?.ei || data.deductions?.employment_insurance || 0,
+        income_tax: data.deductions?.income_tax || data.deductions?.tax || 0,
+      },
+      pay_period: data.pay_period || data.period || data.date || new Date().toISOString(),
+      ocr_text: data.ocr_text,
+      raw_data: data,
+    };
+  }
+
+  async processReceipt(imageUrl: string): Promise<VeryfiReceiptResult> {
+    if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
+      throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
+    }
+
     // Fetch the image from the URL (User-Agent helps avoid 400 from some CDNs/storage)
     const imageResponse = await fetch(imageUrl, {
       headers: {
@@ -160,79 +133,28 @@ export class VeryfiClient {
       throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
     }
     const imageBlob = await imageResponse.blob();
-    console.log("Image fetched, size:", imageBlob.size, "bytes");
 
-    // Create form data for Veryfi API (multipart/form-data)
-    const formData = new FormData();
-    formData.append("file", imageBlob, "paystub.jpg");
+    return this.processReceiptBlob(imageBlob, "receipt.jpg");
+  }
 
-    console.log("=== CALLING VERYFI API ===");
-    console.log("Base URL:", this.baseUrl);
-    // Try without trailing slash
-    const endpoint = `${this.baseUrl}/partner/documents`;
-    console.log("Endpoint:", endpoint);
-    console.log("CLIENT-ID:", this.clientId);
-    console.log("AUTHORIZATION:", `apikey ${this.username}:***`);
-    console.log("Using multipart/form-data with blob");
-    
-    // Veryfi API v8 document processing endpoint (try without trailing slash)
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "CLIENT-ID": this.clientId,
-        "AUTHORIZATION": `apikey ${this.username}:${this.apiKey}`,
-        // Don't set Content-Type for FormData - browser will set it with boundary
-      },
-      body: formData,
-    });
-
-    console.log("Veryfi API response status:", response.status, response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("=== VERYFI API ERROR ===");
-      console.error("Status:", response.status);
-      console.error("Error text:", errorText);
-      throw new Error(`Veryfi API error: ${response.status} - ${errorText}`);
+  async processPaystub(imageUrl: string): Promise<VeryfiPaystubResult> {
+    if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
+      throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
     }
 
-    const data = await response.json();
-    
-    console.log("=== VERYFI API SUCCESS (PAYSTUB) ===");
-    console.log("Veryfi Paystub OCR raw response:", JSON.stringify(data, null, 2));
-    console.log("Response keys:", Object.keys(data));
-    console.log("OCR text:", data.ocr_text || "NOT PRESENT");
-    console.log("Employer:", data.employer);
-    console.log("Employee:", data.employee);
-    console.log("Gross pay:", data.gross_pay);
-    console.log("Net pay:", data.net_pay);
-    console.log("Total:", data.total);
-    console.log("Gross:", data.gross);
-    console.log("Deductions:", data.deductions);
-    console.log("Pay period:", data.pay_period);
-    console.log("Period:", data.period);
-    console.log("Date:", data.date);
-    console.log("Company name:", data.company_name);
-    
-    // Map Veryfi response to our interface
-    const mappedResult = {
-      employer: data.employer?.name || data.employer?.raw_name || data.company_name || "",
-      employee_name: data.employee?.name || data.employee_name || "",
-      gross_pay: data.gross_pay || data.total || data.gross || 0,
-      net_pay: data.net_pay || data.net || 0,
-      deductions: {
-        cpp: data.deductions?.cpp || data.deductions?.canada_pension_plan || 0,
-        ei: data.deductions?.ei || data.deductions?.employment_insurance || 0,
-        income_tax: data.deductions?.income_tax || data.deductions?.tax || 0,
+    // Fetch the image from the URL (User-Agent helps avoid 400 from some CDNs/storage)
+    const imageResponse = await fetch(imageUrl, {
+      headers: {
+        "User-Agent": "CallSheets-OCR/1.0",
+        "Accept": "image/*,*/*",
       },
-      pay_period: data.pay_period || data.period || data.date || new Date().toISOString(),
-      ocr_text: data.ocr_text, // Include OCR text for fallback parsing
-      raw_data: data, // Include raw data for fallback parsing
-    };
-    
-    console.log("=== MAPPED PAYSTUB RESULT ===");
-    console.log("Mapped result:", JSON.stringify(mappedResult, null, 2));
-    
-    return mappedResult;
+    });
+    if (!imageResponse.ok) {
+      console.error("Failed to fetch image:", imageResponse.statusText);
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+    }
+    const imageBlob = await imageResponse.blob();
+
+    return this.processPaystubBlob(imageBlob, "paystub.jpg");
   }
 }

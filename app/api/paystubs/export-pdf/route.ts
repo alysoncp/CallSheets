@@ -5,6 +5,25 @@ import { paystubs } from "@/lib/db/schema";
 import { eq, inArray, desc, and } from "drizzle-orm";
 import PDFDocument from "pdfkit";
 
+const MAX_EXPORT_ITEMS = 50;
+
+function extractStoragePath(url: string, bucket: "paystubs"): string | null {
+  try {
+    const parsed = new URL(url, "http://localhost");
+    if (parsed.pathname === "/api/storage/image") {
+      const pathParam = parsed.searchParams.get("path");
+      return pathParam ? decodeURIComponent(pathParam) : null;
+    }
+
+    const marker = `/${bucket}/`;
+    const idx = parsed.pathname.indexOf(marker);
+    if (idx === -1) return null;
+    return decodeURIComponent(parsed.pathname.substring(idx + marker.length));
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -19,6 +38,12 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const paystubIds = body.paystubIds as string[] | undefined;
+    if (paystubIds && paystubIds.length > MAX_EXPORT_ITEMS) {
+      return NextResponse.json(
+        { error: `You can export up to ${MAX_EXPORT_ITEMS} paystubs at once` },
+        { status: 400 }
+      );
+    }
 
     // Fetch paystubs
     let paystubRecords;
@@ -32,13 +57,15 @@ export async function POST(request: NextRequest) {
             inArray(paystubs.id, paystubIds)
           )
         )
-        .orderBy(desc(paystubs.uploadedAt));
+        .orderBy(desc(paystubs.uploadedAt))
+        .limit(MAX_EXPORT_ITEMS);
     } else {
       paystubRecords = await db
         .select()
         .from(paystubs)
         .where(eq(paystubs.userId, user.id))
-        .orderBy(desc(paystubs.uploadedAt));
+        .orderBy(desc(paystubs.uploadedAt))
+        .limit(MAX_EXPORT_ITEMS);
     }
 
     if (paystubRecords.length === 0) {
@@ -57,14 +84,21 @@ export async function POST(request: NextRequest) {
     // Download and add each paystub image to PDF
     for (const paystub of paystubRecords) {
       try {
-        // Fetch image from URL
-        const imageResponse = await fetch(paystub.imageUrl);
-        if (!imageResponse.ok) {
-          console.error(`Failed to fetch image for paystub ${paystub.id}`);
+        const filePath = extractStoragePath(paystub.imageUrl, "paystubs");
+        if (!filePath) {
+          console.error(`Failed to parse storage path for paystub ${paystub.id}`);
           continue;
         }
 
-        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from("paystubs")
+          .download(filePath);
+        if (downloadError || !fileData) {
+          console.error(`Failed to download file for paystub ${paystub.id}:`, downloadError?.message);
+          continue;
+        }
+
+        const imageBuffer = Buffer.from(await fileData.arrayBuffer());
 
         // Add new page for each paystub
         doc.addPage();

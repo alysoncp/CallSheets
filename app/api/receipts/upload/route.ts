@@ -6,6 +6,9 @@ import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiReceiptResult } from "@/lib/veryfi/client";
 import { parseReceiptOcr } from "@/lib/utils/receipt-ocr-parser";
 
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+const ALLOWED_RECEIPT_MIME_PREFIX = "image/";
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -25,14 +28,23 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
+    if (file.size <= 0 || file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json({ error: "Invalid file size" }, { status: 400 });
+    }
+    if (!file.type || !file.type.startsWith(ALLOWED_RECEIPT_MIME_PREFIX)) {
+      return NextResponse.json(
+        { error: "Unsupported file type. Receipts must be images." },
+        { status: 400 }
+      );
+    }
 
     // Upload to Supabase Storage
     const bucketName = "receipts";
-    const fileExt = file.name.split(".").pop();
+    const fileExt = file.name.split(".").pop() || "jpg";
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
     const filePath = fileName;
 
-    let { data: uploadData, error: uploadError } = await supabase.storage
+    let { error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: "3600",
@@ -43,8 +55,8 @@ export async function POST(request: NextRequest) {
     if (uploadError && (uploadError.message === "Bucket not found" || uploadError.message === "Not Found" || uploadError.message?.includes("row-level security"))) {
       // Use admin client for bucket creation (requires service role key)
       const adminClient = createAdminClient();
-      const { data: bucketData, error: bucketError } = await adminClient.storage.createBucket(bucketName, {
-        public: true,
+      const { error: bucketError } = await adminClient.storage.createBucket(bucketName, {
+        public: false,
         allowedMimeTypes: ["image/*"],
         fileSizeLimit: 52428800, // 50MB
       });
@@ -57,7 +69,6 @@ export async function POST(request: NextRequest) {
             cacheControl: "3600",
             upsert: false,
           });
-        uploadData = retryResult.data;
         uploadError = retryResult.error;
       }
     }
@@ -115,10 +126,6 @@ export async function POST(request: NextRequest) {
 
           // Helper function to transform Veryfi result to expense form format
           const transformVeryfiToExpense = (veryfiResult: VeryfiReceiptResult, ocrText?: string, rawVeryfiData?: any) => {
-            // Log the raw Veryfi response
-            console.log("Veryfi OCR raw response:", JSON.stringify(veryfiResult, null, 2));
-            console.log("OCR text available:", !!ocrText);
-            
             // Use OCR parser to extract data from ocr_text if structured data is missing
             const parsedData = parseReceiptOcr(ocrText, rawVeryfiData || veryfiResult);
             
@@ -150,30 +157,20 @@ export async function POST(request: NextRequest) {
             process.env.VERYFI_USERNAME && 
             process.env.VERYFI_API_KEY;
 
-          // Use admin client for signed URL - bypasses RLS, works with private buckets, avoids 400
-          const adminClient = createAdminClient();
-          const { data: signedData } = await adminClient.storage
-            .from(bucketName)
-            .createSignedUrl(filePath, 300); // 5 min expiry
-          const imageUrlForOcr = signedData?.signedUrl ?? publicUrl;
-
           if (hasVeryfiCredentials) {
             try {
               const veryfiClient = new VeryfiClient();
-              const veryfiResult = await veryfiClient.processReceipt(imageUrlForOcr);
-              
-              // Log the full Veryfi response
-              console.log("Veryfi OCR result received:", JSON.stringify(veryfiResult, null, 2));
-              
+              const veryfiResult = await veryfiClient.processReceiptBlob(
+                file,
+                file.name || `receipt-${Date.now()}.jpg`
+              );
+
               // Transform to expense form format, using OCR text fallback if needed
               ocrResult = transformVeryfiToExpense(
                 veryfiResult, 
                 veryfiResult.ocr_text, 
                 veryfiResult.raw_data
               );
-              
-              // Log the transformed result
-              console.log("OCR result transformed for form:", JSON.stringify(ocrResult, null, 2));
             } catch (veryfiError) {
               console.error("Veryfi OCR error:", veryfiError);
               // Fall through to placeholder if Veryfi fails

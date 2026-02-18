@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export function ProfileCompletionGuard({
   children,
@@ -10,9 +10,7 @@ export function ProfileCompletionGuard({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const isProfilePage = pathname === "/profile" || pathname.startsWith("/profile/");
-  const isSetupMode = searchParams.get("setup") === "true";
 
   useEffect(() => {
     // Allow access to profile page even if incomplete

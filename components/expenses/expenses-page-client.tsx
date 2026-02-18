@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
 import { ReceiptsPreview } from "@/components/receipts/receipts-preview";
@@ -78,7 +78,7 @@ export function ExpensesPageClient({
           Add Expense
         </Button>
       </div>
-      <ReceiptsPreview initialData={filteredReceiptsForYear} onDelete={(id) => { refreshReceipts(); }} />
+      <ReceiptsPreview initialData={filteredReceiptsForYear} onDelete={() => { refreshReceipts(); }} />
       <ExpenseList
         key={taxYear}
         initialData={filteredExpenseList}

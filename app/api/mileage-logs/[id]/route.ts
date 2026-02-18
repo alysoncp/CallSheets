@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { vehicleMileageLogs } from "@/lib/db/schema";
+import { vehicleMileageLogs, vehicles } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { mileageLogSchema } from "@/lib/validations/mileage-log";
 
@@ -23,6 +23,15 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     const validatedData = mileageLogSchema.parse(body);
+    const [ownedVehicle] = await db
+      .select({ id: vehicles.id })
+      .from(vehicles)
+      .where(and(eq(vehicles.id, validatedData.vehicleId), eq(vehicles.userId, user.id)))
+      .limit(1);
+
+    if (!ownedVehicle) {
+      return NextResponse.json({ error: "Invalid vehicle" }, { status: 400 });
+    }
 
     const updateData = {
       vehicleId: validatedData.vehicleId,
@@ -61,7 +70,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
