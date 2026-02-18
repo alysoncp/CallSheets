@@ -14,8 +14,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         onCloseMobileMenu={() => setMobileMenuOpen(false)}
       />
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <Header onToggleMobileMenu={() => setMobileMenuOpen((open) => !open)} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 md:p-6">{children}</main>
+        <div className="lg:hidden">
+          <Header onToggleMobileMenu={() => setMobileMenuOpen((open) => !open)} />
+        </div>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 pt-0 sm:px-5 sm:pb-5 sm:pt-0 md:px-6 md:pb-6 md:pt-0">{children}</main>
       </div>
     </div>
   );

@@ -4,30 +4,33 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Snow #fffbff - main background */
+    --background: 300 100% 99%;
+    /* Navy #070974 - text */
+    --foreground: 239 89% 24%;
+    --card: 300 100% 99%;
+    --card-foreground: 239 89% 24%;
+    --popover: 300 100% 99%;
+    --popover-foreground: 239 89% 24%;
+    /* Golden apricot #d79233 - buttons */
+    --primary: 35 67% 52%;
+    --primary-foreground: 239 89% 24%;
+    --secondary: 35 40% 92%;
+    --secondary-foreground: 239 89% 24%;
+    --muted: 35 30% 95%;
+    --muted-foreground: 239 50% 35%;
+    --accent: 239 89% 24%;
+    --accent-foreground: 300 100% 99%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --border: 239 30% 88%;
+    --input: 239 30% 88%;
+    --ring: 35 67% 52%;
+    --chart-1: 35 67% 52%;
+    --chart-2: 239 89% 24%;
+    --chart-3: 35 50% 65%;
+    --chart-4: 239 70% 40%;
+    --chart-5: 35 60% 45%;
     --radius: 0.5rem;
   }
 

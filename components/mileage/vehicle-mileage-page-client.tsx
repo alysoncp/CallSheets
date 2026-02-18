@@ -160,7 +160,7 @@ export function VehicleMileagePageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      <div className="sticky top-0 z-10 -mx-4 flex flex-col gap-3 border-b border-border bg-background px-4 py-3 sm:-mx-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5 md:-mx-6 md:px-6 lg:h-16 lg:py-0">
         <h1 className="text-2xl font-bold sm:text-3xl">Vehicle Mileage</h1>
         <Button onClick={() => setDialogOpen(true)} disabled={vehicles.length === 0}>
           <Plus className="mr-2 h-4 w-4" />
@@ -168,22 +168,23 @@ export function VehicleMileagePageClient({
         </Button>
       </div>
 
-      {vehicles.length === 0 && (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <p className="text-muted-foreground mb-4">
-              No vehicles found. Add a vehicle first to log mileage.
-            </p>
-            <Button asChild>
-              <a href="/vehicles">Add Vehicle</a>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {vehicles.length > 0 && (
-        <>
+      <div className="pt-2 sm:pt-3">
+        {vehicles.length === 0 && (
           <Card>
+            <CardContent className="py-10 text-center">
+              <p className="text-muted-foreground mb-4">
+                No vehicles found. Add a vehicle first to log mileage.
+              </p>
+              <Button asChild>
+                <a href="/vehicles">Add Vehicle</a>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {vehicles.length > 0 && (
+          <>
+            <Card>
             <CardHeader>
               <CardTitle>Total Business Mileage ({taxYear})</CardTitle>
             </CardHeader>
@@ -289,9 +290,10 @@ export function VehicleMileagePageClient({
               </div>
             )}
           </CardContent>
-        </Card>
-        </>
-      )}
+            </Card>
+          </>
+        )}
+      </div>
 
       <MileageLogEntryDialog
         open={dialogOpen}

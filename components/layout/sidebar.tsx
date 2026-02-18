@@ -19,8 +19,15 @@ import {
   Info,
   SlidersHorizontal,
   X,
+  Moon,
+  Sun,
+  LogOut,
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";
 import { Select } from "@/components/ui/select";
@@ -50,11 +57,24 @@ interface SidebarProps {
 
 export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const [themeMounted, setThemeMounted] = useState(false);
 
   const handleLinkClick = () => {
     onCloseMobileMenu?.();
   };
 
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/signin");
+    router.refresh();
+  };
+
+  useEffect(() => {
+    setThemeMounted(true);
+  }, []);
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
@@ -268,15 +288,32 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
   const sidebarContent = (
     <div className="flex h-full w-64 flex-col border-r bg-background">
       <div className="flex h-16 shrink-0 items-center justify-between border-b px-4 sm:px-6">
-        <Link
-          href="/dashboard"
-          onClick={handleLinkClick}
-          className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl"
-        >
-          <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            CallSheets
-          </span>
-        </Link>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <Link
+            href="/dashboard"
+            onClick={handleLinkClick}
+            className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl"
+          >
+            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              CallSheets
+            </span>
+          </Link>
+          {themeMounted && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden h-9 w-9 shrink-0 lg:flex"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+        </div>
         <button
           type="button"
           onClick={onCloseMobileMenu}
@@ -341,14 +378,23 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
       </nav>
       <div className="border-t p-4 space-y-4">
         {userName && (
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-            <User className="h-5 w-5 text-muted-foreground" />
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2">
+            <User className="h-5 w-5 shrink-0 text-muted-foreground" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{userName}</p>
               {userEmail && (
                 <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
               )}
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden h-9 w-9 shrink-0 lg:flex"
+              onClick={handleSignOut}
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>
