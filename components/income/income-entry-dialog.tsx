@@ -426,9 +426,9 @@ export function IncomeEntryDialog({
             {isUnionProduction && (
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-0.5">
-                  <Label htmlFor="enable-ocr">Enable OCR Processing</Label>
+                  <Label htmlFor="enable-ocr">Auto Fill from Paystub</Label>
                   <p className="text-sm text-muted-foreground">
-                    Automatically extract data from paystub
+                    Automatically fill income details from your paystub
                   </p>
                 </div>
                 <Switch
