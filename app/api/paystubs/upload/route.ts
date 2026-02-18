@@ -7,6 +7,16 @@ import { VeryfiClient, type VeryfiPaystubResult } from "@/lib/veryfi/client";
 import { parsePaystubOcr } from "@/lib/utils/paystub-ocr-parser";
 
 export const runtime = "nodejs";
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+const ALLOWED_PAYSTUB_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+]);
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,10 +39,19 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
+    if (file.size <= 0 || file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json({ error: "Invalid file size" }, { status: 400 });
+    }
+    if (!file.type || !ALLOWED_PAYSTUB_MIME_TYPES.has(file.type)) {
+      return NextResponse.json(
+        { error: "Unsupported file type. Paystubs must be an image or PDF." },
+        { status: 400 }
+      );
+    }
 
     // Upload to Supabase Storage
     const bucketName = "paystubs";
-    const fileExt = file.name.split(".").pop();
+    const fileExt = file.name.split(".").pop() || (file.type === "application/pdf" ? "pdf" : "jpg");
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
     const filePath = fileName;
 

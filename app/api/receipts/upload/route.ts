@@ -6,6 +6,9 @@ import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiReceiptResult } from "@/lib/veryfi/client";
 import { parseReceiptOcr } from "@/lib/utils/receipt-ocr-parser";
 
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+const ALLOWED_RECEIPT_MIME_PREFIX = "image/";
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -25,10 +28,19 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
+    if (file.size <= 0 || file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json({ error: "Invalid file size" }, { status: 400 });
+    }
+    if (!file.type || !file.type.startsWith(ALLOWED_RECEIPT_MIME_PREFIX)) {
+      return NextResponse.json(
+        { error: "Unsupported file type. Receipts must be images." },
+        { status: 400 }
+      );
+    }
 
     // Upload to Supabase Storage
     const bucketName = "receipts";
-    const fileExt = file.name.split(".").pop();
+    const fileExt = file.name.split(".").pop() || "jpg";
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
     const filePath = fileName;
 
