@@ -47,6 +47,75 @@ export class VeryfiClient {
     this.apiKey = process.env.VERYFI_API_KEY || "";
   }
 
+  private async submitDocument(fileBlob: Blob, filename: string): Promise<any> {
+    const formData = new FormData();
+    formData.append("file", fileBlob, filename);
+
+    const endpoint = `${this.baseUrl}/partner/documents`;
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "CLIENT-ID": this.clientId,
+        "AUTHORIZATION": `apikey ${this.username}:${this.apiKey}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Veryfi API error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  async processReceiptBlob(imageBlob: Blob, filename: string = "receipt.jpg"): Promise<VeryfiReceiptResult> {
+    if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
+      throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
+    }
+
+    const data = await this.submitDocument(imageBlob, filename);
+
+    return {
+      vendor: {
+        name: data.vendor?.name || data.vendor?.raw_name || "",
+      },
+      line_items: (data.line_items || []).map((item: any) => ({
+        description: item.description || item.text || "",
+        total: item.total || 0,
+      })),
+      total: data.total || 0,
+      tax: data.tax || 0,
+      date: data.date || new Date().toISOString(),
+      currency_code: data.currency_code || "CAD",
+      ocr_text: data.ocr_text,
+      raw_data: data,
+    };
+  }
+
+  async processPaystubBlob(imageBlob: Blob, filename: string = "paystub.jpg"): Promise<VeryfiPaystubResult> {
+    if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
+      throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
+    }
+
+    const data = await this.submitDocument(imageBlob, filename);
+
+    return {
+      employer: data.employer?.name || data.employer?.raw_name || data.company_name || "",
+      employee_name: data.employee?.name || data.employee_name || "",
+      gross_pay: data.gross_pay || data.total || data.gross || 0,
+      net_pay: data.net_pay || data.net || 0,
+      deductions: {
+        cpp: data.deductions?.cpp || data.deductions?.canada_pension_plan || 0,
+        ei: data.deductions?.ei || data.deductions?.employment_insurance || 0,
+        income_tax: data.deductions?.income_tax || data.deductions?.tax || 0,
+      },
+      pay_period: data.pay_period || data.period || data.date || new Date().toISOString(),
+      ocr_text: data.ocr_text,
+      raw_data: data,
+    };
+  }
+
   async processReceipt(imageUrl: string): Promise<VeryfiReceiptResult> {
     if (!this.clientId || !this.clientSecret || !this.username || !this.apiKey) {
       throw new Error("Veryfi credentials not configured. Add credentials to .env.local");
@@ -65,47 +134,7 @@ export class VeryfiClient {
     }
     const imageBlob = await imageResponse.blob();
 
-    // Create form data for Veryfi API
-    const formData = new FormData();
-    formData.append("file", imageBlob, "receipt.jpg");
-
-    const endpoint = `${this.baseUrl}/partner/documents`;
-    
-    // Veryfi API v8 document processing endpoint
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "CLIENT-ID": this.clientId,
-        "AUTHORIZATION": `apikey ${this.username}:${this.apiKey}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Veryfi API error (receipt):", response.status);
-      throw new Error(`Veryfi API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    
-    // Map Veryfi response to our interface
-    const mappedResult = {
-      vendor: {
-        name: data.vendor?.name || data.vendor?.raw_name || "",
-      },
-      line_items: (data.line_items || []).map((item: any) => ({
-        description: item.description || item.text || "",
-        total: item.total || 0,
-      })),
-      total: data.total || 0,
-      tax: data.tax || 0,
-      date: data.date || new Date().toISOString(),
-      currency_code: data.currency_code || "CAD",
-      ocr_text: data.ocr_text, // Include OCR text for fallback parsing
-      raw_data: data, // Include raw data for fallback parsing
-    };
-    return mappedResult;
+    return this.processReceiptBlob(imageBlob, "receipt.jpg");
   }
 
   async processPaystub(imageUrl: string): Promise<VeryfiPaystubResult> {
@@ -126,47 +155,6 @@ export class VeryfiClient {
     }
     const imageBlob = await imageResponse.blob();
 
-    // Create form data for Veryfi API (multipart/form-data)
-    const formData = new FormData();
-    formData.append("file", imageBlob, "paystub.jpg");
-
-    // Try without trailing slash
-    const endpoint = `${this.baseUrl}/partner/documents`;
-    
-    // Veryfi API v8 document processing endpoint (try without trailing slash)
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "CLIENT-ID": this.clientId,
-        "AUTHORIZATION": `apikey ${this.username}:${this.apiKey}`,
-        // Don't set Content-Type for FormData - browser will set it with boundary
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Veryfi API error (paystub):", response.status);
-      throw new Error(`Veryfi API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    
-    // Map Veryfi response to our interface
-    const mappedResult = {
-      employer: data.employer?.name || data.employer?.raw_name || data.company_name || "",
-      employee_name: data.employee?.name || data.employee_name || "",
-      gross_pay: data.gross_pay || data.total || data.gross || 0,
-      net_pay: data.net_pay || data.net || 0,
-      deductions: {
-        cpp: data.deductions?.cpp || data.deductions?.canada_pension_plan || 0,
-        ei: data.deductions?.ei || data.deductions?.employment_insurance || 0,
-        income_tax: data.deductions?.income_tax || data.deductions?.tax || 0,
-      },
-      pay_period: data.pay_period || data.period || data.date || new Date().toISOString(),
-      ocr_text: data.ocr_text, // Include OCR text for fallback parsing
-      raw_data: data, // Include raw data for fallback parsing
-    };
-    return mappedResult;
+    return this.processPaystubBlob(imageBlob, "paystub.jpg");
   }
 }

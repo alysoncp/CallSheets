@@ -182,24 +182,13 @@ export async function POST(request: NextRequest) {
               process.env.VERYFI_USERNAME && 
               process.env.VERYFI_API_KEY;
 
-            // Only create signed URL when we will call Veryfi (avoids createAdminClient() when service role key is missing)
-            let imageUrlForOcr = publicUrl;
-            if (hasVeryfiCredentials) {
-              try {
-                const adminClient = createAdminClient();
-                const { data: signedData } = await adminClient.storage
-                  .from(bucketName)
-                  .createSignedUrl(filePath, 300); // 5 min expiry
-                if (signedData?.signedUrl) imageUrlForOcr = signedData.signedUrl;
-              } catch (signedUrlError) {
-                console.warn("Signed URL failed, using public URL for Veryfi:", signedUrlError);
-              }
-            }
-
             if (hasVeryfiCredentials) {
               try {
                 const veryfiClient = new VeryfiClient();
-                const veryfiResult = await veryfiClient.processPaystub(imageUrlForOcr);
+                const veryfiResult = await veryfiClient.processPaystubBlob(
+                  file,
+                  file.name || `paystub-${Date.now()}.jpg`
+                );
 
                 // Transform to income form format, using OCR text parser if available
                 ocrResult = transformVeryfiToIncome(
