@@ -39,8 +39,6 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
       .then((data: User | null) => {
         if (data == null) return;
         // Diagnostic: open DevTools → Console, check "API user:" after login
-        console.log("API user:", data);
-        console.log("disclaimerAcceptedAt:", data.disclaimerAcceptedAt, "disclaimerVersion:", data.disclaimerVersion);
         setUser(data);
         const accepted = data.disclaimerAcceptedAt != null;
         const versionMatch = data.disclaimerVersion === DISCLAIMER_VERSION;

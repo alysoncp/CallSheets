@@ -12,11 +12,6 @@ export async function GET(req: Request) {
   if (process.env.ENABLE_DEBUG_PING !== "true") {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
-
-  console.log("PING", {
-    ua: req.headers.get("user-agent"),
-    ipHint: req.headers.get("x-forwarded-for"),
-    time: new Date().toISOString(),
-  });
   return Response.json({ ok: true, time: Date.now() });
 }
+

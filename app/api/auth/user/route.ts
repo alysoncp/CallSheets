@@ -24,10 +24,6 @@ export async function GET(request: NextRequest) {
       .where(eq(users.id, authUser.id))
       .limit(1);
 
-    // Diagnostic: check server logs (terminal / Vercel preview) after login
-    console.log("GET /api/auth/user:", { userId: authUser.id, hasRow: !!existingUser });
-    console.log("disclaimer:", existingUser?.disclaimerAcceptedAt);
-
     // One-time sync for production safety:
     // If signup metadata already has disclaimer acceptance but DB row is missing/stale,
     // persist it so users are not asked to accept a second time.
