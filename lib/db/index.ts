@@ -10,13 +10,14 @@ const requiresSsl =
   process.env.DATABASE_SSL === "true" ||
   process.env.VERCEL === "1" ||
   /sslmode=require/i.test(process.env.DATABASE_URL);
+const allowInvalidDbCerts = process.env.DATABASE_SSL_ALLOW_INVALID_CERTS === "true";
 
 // Serverless: use a tiny pool so we don't exceed Supabase/Postgres max clients (MaxClientsInSessionMode).
 // Use Supabase pooler (Transaction mode, port 6543) in DATABASE_URL for best behavior with many instances.
 const isServerless = process.env.VERCEL === "1";
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
+  ssl: requiresSsl ? { rejectUnauthorized: !allowInvalidDbCerts } : undefined,
   max: isServerless ? 1 : 10,
   idleTimeoutMillis: 10000,
   connectionTimeoutMillis: 10000,
