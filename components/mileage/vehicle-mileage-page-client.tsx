@@ -160,7 +160,7 @@ export function VehicleMileagePageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold sm:text-3xl">Vehicle Mileage</h1>
         <Button onClick={() => setDialogOpen(true)} disabled={vehicles.length === 0}>
           <Plus className="mr-2 h-4 w-4" />
@@ -209,7 +209,7 @@ export function VehicleMileagePageClient({
 
           <Card>
             <CardHeader>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <CardTitle>Mileage Logs</CardTitle>
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
