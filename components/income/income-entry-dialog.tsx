@@ -57,6 +57,8 @@ export function IncomeEntryDialog({
   /** Prevents double submission when file input fires onchange twice (e.g. on some mobile browsers) */
   const uploadInProgressRef = useRef(false);
   const pickerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasSavedIncomeRef = useRef(false);
+  const cleanupInProgressRef = useRef(false);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -243,12 +245,50 @@ export function IncomeEntryDialog({
     setPickerOpen(false);
   };
 
+  const cleanupUploadedPaystubIfNeeded = async () => {
+    if (initialData?.id || hasSavedIncomeRef.current || cleanupInProgressRef.current || !uploadedPaystub?.id) {
+      return;
+    }
+
+    cleanupInProgressRef.current = true;
+    const paystubIdToDelete = uploadedPaystub.id;
+
+    try {
+      const response = await fetch(`/api/paystubs/${paystubIdToDelete}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        console.error("Failed to delete canceled paystub upload:", paystubIdToDelete);
+      } else if (onPaystubUploaded) {
+        // Keep parent paystub lists in sync if we removed a temporary upload.
+        onPaystubUploaded();
+      }
+    } catch (error) {
+      console.error("Error deleting canceled paystub upload:", error);
+    } finally {
+      setUploadedPaystub((current) => (current?.id === paystubIdToDelete ? null : current));
+      cleanupInProgressRef.current = false;
+    }
+  };
+
+  const handleFormSuccess = async () => {
+    hasSavedIncomeRef.current = true;
+    handleClose(false);
+  };
+
+  const handleFormCancel = async () => {
+    await cleanupUploadedPaystubIfNeeded();
+    handleClose(false);
+  };
+
   const handleClose = (open: boolean) => {
     if (!open) {
+      void cleanupUploadedPaystubIfNeeded();
       // Only reset when closing the add flow (step-based); never reset when closing edit
       // so content doesn't switch mid-close. useEffect resets when opening for new entry.
       if (!initialData?.id) {
         handleReset();
+        hasSavedIncomeRef.current = false;
       }
     }
     onOpenChange(open);
@@ -521,7 +561,8 @@ export function IncomeEntryDialog({
             } : uploadedPaystub ? {
               paystubImageUrl: uploadedPaystub.imageUrl,
             } : undefined}
-            onSuccess={() => handleClose(false)}
+            onSuccess={handleFormSuccess}
+            onCancel={handleFormCancel}
             ocrData={ocrData}
             incomeType={selectedIncomeType || undefined}
             userUbcpStatus={userProfile?.ubcpActraStatus}

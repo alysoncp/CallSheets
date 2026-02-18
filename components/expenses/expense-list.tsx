@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
-import { Pencil, Trash2, Eye } from "lucide-react";
+import { Pencil, Trash2, Eye, FileText } from "lucide-react";
 import { ExpenseEntryDialog } from "@/components/expenses/expense-entry-dialog";
 import { ImageViewDialog } from "@/components/ui/image-view-dialog";
-import { storageImageToProxyUrl } from "@/lib/utils/storage-image-url";
+import { storageImageToProxyUrl, isPdfUrl } from "@/lib/utils/storage-image-url";
+import Image from "next/image";
 
 interface ExpenseRecord {
   id: string;
@@ -61,7 +62,7 @@ export function ExpenseList({ initialData, receiptRecords = [], onEdit }: Expens
       if (response.ok) {
         setExpenseRecords(expenseRecords.filter((item) => item.id !== id));
         // Dispatch event to update sidebar year list
-        window.dispatchEvent(new Event('expenseUpdated'));
+        window.dispatchEvent(new Event("expenseUpdated"));
       }
     } catch (error) {
       console.error("Error deleting expense:", error);
@@ -119,66 +120,132 @@ export function ExpenseList({ initialData, receiptRecords = [], onEdit }: Expens
             </div>
           ) : (
             <div className="space-y-4">
-              {expenseRecords.map((record) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between border-b pb-4 last:border-0"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="font-medium">{record.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(() => {
-                            try {
-                              const dateValue = typeof record.date === 'string' ? parseISO(record.date) : new Date(record.date);
-                              return format(dateValue, "MMM dd, yyyy");
-                            } catch (e) {
-                              return record.date?.toString() || 'Invalid date';
-                            }
-                          })()} •{" "}
-                          {record.category.replace(/_/g, " ")}
-                        </p>
+              {expenseRecords.map((record) => {
+                const receiptRawUrl = getReceiptImageUrl(record);
+                const receiptDisplayUrl = receiptRawUrl
+                  ? (storageImageToProxyUrl(receiptRawUrl) ?? receiptRawUrl)
+                  : null;
+
+                return (
+                  <div
+                    key={record.id}
+                    className="flex items-start gap-3 border-b pb-4 last:border-0 sm:items-center sm:gap-4"
+                  >
+                    {receiptDisplayUrl && (
+                      <div
+                        className="relative h-16 w-16 bg-muted rounded overflow-hidden flex-shrink-0 cursor-pointer flex flex-col items-center justify-center text-muted-foreground"
+                        onClick={() => handleViewReceipt(record)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === "Enter" && handleViewReceipt(record)}
+                      >
+                        {isPdfUrl(receiptRawUrl) ? (
+                          <>
+                            <FileText className="h-6 w-6" />
+                            <span className="text-[10px] font-medium">PDF</span>
+                          </>
+                        ) : (
+                          <Image
+                            src={receiptDisplayUrl}
+                            alt="Receipt thumbnail"
+                            fill
+                            className="object-cover pointer-events-none"
+                            unoptimized
+                            onError={(e) => {
+                              console.error("Error loading receipt thumbnail:", receiptDisplayUrl);
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{record.title}</p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {(() => {
+                              try {
+                                const dateValue = typeof record.date === "string" ? parseISO(record.date) : new Date(record.date);
+                                return `${format(dateValue, "MMM dd, yyyy")} - ${record.category.replace(/_/g, " ")}`;
+                              } catch (e) {
+                                return record.date?.toString() || "Invalid date";
+                              }
+                            })()}
+                          </p>
+                        </div>
+
+                        <span className="text-lg font-semibold text-red-600 sm:whitespace-nowrap">
+                          ${Number(record.amount).toLocaleString("en-CA", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          {receiptDisplayUrl && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewReceipt(record)}
+                                title="View Receipt"
+                                className="h-8 px-2 sm:hidden"
+                              >
+                                View
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewReceipt(record)}
+                                title="View Receipt"
+                                className="hidden sm:inline-flex"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(record)}
+                            className="h-8 px-2 sm:hidden"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(record)}
+                            className="hidden sm:inline-flex"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(record.id)}
+                            disabled={loading}
+                            className="h-8 px-2 sm:hidden"
+                          >
+                            Delete
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(record.id)}
+                            disabled={loading}
+                            className="hidden sm:inline-flex"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-lg font-semibold text-red-600">
-                      ${Number(record.amount).toLocaleString("en-CA", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                    <div className="flex gap-2">
-                      {getReceiptImageUrl(record) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewReceipt(record)}
-                          title="View Receipt"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(record)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(record.id)}
-                        disabled={loading}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

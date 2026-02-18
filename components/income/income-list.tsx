@@ -136,88 +136,125 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onAddClic
             </div>
           ) : (
             <div className="space-y-4">
-              {incomeRecords.map((record) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between border-b pb-4 last:border-0"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4">
-                      {getPaystubDisplayUrl(record) && (
-                        <div
-                          className="relative w-16 h-16 bg-muted rounded overflow-hidden flex-shrink-0 cursor-pointer flex flex-col items-center justify-center text-muted-foreground"
-                          onClick={() => handleViewPaystub(record)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => e.key === "Enter" && handleViewPaystub(record)}
-                        >
-                          {isPdfUrl(getPaystubImageUrl(record)) ? (
-                            <>
-                              <FileText className="h-6 w-6" />
-                              <span className="text-[10px] font-medium">PDF</span>
-                            </>
-                          ) : (
-                            <Image
-                              src={getPaystubDisplayUrl(record)!}
-                              alt="Paystub thumbnail"
-                              fill
-                              className="object-cover pointer-events-none"
-                              unoptimized
-                              onError={(e) => {
-                                console.error("Error loading paystub thumbnail:", getPaystubDisplayUrl(record));
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          )}
+              {incomeRecords.map((record) => {
+                const paystubUrl = getPaystubDisplayUrl(record);
+                const rawPaystubUrl = getPaystubImageUrl(record);
+
+                return (
+                  <div
+                    key={record.id}
+                    className="flex items-start gap-3 border-b pb-4 last:border-0 sm:items-center sm:gap-4"
+                  >
+                    {paystubUrl && (
+                      <div
+                        className="relative h-16 w-16 bg-muted rounded overflow-hidden flex-shrink-0 cursor-pointer flex flex-col items-center justify-center text-muted-foreground"
+                        onClick={() => handleViewPaystub(record)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === "Enter" && handleViewPaystub(record)}
+                      >
+                        {isPdfUrl(rawPaystubUrl) ? (
+                          <>
+                            <FileText className="h-6 w-6" />
+                            <span className="text-[10px] font-medium">PDF</span>
+                          </>
+                        ) : (
+                          <Image
+                            src={paystubUrl}
+                            alt="Paystub thumbnail"
+                            fill
+                            className="object-cover pointer-events-none"
+                            unoptimized
+                            onError={(e) => {
+                              console.error("Error loading paystub thumbnail:", paystubUrl);
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
+                            {record.productionName || "Income"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(parseISO(record.date), "MMM dd, yyyy")}
+                          </p>
                         </div>
-                      )}
-                      <div>
-                        <p className="font-medium">
-                          {record.productionName || "Income"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(parseISO(record.date), "MMM dd, yyyy")}
-                        </p>
+
+                        <span className="text-lg font-semibold text-green-600 sm:whitespace-nowrap">
+                          ${Number(record.amount).toLocaleString("en-CA", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          {paystubUrl && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewPaystub(record)}
+                                title="View Paystub"
+                                className="h-8 px-2 sm:hidden"
+                              >
+                                View
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewPaystub(record)}
+                                title="View Paystub"
+                                className="hidden sm:inline-flex"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(record)}
+                            className="h-8 px-2 sm:hidden"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(record)}
+                            className="hidden sm:inline-flex"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(record.id)}
+                            disabled={loading}
+                            className="h-8 px-2 sm:hidden"
+                          >
+                            Delete
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(record.id)}
+                            disabled={loading}
+                            className="hidden sm:inline-flex"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-lg font-semibold text-green-600">
-                      ${Number(record.amount).toLocaleString("en-CA", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                    <div className="flex gap-2">
-                      {getPaystubDisplayUrl(record) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewPaystub(record)}
-                          title="View Paystub"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(record)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(record.id)}
-                        disabled={loading}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

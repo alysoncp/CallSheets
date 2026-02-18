@@ -72,9 +72,8 @@ export function ExpenseCategoryChart({ expenses }: ExpenseCategoryChartProps) {
           cx="50%"
           cy="50%"
           outerRadius="70%"
-          label={({ name, percent }) =>
-            `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
-          }
+          label={false}
+          labelLine={false}
         >
           {data.map((_, index) => (
             <Cell
@@ -87,7 +86,7 @@ export function ExpenseCategoryChart({ expenses }: ExpenseCategoryChartProps) {
           formatter={(value: number | undefined) => formatCurrency(value ?? 0)}
           contentStyle={{ borderRadius: "var(--radius)" }}
         />
-        <Legend />
+        <Legend wrapperStyle={{ maxWidth: "100%", fontSize: 12 }} />
       </PieChart>
     </ResponsiveContainer>
   );

@@ -52,7 +52,7 @@ export function PaystubsPreview({ initialData, onDelete }: PaystubsPreviewProps)
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Recent Paystubs</CardTitle>
           <Link href="/paystubs">
             <Button variant="outline" size="sm">
@@ -63,9 +63,12 @@ export function PaystubsPreview({ initialData, onDelete }: PaystubsPreviewProps)
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {previewPaystubs.map((paystub) => (
-            <div key={paystub.id} className="relative group">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
+          {previewPaystubs.map((paystub, index) => (
+            <div
+              key={paystub.id}
+              className={`relative group ${index === 2 ? "hidden md:block" : ""}`}
+            >
               <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
                 {isPdfUrl(paystub.imageUrl) ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">

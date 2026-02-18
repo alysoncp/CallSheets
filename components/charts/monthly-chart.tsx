@@ -80,7 +80,7 @@ export function MonthlyChart({ taxYear, income, expenses }: MonthlyChartProps) {
             })}`
           }
         />
-        <Legend />
+        <Legend wrapperStyle={{ maxWidth: "100%", fontSize: 12 }} />
         <Line
           type="monotoneX"
           dataKey="income"
