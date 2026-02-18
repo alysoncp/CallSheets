@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { vehicleMileageLogs } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { vehicleMileageLogs, vehicles } from "@/lib/db/schema";
+import { eq, desc, and } from "drizzle-orm";
 import { mileageLogSchema } from "@/lib/validations/mileage-log";
 
 export async function GET(request: NextRequest) {
@@ -47,6 +47,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validatedData = mileageLogSchema.parse(body);
+    const [ownedVehicle] = await db
+      .select({ id: vehicles.id })
+      .from(vehicles)
+      .where(and(eq(vehicles.id, validatedData.vehicleId), eq(vehicles.userId, user.id)))
+      .limit(1);
+
+    if (!ownedVehicle) {
+      return NextResponse.json({ error: "Invalid vehicle" }, { status: 400 });
+    }
 
     const insertData = {
       userId: user.id,

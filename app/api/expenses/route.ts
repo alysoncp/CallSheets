@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { expenses, receipts } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { expenses, receipts, vehicles } from "@/lib/db/schema";
+import { eq, desc, and } from "drizzle-orm";
 import { expenseSchema } from "@/lib/validations/expense";
 
 export async function GET(request: NextRequest) {
@@ -47,6 +47,22 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validatedData = expenseSchema.parse(body);
+    const vehicleId =
+      validatedData.vehicleId && validatedData.vehicleId !== ""
+        ? validatedData.vehicleId
+        : null;
+
+    if (vehicleId) {
+      const [ownedVehicle] = await db
+        .select({ id: vehicles.id })
+        .from(vehicles)
+        .where(and(eq(vehicles.id, vehicleId), eq(vehicles.userId, user.id)))
+        .limit(1);
+
+      if (!ownedVehicle) {
+        return NextResponse.json({ error: "Invalid vehicle" }, { status: 400 });
+      }
+    }
 
     // Map form data to DB types (numeric columns expect string)
     const insertData = {
@@ -56,7 +72,7 @@ export async function POST(request: NextRequest) {
       title: validatedData.title,
       category: validatedData.category,
       subcategory: validatedData.subcategory ?? null,
-      vehicleId: validatedData.vehicleId && validatedData.vehicleId !== "" ? validatedData.vehicleId : null,
+      vehicleId,
       description: validatedData.description ?? null,
       vendor: validatedData.vendor ?? null,
       receiptImageUrl: validatedData.receiptImageUrl && validatedData.receiptImageUrl !== "" ? validatedData.receiptImageUrl : null,
