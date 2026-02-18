@@ -10,8 +10,10 @@ const requiresSsl =
   process.env.DATABASE_SSL === "true" ||
   process.env.VERCEL === "1" ||
   /sslmode=require/i.test(process.env.DATABASE_URL);
+const isVercelPreview = process.env.VERCEL_ENV === "preview";
 const allowInvalidDbCerts =
   process.env.DATABASE_SSL_ALLOW_INVALID_CERTS === "true" ||
+  isVercelPreview ||
   (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1");
 
 // Serverless: use a tiny pool so we don't exceed Supabase/Postgres max clients (MaxClientsInSessionMode).
