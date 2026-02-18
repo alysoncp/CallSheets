@@ -5,6 +5,8 @@ import { receipts } from "@/lib/db/schema";
 import { eq, inArray, desc, and } from "drizzle-orm";
 import PDFDocument from "pdfkit";
 
+const MAX_EXPORT_ITEMS = 50;
+
 function extractStoragePath(url: string, bucket: "receipts"): string | null {
   try {
     const parsed = new URL(url, "http://localhost");
@@ -36,6 +38,12 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const receiptIds = body.receiptIds as string[] | undefined;
+    if (receiptIds && receiptIds.length > MAX_EXPORT_ITEMS) {
+      return NextResponse.json(
+        { error: `You can export up to ${MAX_EXPORT_ITEMS} receipts at once` },
+        { status: 400 }
+      );
+    }
 
     // Fetch receipts
     let receiptRecords;
@@ -49,13 +57,15 @@ export async function POST(request: NextRequest) {
             inArray(receipts.id, receiptIds)
           )
         )
-        .orderBy(desc(receipts.uploadedAt));
+        .orderBy(desc(receipts.uploadedAt))
+        .limit(MAX_EXPORT_ITEMS);
     } else {
       receiptRecords = await db
         .select()
         .from(receipts)
         .where(eq(receipts.userId, user.id))
-        .orderBy(desc(receipts.uploadedAt));
+        .orderBy(desc(receipts.uploadedAt))
+        .limit(MAX_EXPORT_ITEMS);
     }
 
     if (receiptRecords.length === 0) {

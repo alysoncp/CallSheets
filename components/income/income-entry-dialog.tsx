@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { IncomeType } from "@/lib/validations/expense-categories";
+import { compressImageIfNeeded } from "@/lib/utils/client-image-compression";
 
 type EntryMethod = "upload" | "camera" | "manual" | null;
 type DialogStep = "type" | "method" | "upload" | "form";
@@ -143,14 +144,16 @@ export function IncomeEntryDialog({
     if (uploadInProgressRef.current) return;
     uploadInProgressRef.current = true;
     setUploading(true);
-    setUploadedFile(file);
+    const processedFile =
+      file.type === "application/pdf" ? file : await compressImageIfNeeded(file);
+    setUploadedFile(processedFile);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min - OCR can be slow
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", processedFile);
       formData.append("enableOcr", enableOcr ? "true" : "false");
 
       const response = await fetch("/api/paystubs/upload", {

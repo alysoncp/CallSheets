@@ -13,6 +13,7 @@ import { ExpenseForm } from "@/components/forms/expense-form";
 import { Upload, Camera, FileText, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { compressImageIfNeeded } from "@/lib/utils/client-image-compression";
 
 type EntryMethod = "upload" | "camera" | "manual" | null;
 
@@ -45,11 +46,12 @@ export function ExpenseEntryDialog({
 
   const handleFileSelect = async (file: File) => {
     setUploading(true);
-    setUploadedFile(file);
+    const processedFile = await compressImageIfNeeded(file);
+    setUploadedFile(processedFile);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", processedFile);
 
       const response = await fetch("/api/receipts/upload", {
         method: "POST",
