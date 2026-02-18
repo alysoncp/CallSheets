@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "security:secrets": "gitleaks detect --config .gitleaks.toml --no-git --source . --redact --verbose",
+    "security:secrets:staged": "gitleaks protect --config .gitleaks.toml --staged --redact --verbose",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

@@ -1,0 +1,9 @@
+title = "CallSheets Gitleaks Config"
+
+[allowlist]
+description = "Ignore local/generated files that may contain ephemeral keys or local secrets"
+paths = [
+  '''^\.env(\..*)?$''',
+  '''^\.next/''',
+  '''^\.cursor/''',
+]

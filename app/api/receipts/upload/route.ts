@@ -115,10 +115,6 @@ export async function POST(request: NextRequest) {
 
           // Helper function to transform Veryfi result to expense form format
           const transformVeryfiToExpense = (veryfiResult: VeryfiReceiptResult, ocrText?: string, rawVeryfiData?: any) => {
-            // Log the raw Veryfi response
-            console.log("Veryfi OCR raw response:", JSON.stringify(veryfiResult, null, 2));
-            console.log("OCR text available:", !!ocrText);
-            
             // Use OCR parser to extract data from ocr_text if structured data is missing
             const parsedData = parseReceiptOcr(ocrText, rawVeryfiData || veryfiResult);
             
@@ -161,19 +157,13 @@ export async function POST(request: NextRequest) {
             try {
               const veryfiClient = new VeryfiClient();
               const veryfiResult = await veryfiClient.processReceipt(imageUrlForOcr);
-              
-              // Log the full Veryfi response
-              console.log("Veryfi OCR result received:", JSON.stringify(veryfiResult, null, 2));
-              
+
               // Transform to expense form format, using OCR text fallback if needed
               ocrResult = transformVeryfiToExpense(
                 veryfiResult, 
                 veryfiResult.ocr_text, 
                 veryfiResult.raw_data
               );
-              
-              // Log the transformed result
-              console.log("OCR result transformed for form:", JSON.stringify(ocrResult, null, 2));
             } catch (veryfiError) {
               console.error("Veryfi OCR error:", veryfiError);
               // Fall through to placeholder if Veryfi fails
