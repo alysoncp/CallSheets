@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Check, ExternalLink, ArrowLeft } from "lucide-react";
+import { Check, ArrowLeft } from "lucide-react";
 import { getOcrLimit } from "@/lib/utils/subscription";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
 import { SubscriptionUpgradeButton } from "@/components/subscription/subscription-upgrade-button";

@@ -5,7 +5,7 @@ import { expenses, receipts, vehicles } from "@/lib/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { expenseSchema } from "@/lib/validations/expense";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
     const {

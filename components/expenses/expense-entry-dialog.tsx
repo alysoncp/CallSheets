@@ -31,7 +31,6 @@ export function ExpenseEntryDialog({
   const [entryMethod, setEntryMethod] = useState<EntryMethod>(null);
   const [uploading, setUploading] = useState(false);
   const [ocrData, setOcrData] = useState<any>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedReceipt, setUploadedReceipt] = useState<{ id: string; imageUrl: string } | null>(null);
 
   // Reset state when dialog opens for a new entry (or when closing)
@@ -39,7 +38,6 @@ export function ExpenseEntryDialog({
     if (open && !initialData?.id) {
       setEntryMethod(null);
       setOcrData(null);
-      setUploadedFile(null);
       setUploadedReceipt(null);
     }
   }, [open, initialData?.id]);
@@ -47,7 +45,6 @@ export function ExpenseEntryDialog({
   const handleFileSelect = async (file: File) => {
     setUploading(true);
     const processedFile = await compressImageIfNeeded(file);
-    setUploadedFile(processedFile);
 
     try {
       const formData = new FormData();
@@ -76,7 +73,7 @@ export function ExpenseEntryDialog({
         // Proceed to form (with or without OCR data)
         setEntryMethod("manual");
       } else {
-        const errorText = await response.text();
+        await response.text();
         throw new Error("Failed to upload receipt");
       }
     } catch (error) {
@@ -107,7 +104,6 @@ export function ExpenseEntryDialog({
     setUploading(false);
     setEntryMethod(null);
     setOcrData(null);
-    setUploadedFile(null);
     setUploadedReceipt(null);
   };
 

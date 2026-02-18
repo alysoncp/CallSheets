@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
     const filePath = fileName;
 
-    let { data: uploadData, error: uploadError } = await supabase.storage
+    let { error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: "3600",
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     if (uploadError && (uploadError.message === "Bucket not found" || uploadError.message === "Not Found" || uploadError.message?.includes("row-level security"))) {
       // Use admin client for bucket creation (requires service role key)
       const adminClient = createAdminClient();
-      const { data: bucketData, error: bucketError } = await adminClient.storage.createBucket(bucketName, {
+      const { error: bucketError } = await adminClient.storage.createBucket(bucketName, {
         public: false,
         allowedMimeTypes: ["image/*", "application/pdf"],
         fileSizeLimit: 52428800, // 50MB
@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
             cacheControl: "3600",
             upsert: false,
           });
-        uploadData = retryResult.data;
         uploadError = retryResult.error;
       }
     }

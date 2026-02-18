@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { IncomeForm } from "@/components/forms/income-form";
 import { IncomeTypeDialog } from "@/components/income/income-type-dialog";
 import { Upload, Camera, FileText, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { IncomeType } from "@/lib/validations/expense-categories";
@@ -39,7 +38,6 @@ export function IncomeEntryDialog({
   const [entryMethod, setEntryMethod] = useState<EntryMethod>(null);
   const [uploading, setUploading] = useState(false);
   const [ocrData, setOcrData] = useState<any>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedPaystub, setUploadedPaystub] = useState<{ id: string; imageUrl: string } | null>(null);
   const [enableOcr, setEnableOcr] = useState(true);
   const [userProfile, setUserProfile] = useState<{
@@ -98,7 +96,6 @@ export function IncomeEntryDialog({
         setSelectedIncomeType(null);
         setEntryMethod(null);
         setOcrData(null);
-        setUploadedFile(null);
         setUploadedPaystub(null);
         setEnableOcr(true);
         setPickerOpen(false);
@@ -146,7 +143,6 @@ export function IncomeEntryDialog({
     setUploading(true);
     const processedFile =
       file.type === "application/pdf" ? file : await compressImageIfNeeded(file);
-    setUploadedFile(processedFile);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min - OCR can be slow
@@ -242,7 +238,6 @@ export function IncomeEntryDialog({
     setSelectedIncomeType(null);
     setEntryMethod(null);
     setOcrData(null);
-    setUploadedFile(null);
     setUploadedPaystub(null);
     setEnableOcr(true);
     setPickerOpen(false);

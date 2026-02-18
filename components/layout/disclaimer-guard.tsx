@@ -18,7 +18,6 @@ type User = {
 
 export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsAcceptance, setNeedsAcceptance] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -39,7 +38,6 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
       .then((data: User | null) => {
         if (data == null) return;
         // Diagnostic: open DevTools → Console, check "API user:" after login
-        setUser(data);
         const accepted = data.disclaimerAcceptedAt != null;
         const versionMatch = data.disclaimerVersion === DISCLAIMER_VERSION;
         setNeedsAcceptance(!accepted || !versionMatch);

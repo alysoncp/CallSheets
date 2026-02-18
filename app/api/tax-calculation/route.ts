@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { income, expenses, assets, leaseContracts, leasePayments, users } from "@/lib/db/schema";
+import { income, expenses, users } from "@/lib/db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { calculateTax } from "@/lib/tax/calculator";
 import { format, startOfYear, endOfYear } from "date-fns";

@@ -41,7 +41,6 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
 
   // Watch for conditional field rendering
   const hasAgent = watch("hasAgent");
-  const hasGstNumber = watch("hasGstNumber");
   const userType = watch("userType");
 
   const onSubmit = async (data: UserProfileFormData) => {
@@ -89,7 +88,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
     <form 
       onSubmit={handleSubmit(
         onSubmit,
-        (errors) => {
+        () => {
           setError('Please fix the form errors before saving');
         }
       )} 

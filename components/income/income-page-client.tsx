@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { IncomeList } from "@/components/income/income-list";
 import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
 import { PaystubsPreview } from "@/components/paystubs/paystubs-preview";
@@ -88,7 +88,6 @@ export function IncomePageClient({
           setEditingIncome(null);
           setDialogOpen(true);
         }}
-        onRefresh={refreshIncome}
       />
       <IncomeEntryDialog
         open={dialogOpen}

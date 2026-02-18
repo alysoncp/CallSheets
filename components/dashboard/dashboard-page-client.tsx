@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus, DollarSign, Receipt, TrendingUp, Calculator } from "lucide-react";
-import { format } from "date-fns";
 import { MonthlyChart } from "@/components/charts/monthly-chart";
 import { ExpenseCategoryChart } from "@/components/charts/expense-category-chart";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";

@@ -38,7 +38,6 @@ export function VehicleMileagePageClient({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<MileageLogRecord | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mileageLoggingStyle, setMileageLoggingStyle] = useState<"odometer" | "trip_distance">("trip_distance");
   const [vehicleFilterId, setVehicleFilterId] = useState<string | "all">("all");
 
   // Filter logs by selected year from context
@@ -90,20 +89,6 @@ export function VehicleMileagePageClient({
     if (vehicleFilterId === "all") return filteredLogsByYear;
     return filteredLogsByYear.filter((log) => log.vehicleId === vehicleFilterId);
   }, [filteredLogsByYear, vehicleFilterId]);
-
-  // Fetch user profile for mileage logging style
-  useEffect(() => {
-    fetch("/api/user/profile")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && !data.error && data.mileageLoggingStyle) {
-          setMileageLoggingStyle(data.mileageLoggingStyle);
-        }
-      })
-      .catch(() => {
-        // Silently fail - default to trip_distance
-      });
-  }, []);
 
   const refreshLogs = async () => {
     try {

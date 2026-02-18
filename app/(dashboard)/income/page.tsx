@@ -1,8 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { IncomeList } from "@/components/income/income-list";
-import { IncomeEntryDialog } from "@/components/income/income-entry-dialog";
-import { PaystubsGrid } from "@/components/paystubs/paystubs-grid";
 import { db } from "@/lib/db";
 import { income, paystubs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";

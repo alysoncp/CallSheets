@@ -5,7 +5,7 @@ import { vehicleMileageLogs, vehicles } from "@/lib/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { mileageLogSchema } from "@/lib/validations/mileage-log";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
