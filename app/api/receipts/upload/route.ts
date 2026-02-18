@@ -157,12 +157,28 @@ export async function POST(request: NextRequest) {
             process.env.VERYFI_USERNAME && 
             process.env.VERYFI_API_KEY;
 
-          // Use admin client for signed URL - bypasses RLS, works with private buckets, avoids 400
-          const adminClient = createAdminClient();
-          const { data: signedData } = await adminClient.storage
-            .from(bucketName)
-            .createSignedUrl(filePath, 300); // 5 min expiry
-          const imageUrlForOcr = signedData?.signedUrl ?? publicUrl;
+          // Prefer a signed URL for private buckets. Try user-scoped client first, then admin fallback.
+          let imageUrlForOcr = publicUrl;
+          if (hasVeryfiCredentials) {
+            try {
+              const { data: signedData } = await supabase.storage
+                .from(bucketName)
+                .createSignedUrl(filePath, 300);
+              if (signedData?.signedUrl) {
+                imageUrlForOcr = signedData.signedUrl;
+              } else {
+                const adminClient = createAdminClient();
+                const { data: adminSignedData } = await adminClient.storage
+                  .from(bucketName)
+                  .createSignedUrl(filePath, 300);
+                if (adminSignedData?.signedUrl) {
+                  imageUrlForOcr = adminSignedData.signedUrl;
+                }
+              }
+            } catch (signedUrlError) {
+              console.warn("Signed URL failed, using public URL for Veryfi:", signedUrlError);
+            }
+          }
 
           if (hasVeryfiCredentials) {
             try {
