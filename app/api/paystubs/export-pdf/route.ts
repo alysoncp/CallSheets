@@ -5,6 +5,23 @@ import { paystubs } from "@/lib/db/schema";
 import { eq, inArray, desc, and } from "drizzle-orm";
 import PDFDocument from "pdfkit";
 
+function extractStoragePath(url: string, bucket: "paystubs"): string | null {
+  try {
+    const parsed = new URL(url, "http://localhost");
+    if (parsed.pathname === "/api/storage/image") {
+      const pathParam = parsed.searchParams.get("path");
+      return pathParam ? decodeURIComponent(pathParam) : null;
+    }
+
+    const marker = `/${bucket}/`;
+    const idx = parsed.pathname.indexOf(marker);
+    if (idx === -1) return null;
+    return decodeURIComponent(parsed.pathname.substring(idx + marker.length));
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -57,14 +74,21 @@ export async function POST(request: NextRequest) {
     // Download and add each paystub image to PDF
     for (const paystub of paystubRecords) {
       try {
-        // Fetch image from URL
-        const imageResponse = await fetch(paystub.imageUrl);
-        if (!imageResponse.ok) {
-          console.error(`Failed to fetch image for paystub ${paystub.id}`);
+        const filePath = extractStoragePath(paystub.imageUrl, "paystubs");
+        if (!filePath) {
+          console.error(`Failed to parse storage path for paystub ${paystub.id}`);
           continue;
         }
 
-        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from("paystubs")
+          .download(filePath);
+        if (downloadError || !fileData) {
+          console.error(`Failed to download file for paystub ${paystub.id}:`, downloadError?.message);
+          continue;
+        }
+
+        const imageBuffer = Buffer.from(await fileData.arrayBuffer());
 
         // Add new page for each paystub
         doc.addPage();

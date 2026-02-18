@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       // Use admin client for bucket creation (requires service role key)
       const adminClient = createAdminClient();
       const { data: bucketData, error: bucketError } = await adminClient.storage.createBucket(bucketName, {
-        public: true,
+        public: false,
         allowedMimeTypes: ["image/*", "application/pdf"],
         fileSizeLimit: 52428800, // 50MB
       });
