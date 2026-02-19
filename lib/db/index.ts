@@ -6,13 +6,19 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
+const isTruthy = (value?: string) => {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on";
+};
+
 const requiresSsl =
-  process.env.DATABASE_SSL === "true" ||
+  isTruthy(process.env.DATABASE_SSL) ||
   process.env.VERCEL === "1" ||
   /sslmode=require/i.test(process.env.DATABASE_URL);
 const isVercelPreview = process.env.VERCEL_ENV === "preview";
 const allowInvalidDbCerts =
-  process.env.DATABASE_SSL_ALLOW_INVALID_CERTS === "true" ||
+  isTruthy(process.env.DATABASE_SSL_ALLOW_INVALID_CERTS) ||
   isVercelPreview ||
   (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1");
 
