@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { SubscriptionSection } from "@/components/forms/subscription-section";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { DISCLAIMER_VERSION } from "@/lib/constants";
 
 interface ProfileFormProps {
   initialData: any;
@@ -23,6 +25,8 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const needsDisclaimerAcceptance = !initialData?.disclaimerAcceptedAt;
+  const [agreedToDisclaimer, setAgreedToDisclaimer] = useState(!needsDisclaimerAcceptance);
 
   const {
     register,
@@ -48,6 +52,25 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
     setError(null);
 
     try {
+      if (isSetupMode && needsDisclaimerAcceptance) {
+        if (!agreedToDisclaimer) {
+          throw new Error("You must accept the disclaimer to continue.");
+        }
+
+        const disclaimerResponse = await fetch("/api/auth/user", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ acceptDisclaimer: true }),
+        });
+
+        if (!disclaimerResponse.ok) {
+          const disclaimerErrorData = await disclaimerResponse.json().catch(() => ({}));
+          throw new Error(disclaimerErrorData.error || "Failed to record disclaimer acceptance");
+        }
+      }
+
       const response = await fetch("/api/user/profile", {
         method: "PATCH",
         headers: {
@@ -311,6 +334,40 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
 
       {/* Subscription Section */}
       <SubscriptionSection subscriptionTier={initialData?.subscriptionTier || "personal"} />
+
+      {isSetupMode && needsDisclaimerAcceptance && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Disclaimer Acceptance</CardTitle>
+            <CardDescription>
+              You must accept this disclaimer to finish setup.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              <Link
+                href="/disclaimer"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Read Full Disclaimer
+              </Link>
+              {" "}({DISCLAIMER_VERSION})
+            </p>
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="setup-disclaimer"
+                checked={agreedToDisclaimer}
+                onChange={(e) => setAgreedToDisclaimer(e.target.checked)}
+              />
+              <Label htmlFor="setup-disclaimer" className="cursor-pointer font-normal leading-snug">
+                I acknowledge that this app provides record-keeping and organizational tools only, does not provide tax, accounting, legal, or financial advice, and that I am responsible for verifying all information and consulting a qualified Canadian tax or accounting professional before filing taxes or making financial decisions.
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-4">
         <Button 
