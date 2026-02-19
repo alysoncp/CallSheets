@@ -5,6 +5,7 @@ import * as schema from "./schema";
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
+const rawDatabaseUrl = process.env.DATABASE_URL;
 
 const isTruthy = (value?: string) => {
   if (!value) return false;
@@ -12,15 +13,15 @@ const isTruthy = (value?: string) => {
   return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on";
 };
 
-const getConnectionString = (rawUrl: string, allowInvalidCerts: boolean) => {
-  if (!allowInvalidCerts) return rawUrl;
+const getConnectionString = (rawUrl: string) => {
   try {
     const parsed = new URL(rawUrl);
-    // Prevent URL-level sslmode from forcing strict verification when we explicitly allow invalid certs.
+    // Always strip URL-level SSL options so TLS behavior is controlled only by `ssl` config below.
     parsed.searchParams.delete("sslmode");
     parsed.searchParams.delete("sslrootcert");
     parsed.searchParams.delete("sslcert");
     parsed.searchParams.delete("sslkey");
+    parsed.searchParams.delete("uselibpqcompat");
     return parsed.toString();
   } catch {
     return rawUrl;
@@ -36,13 +37,13 @@ const getSslCa = () => {
 const requiresSsl =
   isTruthy(process.env.DATABASE_SSL) ||
   process.env.VERCEL === "1" ||
-  /sslmode=(require|verify-full|verify-ca|prefer)/i.test(process.env.DATABASE_URL);
+  /sslmode=(require|verify-full|verify-ca|prefer)/i.test(rawDatabaseUrl);
 const isVercelPreview = process.env.VERCEL_ENV === "preview";
 const allowInvalidDbCerts =
   isTruthy(process.env.DATABASE_SSL_ALLOW_INVALID_CERTS) ||
   isVercelPreview ||
   (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1");
-const connectionString = getConnectionString(process.env.DATABASE_URL, allowInvalidDbCerts);
+const connectionString = getConnectionString(rawDatabaseUrl);
 const sslCa = getSslCa();
 const sslConfig = requiresSsl
   ? {
