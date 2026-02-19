@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(userProfile);
   } catch (error) {
-    console.error("Error in GET /api/user/profile:", error);
+    console.error("Error in GET /api/user/profile:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Error in PATCH /api/user/profile:", error);
+    console.error("Error in PATCH /api/user/profile:", error instanceof Error ? error.message : String(error));
 
     // Check for Zod validation errors
     if (error && typeof error === 'object' && 'issues' in error) {
@@ -98,3 +98,4 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+

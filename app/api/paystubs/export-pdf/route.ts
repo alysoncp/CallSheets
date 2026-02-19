@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           doc.text(`Notes: ${paystub.notes}`, { align: "center" });
         }
       } catch (error) {
-        console.error(`Error processing paystub ${paystub.id}:`, error);
+        console.error(`Error processing paystub ${paystub.id}:`, error instanceof Error ? error.message : String(error));
         // Continue with next paystub
       }
     }
@@ -149,10 +149,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in POST /api/paystubs/export-pdf:", error);
+    console.error("Error in POST /api/paystubs/export-pdf:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

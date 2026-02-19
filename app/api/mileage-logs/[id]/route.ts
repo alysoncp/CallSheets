@@ -55,7 +55,7 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Error in PATCH /api/mileage-logs/[id]:", error);
+    console.error("Error in PATCH /api/mileage-logs/[id]:", error instanceof Error ? error.message : String(error));
     if (error instanceof Error && error.name === "ZodError") {
       return NextResponse.json(
         { error: "Validation error", details: error },
@@ -91,10 +91,11 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error in DELETE /api/mileage-logs/[id]:", error);
+    console.error("Error in DELETE /api/mileage-logs/[id]:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

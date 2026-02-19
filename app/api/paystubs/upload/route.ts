@@ -5,6 +5,7 @@ import { paystubs, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiPaystubResult } from "@/lib/veryfi/client";
 import { parsePaystubOcr } from "@/lib/utils/paystub-ocr-parser";
+import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
@@ -28,6 +29,15 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateKey = `paystubs-upload:${user.id}:${getClientIp(request)}`;
+    const rate = checkRateLimit(rateKey, 10, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "Too many upload requests" },
+        { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+      );
     }
 
     const formData = await request.formData();
@@ -85,7 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
+      console.error("Upload error:", uploadError instanceof Error ? uploadError.message : String(uploadError));
       return NextResponse.json(
         { error: "Failed to upload file", details: uploadError.message },
         { status: 500 }
@@ -198,9 +208,7 @@ export async function POST(request: NextRequest) {
                 );
                 
               } catch (veryfiError) {
-                console.error("Error:", veryfiError);
-                console.error("Error message:", veryfiError instanceof Error ? veryfiError.message : String(veryfiError));
-                console.error("Error stack:", veryfiError instanceof Error ? veryfiError.stack : undefined);
+                console.error("Veryfi OCR error:", veryfiError instanceof Error ? veryfiError.message : String(veryfiError));
                 // Fall through to placeholder if Veryfi fails
               }
             }
@@ -248,9 +256,7 @@ export async function POST(request: NextRequest) {
         }
       } catch (ocrError) {
         // OCR is optional, don't fail the upload if it fails
-        console.error("Error:", ocrError);
-        console.error("Error message:", ocrError instanceof Error ? ocrError.message : String(ocrError));
-        console.error("Error stack:", ocrError instanceof Error ? ocrError.stack : undefined);
+        console.error("OCR processing failed (non-blocking):", ocrError instanceof Error ? ocrError.message : String(ocrError));
         // Reset status to pending if OCR failed
         await db
           .update(paystubs)
@@ -265,10 +271,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responseData, { status: 201 });
   } catch (error) {
-    console.error("Error in POST /api/paystubs/upload:", error);
+    console.error("Error in POST /api/paystubs/upload:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

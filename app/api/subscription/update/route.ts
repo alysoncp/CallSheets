@@ -73,10 +73,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Error in POST /api/subscription/update:", error);
+    console.error("Error in POST /api/subscription/update:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

@@ -73,7 +73,10 @@ export async function DELETE(
         .remove([filePath]);
       
       if (storageError) {
-        console.error("Error deleting file from storage:", storageError);
+        console.error(
+          "Error deleting file from storage:",
+          storageError instanceof Error ? storageError.message : String(storageError)
+        );
         // Continue with database deletion even if storage deletion fails
       }
     }
@@ -85,10 +88,11 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error in DELETE /api/receipts/[id]:", error);
+    console.error("Error in DELETE /api/receipts/[id]:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

@@ -95,10 +95,11 @@ export async function GET(request: NextRequest) {
       netGst,
     });
   } catch (error) {
-    console.error("Error in GET /api/gst-hst:", error);
+    console.error("Error in GET /api/gst-hst:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

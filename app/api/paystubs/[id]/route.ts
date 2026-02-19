@@ -52,7 +52,10 @@ export async function DELETE(
     if (filePath) {
       const { error: storageError } = await supabase.storage.from("paystubs").remove([filePath]);
       if (storageError) {
-        console.error("Error deleting from storage:", storageError);
+        console.error(
+          "Error deleting from storage:",
+          storageError instanceof Error ? storageError.message : String(storageError)
+        );
         // Continue with database deletion even if storage deletion fails
       }
     } else {
@@ -66,11 +69,12 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error in DELETE /api/paystubs/[id]:", error);
+    console.error("Error in DELETE /api/paystubs/[id]:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+
 
