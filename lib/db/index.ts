@@ -12,6 +12,21 @@ const isTruthy = (value?: string) => {
   return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on";
 };
 
+const getConnectionString = (rawUrl: string, allowInvalidCerts: boolean) => {
+  if (!allowInvalidCerts) return rawUrl;
+  try {
+    const parsed = new URL(rawUrl);
+    // Prevent URL-level sslmode from forcing strict verification when we explicitly allow invalid certs.
+    parsed.searchParams.delete("sslmode");
+    parsed.searchParams.delete("sslrootcert");
+    parsed.searchParams.delete("sslcert");
+    parsed.searchParams.delete("sslkey");
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+};
+
 const requiresSsl =
   isTruthy(process.env.DATABASE_SSL) ||
   process.env.VERCEL === "1" ||
@@ -21,12 +36,13 @@ const allowInvalidDbCerts =
   isTruthy(process.env.DATABASE_SSL_ALLOW_INVALID_CERTS) ||
   isVercelPreview ||
   (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1");
+const connectionString = getConnectionString(process.env.DATABASE_URL, allowInvalidDbCerts);
 
 // Serverless: use a tiny pool so we don't exceed Supabase/Postgres max clients (MaxClientsInSessionMode).
 // Use Supabase pooler (Transaction mode, port 6543) in DATABASE_URL for best behavior with many instances.
 const isServerless = process.env.VERCEL === "1";
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   ssl: requiresSsl ? { rejectUnauthorized: !allowInvalidDbCerts } : undefined,
   max: isServerless ? 1 : 10,
   idleTimeoutMillis: 10000,
