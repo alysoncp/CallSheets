@@ -83,6 +83,32 @@ export async function GET(_request: NextRequest) {
     }
 
     if (existingUser) {
+      // Legacy-production self-heal:
+      // some users may have accepted_at populated but no version recorded.
+      // Backfill version to prevent repeated prompts.
+      if (
+        existingUser.disclaimerAcceptedAt != null &&
+        (existingUser.disclaimerVersion == null || existingUser.disclaimerVersion.length === 0)
+      ) {
+        await db
+          .update(users)
+          .set({
+            disclaimerVersion: DISCLAIMER_VERSION,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, authUser.id));
+
+        const [healedUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, authUser.id))
+          .limit(1);
+
+        if (healedUser) {
+          return NextResponse.json(healedUser);
+        }
+      }
+
       return NextResponse.json(existingUser);
     }
 
