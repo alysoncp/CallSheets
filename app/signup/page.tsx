@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Check, ArrowLeft } from "lucide-react";
-import { DISCLAIMER_VERSION } from "@/lib/constants";
 
 type SubscriptionTier = "basic" | "personal" | "corporate";
 
@@ -18,7 +16,6 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [agreedToDisclaimer, setAgreedToDisclaimer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -42,11 +39,6 @@ export default function SignUpPage() {
       return;
     }
 
-    if (!agreedToDisclaimer) {
-      setError("You must agree to the disclaimer to continue");
-      return;
-    }
-
     setLoading(true);
 
     const supabase = createClient();
@@ -58,8 +50,6 @@ export default function SignUpPage() {
         emailRedirectTo: `${window.location.origin}/auth/confirm?next=/dashboard`,
         data: {
           subscriptionTier: selectedPlan,
-          disclaimer_version: DISCLAIMER_VERSION,
-          disclaimer_accepted_at: new Date().toISOString(),
         },
       },
     });
@@ -285,27 +275,6 @@ export default function SignUpPage() {
                 required
                 minLength={6}
               />
-            </div>
-            <div className="space-y-3 rounded-md border p-3">
-              <p className="text-sm text-muted-foreground">
-                <Link href="/disclaimer" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  Read Full Disclaimer
-                </Link>
-              </p>
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="disclaimer"
-                  checked={agreedToDisclaimer}
-                  onChange={(e) => setAgreedToDisclaimer(e.target.checked)}
-                  className="mt-0.5"
-                />
-                <Label
-                  htmlFor="disclaimer"
-                  className="text-sm font-normal cursor-pointer leading-snug text-muted-foreground"
-                >
-                  I acknowledge that this app provides record-keeping and organizational tools only, does not provide tax, accounting, legal, or financial advice, and that I am responsible for verifying all information and consulting a qualified Canadian tax or accounting professional before filing taxes or making financial decisions.
-                </Label>
-              </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Sign Up"}
