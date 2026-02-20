@@ -44,8 +44,22 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
   });
 
   // Watch for conditional field rendering
+  const firstName = watch("firstName");
+  const lastName = watch("lastName");
   const hasAgent = watch("hasAgent");
+  const agentName = watch("agentName");
+  const hasGstNumber = watch("hasGstNumber");
   const userType = watch("userType");
+  const isSetupReady =
+    !!firstName?.trim() &&
+    !!lastName?.trim() &&
+    !!userType &&
+    hasAgent !== null &&
+    hasAgent !== undefined &&
+    hasGstNumber !== null &&
+    hasGstNumber !== undefined &&
+    (!hasAgent || !!agentName?.trim()) &&
+    (!isSetupMode || !needsDisclaimerAcceptance || agreedToDisclaimer);
 
   const onSubmit = async (data: UserProfileFormData) => {
     setLoading(true);
@@ -372,7 +386,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
       <div className="flex gap-4">
         <Button 
           type="submit" 
-          disabled={loading}
+          disabled={loading || (isSetupMode && !isSetupReady)}
         >
           {loading ? "Saving..." : isSetupMode ? "Complete Profile" : "Save Changes"}
         </Button>
