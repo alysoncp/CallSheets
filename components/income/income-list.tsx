@@ -171,7 +171,7 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onAddClic
                           </p>
                         </div>
 
-                        <span className="text-lg font-semibold text-green-600 sm:whitespace-nowrap">
+                        <span className="text-lg font-semibold text-green-600 sm:whitespace-nowrap sm:flex-none sm:w-36 sm:text-right">
                           ${Number(record.amount).toLocaleString("en-CA", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
