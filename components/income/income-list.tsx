@@ -161,9 +161,9 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onAddClic
                     )}
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_9rem_7.5rem] sm:items-center sm:gap-4">
                         <div className="min-w-0">
-                          <p className="font-medium truncate">
+                          <p className="font-medium truncate lg:max-w-[38rem]">
                             {record.productionName || "Income"}
                           </p>
                           <p className="text-sm text-muted-foreground">
@@ -171,14 +171,14 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onAddClic
                           </p>
                         </div>
 
-                        <span className="text-lg font-semibold text-green-600 sm:whitespace-nowrap sm:flex-none sm:w-36 sm:text-right">
+                        <span className="text-lg font-semibold text-green-600 sm:whitespace-nowrap sm:text-right">
                           ${Number(record.amount).toLocaleString("en-CA", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
                         </span>
 
-                        <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="flex items-center gap-1 sm:justify-end sm:gap-2">
                           {paystubUrl && (
                             <>
                               <Button
