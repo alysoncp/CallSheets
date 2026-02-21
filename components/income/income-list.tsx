@@ -161,7 +161,7 @@ export function IncomeList({ initialData, paystubRecords = [], onEdit, onAddClic
                     )}
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_9rem_7.5rem] sm:items-center sm:gap-4">
+                      <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_9rem_7.5rem] sm:items-center sm:gap-x-6 sm:gap-y-4">
                         <div className="min-w-0">
                           <p className="font-medium truncate lg:max-w-[38rem]">
                             {record.productionName || "Income"}
