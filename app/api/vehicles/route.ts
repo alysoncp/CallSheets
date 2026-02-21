@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(results);
   } catch (error) {
-    console.error("Error in GET /api/vehicles:", error);
+    console.error("Error in GET /api/vehicles:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newVehicle, { status: 201 });
   } catch (error) {
-    console.error("Error in POST /api/vehicles:", error);
+    console.error("Error in POST /api/vehicles:", error instanceof Error ? error.message : String(error));
     if (error instanceof Error && error.name === "ZodError") {
       return NextResponse.json(
         { error: "Validation error", details: error },
@@ -92,3 +92,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

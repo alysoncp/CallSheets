@@ -68,10 +68,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (e) {
-    console.error("Storage image proxy error:", e);
+    console.error("Storage image proxy error:", e instanceof Error ? e.message : String(e));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

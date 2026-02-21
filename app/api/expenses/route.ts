@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(results);
   } catch (error) {
-    console.error("Error in GET /api/expenses:", error);
+    console.error("Error in GET /api/expenses:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -112,13 +112,13 @@ export async function POST(request: NextRequest) {
         }
       } catch (linkError) {
         // Non-critical error, log but don't fail
-        console.error("Error linking receipt to expense:", linkError);
+        console.error("Error linking receipt to expense:", linkError instanceof Error ? linkError.message : String(linkError));
       }
     }
 
     return NextResponse.json(newExpense, { status: 201 });
   } catch (error) {
-    console.error("Error in POST /api/expenses:", error);
+    console.error("Error in POST /api/expenses:", error instanceof Error ? error.message : String(error));
     
     // Check if it's a Zod validation error
     if (error && typeof error === 'object' && 'issues' in error) {
@@ -133,3 +133,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

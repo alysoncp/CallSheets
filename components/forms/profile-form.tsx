@@ -26,6 +26,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const needsDisclaimerAcceptance = !initialData?.disclaimerAcceptedAt;
+  const shouldForceFreshSetupChoices = isSetupMode && needsDisclaimerAcceptance;
   const [agreedToDisclaimer, setAgreedToDisclaimer] = useState(!needsDisclaimerAcceptance);
 
   const {
@@ -33,6 +34,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<UserProfileFormData>({
     resolver: zodResolver(userProfileSchema) as Resolver<UserProfileFormData>,
     defaultValues: {
@@ -40,12 +42,28 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
       province: "BC",
       ubcpActraStatus: initialData?.ubcpActraStatus ?? "none",
       iatseStatus: initialData?.iatseStatus ?? "none",
+      hasAgent: shouldForceFreshSetupChoices ? undefined : initialData?.hasAgent,
+      hasGstNumber: shouldForceFreshSetupChoices ? undefined : initialData?.hasGstNumber,
     },
   });
 
   // Watch for conditional field rendering
+  const firstName = watch("firstName");
+  const lastName = watch("lastName");
   const hasAgent = watch("hasAgent");
+  const agentName = watch("agentName");
+  const hasGstNumber = watch("hasGstNumber");
   const userType = watch("userType");
+  const isSetupReady =
+    !!firstName?.trim() &&
+    !!lastName?.trim() &&
+    !!userType &&
+    hasAgent !== null &&
+    hasAgent !== undefined &&
+    hasGstNumber !== null &&
+    hasGstNumber !== undefined &&
+    (!hasAgent || !!agentName?.trim()) &&
+    (!isSetupMode || !needsDisclaimerAcceptance || agreedToDisclaimer);
 
   const onSubmit = async (data: UserProfileFormData) => {
     setLoading(true);
@@ -257,15 +275,30 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="hasGstNumber"
-                  {...register("hasGstNumber")}
-                />
-                <Label htmlFor="hasGstNumber" className="cursor-pointer">
-                  Do you collect GST/HST? <span className="text-destructive">*</span>
-                </Label>
+              <Label className="cursor-pointer">
+                Do you collect GST/HST? <span className="text-destructive">*</span>
+              </Label>
+              <div className="flex gap-4 pt-1">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="hasGstNumber"
+                    checked={hasGstNumber === true}
+                    onChange={() => setValue("hasGstNumber", true, { shouldValidate: true })}
+                  />
+                  Yes
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="hasGstNumber"
+                    checked={hasGstNumber === false}
+                    onChange={() => setValue("hasGstNumber", false, { shouldValidate: true })}
+                  />
+                  No
+                </label>
               </div>
+              <input type="hidden" {...register("hasGstNumber")} />
               {errors.hasGstNumber && (
                 <p className="text-sm text-destructive">{errors.hasGstNumber.message}</p>
               )}
@@ -282,14 +315,31 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="hasAgent"
-                {...register("hasAgent")}
-              />
-              <Label htmlFor="hasAgent" className="cursor-pointer">
+            <div className="space-y-2">
+              <Label className="cursor-pointer">
                 Do you have an agent? <span className="text-destructive">*</span>
               </Label>
+              <div className="flex gap-4 pt-1">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="hasAgent"
+                    checked={hasAgent === true}
+                    onChange={() => setValue("hasAgent", true, { shouldValidate: true })}
+                  />
+                  Yes
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="hasAgent"
+                    checked={hasAgent === false}
+                    onChange={() => setValue("hasAgent", false, { shouldValidate: true })}
+                  />
+                  No
+                </label>
+              </div>
+              <input type="hidden" {...register("hasAgent")} />
             </div>
             {errors.hasAgent && (
               <p className="text-sm text-destructive">{errors.hasAgent.message}</p>
@@ -372,7 +422,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
       <div className="flex gap-4">
         <Button 
           type="submit" 
-          disabled={loading}
+          disabled={loading || (isSetupMode && !isSetupReady)}
         >
           {loading ? "Saving..." : isSetupMode ? "Complete Profile" : "Save Changes"}
         </Button>

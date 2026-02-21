@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
           doc.text(`Notes: ${receipt.notes}`, { align: "center" });
         }
       } catch (error) {
-        console.error(`Error processing receipt ${receipt.id}:`, error);
+        console.error(`Error processing receipt ${receipt.id}:`, error instanceof Error ? error.message : String(error));
         // Continue with next receipt
       }
     }
@@ -150,10 +150,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in POST /api/receipts/export-pdf:", error);
+    console.error("Error in POST /api/receipts/export-pdf:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

@@ -1,6 +1,24 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { isProfileComplete } from "@/lib/utils/profile-completion";
+
+async function getRedirectPath(userId: string, requestedNext: string) {
+  const [profile] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!isProfileComplete(profile) && !requestedNext.startsWith("/profile")) {
+    return "/profile?setup=true";
+  }
+
+  return requestedNext;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,7 +34,11 @@ export async function GET(request: Request) {
     // PKCE flow: Supabase redirects here with a code after email verification
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(new URL(next, request.url));
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const redirectPath = user ? await getRedirectPath(user.id, next) : next;
+      return NextResponse.redirect(new URL(redirectPath, request.url));
     }
     console.error("Auth callback (code exchange) error:", error.message);
     return NextResponse.redirect(
@@ -31,7 +53,11 @@ export async function GET(request: Request) {
       token_hash,
     });
     if (!error) {
-      return NextResponse.redirect(new URL(next, request.url));
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const redirectPath = user ? await getRedirectPath(user.id, next) : next;
+      return NextResponse.redirect(new URL(redirectPath, request.url));
     }
     console.error("Auth callback (OTP verify) error:", error.message);
     return NextResponse.redirect(

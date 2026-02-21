@@ -47,10 +47,11 @@ export async function GET(_request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in GET /api/receipts:", error);
+    console.error("Error in GET /api/receipts:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

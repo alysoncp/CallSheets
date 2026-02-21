@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { DISCLAIMER_VERSION } from "@/lib/constants";
+import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -122,7 +123,7 @@ export async function GET(_request: NextRequest) {
       disclaimerVersion: null,
     });
   } catch (error) {
-    console.error("Error in GET /api/auth/user:", error);
+    console.error("Error in GET /api/auth/user:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -140,6 +141,15 @@ export async function PATCH(request: NextRequest) {
 
     if (authError || !authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateKey = `auth-user-patch:${authUser.id}:${getClientIp(request)}`;
+    const rate = checkRateLimit(rateKey, 20, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+      );
     }
 
     const body = await request.json().catch(() => ({}));
@@ -182,7 +192,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error("Error in PATCH /api/auth/user:", error);
+    console.error("Error in PATCH /api/auth/user:", error instanceof Error ? error.message : String(error));
     console.error("PATCH error details:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
@@ -190,3 +200,4 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+

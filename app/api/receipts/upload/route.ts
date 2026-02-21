@@ -5,6 +5,7 @@ import { receipts, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { VeryfiClient, type VeryfiReceiptResult } from "@/lib/veryfi/client";
 import { parseReceiptOcr } from "@/lib/utils/receipt-ocr-parser";
+import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 const ALLOWED_RECEIPT_MIME_PREFIX = "image/";
@@ -19,6 +20,15 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateKey = `receipts-upload:${user.id}:${getClientIp(request)}`;
+    const rate = checkRateLimit(rateKey, 10, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "Too many upload requests" },
+        { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+      );
     }
 
     const formData = await request.formData();
@@ -74,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
+      console.error("Upload error:", uploadError instanceof Error ? uploadError.message : String(uploadError));
       return NextResponse.json(
         { error: "Failed to upload file" },
         { status: 500 }
@@ -172,7 +182,7 @@ export async function POST(request: NextRequest) {
                 veryfiResult.raw_data
               );
             } catch (veryfiError) {
-              console.error("Veryfi OCR error:", veryfiError);
+              console.error("Veryfi OCR error:", veryfiError instanceof Error ? veryfiError.message : String(veryfiError));
               // Fall through to placeholder if Veryfi fails
             }
           }
@@ -214,7 +224,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (ocrError) {
       // OCR is optional, don't fail the upload if it fails
-      console.error("OCR processing failed (non-blocking):", ocrError);
+      console.error("OCR processing failed (non-blocking):", ocrError instanceof Error ? ocrError.message : String(ocrError));
       // Reset status to pending if OCR failed
       await db
         .update(receipts)
@@ -226,10 +236,11 @@ export async function POST(request: NextRequest) {
     // Return receipt with OCR result if available
     return NextResponse.json({ ...newReceipt, ocrResult }, { status: 201 });
   } catch (error) {
-    console.error("Error in POST /api/receipts/upload:", error);
+    console.error("Error in POST /api/receipts/upload:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+
