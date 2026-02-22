@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { getCategoriesByExpenseType, ALL_EXPENSE_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
+import { getCategoriesByExpenseType, ALL_EXPENSE_CATEGORIES, EXPENSE_CATEGORIES, getExpenseCategoryLabel } from "@/lib/validations/expense-categories";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -215,7 +215,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
                 <option value="">{expenseType ? "Select category" : "Select expense type first"}</option>
                 {availableCategories.map((cat) => (
                   <option key={cat} value={cat}>
-                    {cat.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                    {getExpenseCategoryLabel(cat)}
                   </option>
                 ))}
               </Select>

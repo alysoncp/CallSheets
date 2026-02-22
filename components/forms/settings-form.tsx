@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { EXPENSE_CATEGORIES, ALL_EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
+import { EXPENSE_CATEGORIES, getExpenseCategoryLabel } from "@/lib/validations/expense-categories";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
 
 interface SettingsFormProps {
@@ -26,6 +26,8 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [successToastOpen, setSuccessToastOpen] = useState(false);
   const subscriptionTier = initialData?.subscriptionTier as SubscriptionTier | undefined;
+  const defaultEnabledExpenseCategories =
+    (initialData?.enabledExpenseCategories as string[] | undefined) ?? [ASSETS_FEATURE_DISABLED_FLAG];
 
   const {
     register,
@@ -37,14 +39,15 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     resolver: zodResolver(userProfileSchema) as Resolver<UserProfileFormData>,
     defaultValues: {
       ...initialData,
-      enabledExpenseCategories: initialData?.enabledExpenseCategories || ALL_EXPENSE_CATEGORIES,
+      enabledExpenseCategories: defaultEnabledExpenseCategories,
       mileageLoggingStyle: initialData?.mileageLoggingStyle || "trip_distance",
       homeOfficePercentage: initialData?.homeOfficePercentage || undefined,
       trackPersonalExpenses: initialData?.trackPersonalExpenses === true, // Default to false
     },
   });
 
-  const enabledCategories = watch("enabledExpenseCategories") as string[] || ALL_EXPENSE_CATEGORIES;
+  const enabledCategories =
+    ((watch("enabledExpenseCategories") as string[] | undefined) ?? defaultEnabledExpenseCategories);
   const trackPersonalExpenses = watch("trackPersonalExpenses") === true;
   const trackVehicleExpenses = EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
   const trackHomeOfficeExpenses = EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.some((cat) => enabledCategories.includes(cat));
@@ -101,7 +104,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 htmlFor={category}
                 className="text-sm font-normal cursor-pointer"
               >
-                {category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                {getExpenseCategoryLabel(category)}
               </Label>
             </div>
           ))}
@@ -179,10 +182,99 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Employment Expense Categories</CardTitle>
-          <CardDescription>Select which employment expense categories you want to use</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            Select which employment expense categories you want to use
+          </p>
           {renderCategoryGroup("General Self-Employment", EXPENSE_CATEGORIES.SELF_EMPLOYMENT)}
+        </CardContent>
+      </Card>
+
+      {/* Home Office Percentage */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Home Office</CardTitle>
+            </div>
+            <div className="flex items-center pr-1">
+              <Switch
+                id="trackHomeOfficeExpenses"
+                aria-label="Track home office expenses"
+                checked={trackHomeOfficeExpenses}
+                onCheckedChange={(checked) => {
+                  handleGroupToggle(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, checked);
+                }}
+                className="scale-125 origin-right"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            For self-employed persons who work from home, you can choose to track home office expenses. If enabled, you can specify the percentage of your home that is used for business purposes, which will be used to calculate the deductible portion of your home-related expenses.
+          </p>
+          {trackHomeOfficeExpenses && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="homeOfficePercentage">Home Office Percentage (%) used for BUSINESS</Label>
+                <Input
+                  id="homeOfficePercentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  {...register("homeOfficePercentage")}
+                  placeholder="e.g., 25.5"
+                />
+                {errors.homeOfficePercentage && (
+                  <p className="text-sm text-destructive">
+                    {errors.homeOfficePercentage.message}
+                  </p>
+                )}
+              </div>
+              {renderCategoryGroup("Home Office/Living Categories", EXPENSE_CATEGORIES.HOME_OFFICE_LIVING)}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Track Personal Expenses */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Personal Expenses</CardTitle>
+            </div>
+            <div className="flex items-center pr-1">
+              <Switch
+                id="trackPersonalExpenses"
+                aria-label="Track personal expenses"
+                checked={trackPersonalExpenses}
+                onCheckedChange={(checked) => {
+                  setValue("trackPersonalExpenses", checked);
+                  handleGroupToggle(EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL, checked);
+                  handleGroupToggle(EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL, checked);
+                }}
+                className="scale-125 origin-right"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Choose whether to track tax-deductible and non-tax deductible personal expenses.
+          </p>
+          {trackPersonalExpenses && (
+            <div className="space-y-6 pt-4">
+              <p className="text-xs text-muted-foreground">
+                When disabled, the "Personal" expense type will be removed from the expense form.
+              </p>
+              {renderCategoryGroup("Tax-Deductible Personal", EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL)}
+              {renderCategoryGroup("Non-Deductible Personal", EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL)}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -192,19 +284,11 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <CardTitle>Vehicles and Mileage Logging</CardTitle>
-              {trackVehicleExpenses && (
-                <CardDescription>Choose how you want to track vehicle mileage</CardDescription>
-              )}
             </div>
-            <div className="flex items-center gap-5 pr-1">
-              <Label
-                htmlFor="trackVehicleExpenses"
-                className="text-sm font-medium cursor-pointer whitespace-nowrap"
-              >
-                Track vehicle expenses
-              </Label>
+            <div className="flex items-center pr-1">
               <Switch
                 id="trackVehicleExpenses"
+                aria-label="Track vehicle expenses"
                 checked={trackVehicleExpenses}
                 onCheckedChange={(checked) => {
                   handleGroupToggle(EXPENSE_CATEGORIES.VEHICLE, checked);
@@ -215,8 +299,11 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            If you drive for work with a personal vehicle, you can choose to track vehicle expenses. By keeping track of your business use mileage, the tax-deductible portion of vehicle expenses will be calculated automatically.
+          </p>
           {trackVehicleExpenses && (
-            <>
+            <div className="space-y-6 pt-2">
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <input
@@ -244,7 +331,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 </div>
               </div>
               {renderCategoryGroup("Vehicle Categories", EXPENSE_CATEGORIES.VEHICLE)}
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -256,15 +343,10 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
             <div>
               <CardTitle>Assets</CardTitle>
             </div>
-            <div className="flex items-center gap-5 pr-1">
-              <Label
-                htmlFor="trackAssets"
-                className="text-sm font-medium cursor-pointer whitespace-nowrap"
-              >
-                Track assets
-              </Label>
+            <div className="flex items-center pr-1">
               <Switch
                 id="trackAssets"
+                aria-label="Track assets"
                 checked={trackAssets}
                 onCheckedChange={(checked) => {
                   const current = (enabledCategories as string[]) || [];
@@ -286,109 +368,12 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           <p className="text-sm text-muted-foreground">
             For self-employed persons, an asset is a longer-term business item
             (for example camera, tools, computer) that is usually
-            claimed over time instead of fully deducted in the year you buy it. 
+            claimed over time instead of fully deducted in the year you buy it.
             An asset must be a durable good that will provide value over multiple years. Assets are subject to CCA rules and are tracked separately from regular expenses.
-          </p> 
+          </p>
           <p className="text-sm text-muted-foreground">
             *Vehicles are also assets, but these are tracked in the vehicle section*
           </p>
-        </CardContent>
-      </Card>
-
-      {/* Track Personal Expenses */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle>Personal Expenses</CardTitle>
-              {trackPersonalExpenses && (
-                <CardDescription>Choose whether to track personal expenses</CardDescription>
-              )}
-            </div>
-            <div className="flex items-center gap-5 pr-1">
-              <Label
-                htmlFor="trackPersonalExpenses"
-                className="text-sm font-medium cursor-pointer whitespace-nowrap"
-              >
-                Track personal expenses
-              </Label>
-              <Switch
-                id="trackPersonalExpenses"
-                checked={trackPersonalExpenses}
-                onCheckedChange={(checked) => {
-                  setValue("trackPersonalExpenses", checked);
-                  handleGroupToggle(EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL, checked);
-                  handleGroupToggle(EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL, checked);
-                }}
-                className="scale-125 origin-right"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {trackPersonalExpenses && (
-            <div className="space-y-6">
-              <p className="text-xs text-muted-foreground">
-                When disabled, the "Personal" expense type will be removed from the expense form.
-              </p>
-              {renderCategoryGroup("Tax-Deductible Personal", EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL)}
-              {renderCategoryGroup("Non-Deductible Personal", EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL)}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Home Office Percentage */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle>Home Office</CardTitle>
-              {trackHomeOfficeExpenses && (
-                <CardDescription>Enter the percentage of your home used for business</CardDescription>
-              )}
-            </div>
-            <div className="flex items-center gap-5 pr-1">
-              <Label
-                htmlFor="trackHomeOfficeExpenses"
-                className="text-sm font-medium cursor-pointer whitespace-nowrap"
-              >
-                Track home office expenses
-              </Label>
-              <Switch
-                id="trackHomeOfficeExpenses"
-                checked={trackHomeOfficeExpenses}
-                onCheckedChange={(checked) => {
-                  handleGroupToggle(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, checked);
-                }}
-                className="scale-125 origin-right"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {trackHomeOfficeExpenses && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="homeOfficePercentage">Home Office Percentage (%)</Label>
-                <Input
-                  id="homeOfficePercentage"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  {...register("homeOfficePercentage")}
-                  placeholder="e.g., 25.5"
-                />
-                {errors.homeOfficePercentage && (
-                  <p className="text-sm text-destructive">
-                    {errors.homeOfficePercentage.message}
-                  </p>
-                )}
-              </div>
-              {renderCategoryGroup("Home Office/Living Categories", EXPENSE_CATEGORIES.HOME_OFFICE_LIVING)}
-            </>
-          )}
         </CardContent>
       </Card>
 
