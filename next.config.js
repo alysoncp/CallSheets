@@ -8,11 +8,11 @@ const cspDirectives = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  ...(isProd ? ["script-src 'self' 'unsafe-inline'"] : ["script-src 'self' 'unsafe-inline' 'unsafe-eval'"]),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https: wss:",
+  "connect-src 'self' https: wss: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*",
   "frame-src 'self'",
   "worker-src 'self' blob:",
   ...(isProd ? ["upgrade-insecure-requests"] : []),
@@ -72,3 +72,6 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
+
+
