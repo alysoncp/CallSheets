@@ -78,8 +78,9 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           <Label className="text-base font-semibold">{title}</Label>
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
+            className="bg-muted hover:bg-muted/80 border-border"
             onClick={() => handleGroupToggle(categories, !allSelected)}
           >
             {allSelected ? "Deselect All" : "Select All"}
