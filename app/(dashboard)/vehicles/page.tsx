@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { vehicles } from "@/lib/db/schema";
+import { users, vehicles } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
 
 export default async function VehiclesPage() {
   const supabase = await createClient();
@@ -16,6 +17,23 @@ export default async function VehiclesPage() {
 
   if (!user) {
     redirect("/signin");
+  }
+
+  const [userProfile] = await db
+    .select({ enabledExpenseCategories: users.enabledExpenseCategories })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
+
+  const enabledCategories = Array.isArray(userProfile?.enabledExpenseCategories)
+    ? userProfile.enabledExpenseCategories
+    : [];
+  const trackVehicleExpenses = enabledCategories.length === 0
+    ? true
+    : EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
+
+  if (!trackVehicleExpenses) {
+    redirect("/dashboard");
   }
 
   const vehicleRecords = await db

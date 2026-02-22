@@ -41,6 +41,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       ...initialData,
       enabledExpenseCategories: defaultEnabledExpenseCategories,
       mileageLoggingStyle: initialData?.mileageLoggingStyle || "trip_distance",
+      hasHomeOffice: initialData?.hasHomeOffice === true,
       homeOfficePercentage: initialData?.homeOfficePercentage || undefined,
       trackPersonalExpenses: initialData?.trackPersonalExpenses === true, // Default to false
     },
@@ -48,9 +49,20 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
 
   const enabledCategories =
     ((watch("enabledExpenseCategories") as string[] | undefined) ?? defaultEnabledExpenseCategories);
+  const hasHomeOffice = watch("hasHomeOffice") === true;
+  const homeOfficePercentageRaw = watch("homeOfficePercentage");
+  const parsedHomeOfficePercentage =
+    homeOfficePercentageRaw === null || homeOfficePercentageRaw === undefined
+      ? null
+      : Number(homeOfficePercentageRaw);
+  const homeOfficePercentage =
+    parsedHomeOfficePercentage !== null && Number.isFinite(parsedHomeOfficePercentage)
+      ? Math.min(100, Math.max(0, parsedHomeOfficePercentage))
+      : null;
+  const personalHomeExpensesPercentage =
+    homeOfficePercentage !== null ? 100 - homeOfficePercentage : null;
   const trackPersonalExpenses = watch("trackPersonalExpenses") === true;
   const trackVehicleExpenses = EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
-  const trackHomeOfficeExpenses = EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.some((cat) => enabledCategories.includes(cat));
   const trackAssets = !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
 
   // Handle category checkbox changes
@@ -194,48 +206,70 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       {/* Home Office Percentage */}
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle>Home Office</CardTitle>
-            </div>
-            <div className="flex items-center pr-1">
-              <Switch
-                id="trackHomeOfficeExpenses"
-                aria-label="Track home office expenses"
-                checked={trackHomeOfficeExpenses}
-                onCheckedChange={(checked) => {
-                  handleGroupToggle(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, checked);
-                }}
-                className="scale-125 origin-right"
-              />
-            </div>
-          </div>
+          <CardTitle>Home Office or Personal Home Expenses</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-sm text-muted-foreground">
-            For self-employed persons who work from home, you can choose to track home office expenses. If enabled, you can specify the percentage of your home that is used for business purposes, which will be used to calculate the deductible portion of your home-related expenses.
+            Track home-related expenses here. If part of your home is used as a home office, set the business-use percentage.
           </p>
-          {trackHomeOfficeExpenses && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="homeOfficePercentage">Home Office Percentage (%) used for BUSINESS</Label>
-                <Input
-                  id="homeOfficePercentage"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  {...register("homeOfficePercentage")}
-                  placeholder="e.g., 25.5"
+          <div className="space-y-3">
+            <Label>Do you use part of your home for a home office?</Label>
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="has_home_office_yes"
+                  checked={hasHomeOffice}
+                  onChange={() => {
+                    setValue("hasHomeOffice", true);
+                  }}
+                  className="h-4 w-4"
                 />
-                {errors.homeOfficePercentage && (
-                  <p className="text-sm text-destructive">
-                    {errors.homeOfficePercentage.message}
-                  </p>
-                )}
+                <Label htmlFor="has_home_office_yes" className="text-sm font-normal cursor-pointer">
+                  Yes
+                </Label>
               </div>
-              {renderCategoryGroup("Home Office/Living Categories", EXPENSE_CATEGORIES.HOME_OFFICE_LIVING)}
-            </>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="has_home_office_no"
+                  checked={!hasHomeOffice}
+                  onChange={() => {
+                    setValue("hasHomeOffice", false);
+                    setValue("homeOfficePercentage", 0);
+                  }}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="has_home_office_no" className="text-sm font-normal cursor-pointer">
+                  No
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          <div className={`space-y-2 ${!hasHomeOffice ? "opacity-50" : ""}`}>
+            <Label htmlFor="homeOfficePercentage">Home Office Percentage (%) used for BUSINESS</Label>
+            <Input
+              id="homeOfficePercentage"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              {...register("homeOfficePercentage")}
+              placeholder="e.g., 25.5"
+              disabled={!hasHomeOffice}
+            />
+            {errors.homeOfficePercentage && (
+              <p className="text-sm text-destructive">
+                {errors.homeOfficePercentage.message}
+              </p>
+            )}
+          </div>
+          {renderCategoryGroup(
+            hasHomeOffice
+              ? `Home Office (${homeOfficePercentage !== null ? `${homeOfficePercentage}%` : "--"}) / Personal Home Expenses (${personalHomeExpensesPercentage !== null ? `${personalHomeExpensesPercentage}%` : "--"})`
+              : "Home Expenses",
+            EXPENSE_CATEGORIES.HOME_OFFICE_LIVING
           )}
         </CardContent>
       </Card>
