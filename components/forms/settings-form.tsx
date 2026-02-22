@@ -22,7 +22,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [successToastOpen, setSuccessToastOpen] = useState(false);
   const subscriptionTier = initialData?.subscriptionTier as SubscriptionTier | undefined;
 
   const {
@@ -125,8 +125,8 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
         throw new Error(errorData.error || "Failed to update settings");
       }
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setSuccessToastOpen(true);
+      setTimeout(() => setSuccessToastOpen(false), 3000);
       
       // Trigger sidebar refresh
       localStorage.setItem('profileLastUpdate', Date.now().toString());
@@ -162,9 +162,13 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           {error}
         </div>
       )}
-      {success && (
-        <div className="p-3 text-sm text-green-600 bg-green-50 rounded-md">
-          Settings saved successfully!
+      {successToastOpen && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed right-4 top-4 z-50 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 shadow-lg"
+        >
+          Settings saved successfully.
         </div>
       )}
 
