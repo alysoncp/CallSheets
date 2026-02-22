@@ -112,10 +112,10 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
       window.dispatchEvent(new CustomEvent('profileUpdated', { detail: result, bubbles: true }));
       router.refresh();
 
-      // Redirect to dashboard if in setup mode
+      // Redirect to settings if in setup mode
       if (isSetupMode) {
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/settings");
         }, 1500);
       }
     } catch (err) {
@@ -141,9 +141,9 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
         </div>
       )}
       {success && (
-        <div className="p-3 text-sm text-green-600 bg-green-50 rounded-md">
+          <div className="p-3 text-sm text-green-600 bg-green-50 rounded-md">
           {isSetupMode 
-            ? "Profile completed successfully! Redirecting to dashboard..." 
+            ? "Profile completed successfully! Redirecting to settings..." 
             : "Profile updated successfully"}
         </div>
       )}

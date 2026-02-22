@@ -10,6 +10,8 @@ export const EXPENSE_CATEGORIES = {
     "management_admin_fees",
     "meals_entertainment",
     "office_supplies",
+    "office_studio_leases",
+    "equipment",
     "professional_fees",
     "repairs_maintenance",
     "salaries_wages",

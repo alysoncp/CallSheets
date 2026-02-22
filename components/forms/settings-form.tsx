@@ -18,6 +18,8 @@ interface SettingsFormProps {
   initialData: any;
 }
 
+const ASSETS_FEATURE_DISABLED_FLAG = "__feature_assets_disabled__";
+
 export function SettingsForm({ initialData }: SettingsFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -46,6 +48,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
   const trackPersonalExpenses = watch("trackPersonalExpenses") === true;
   const trackVehicleExpenses = EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
   const trackHomeOfficeExpenses = EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.some((cat) => enabledCategories.includes(cat));
+  const trackAssets = !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
 
   // Handle category checkbox changes
   const handleCategoryChange = (category: string, checked: boolean) => {
@@ -243,6 +246,52 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
               {renderCategoryGroup("Vehicle Categories", EXPENSE_CATEGORIES.VEHICLE)}
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Assets */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Assets</CardTitle>
+            </div>
+            <div className="flex items-center gap-5 pr-1">
+              <Label
+                htmlFor="trackAssets"
+                className="text-sm font-medium cursor-pointer whitespace-nowrap"
+              >
+                Track assets
+              </Label>
+              <Switch
+                id="trackAssets"
+                checked={trackAssets}
+                onCheckedChange={(checked) => {
+                  const current = (enabledCategories as string[]) || [];
+                  if (checked) {
+                    setValue(
+                      "enabledExpenseCategories",
+                      current.filter((c) => c !== ASSETS_FEATURE_DISABLED_FLAG)
+                    );
+                  } else if (!current.includes(ASSETS_FEATURE_DISABLED_FLAG)) {
+                    setValue("enabledExpenseCategories", [...current, ASSETS_FEATURE_DISABLED_FLAG]);
+                  }
+                }}
+                className="scale-125 origin-right"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            For self-employed persons, an asset is a longer-term business item
+            (for example camera, tools, computer) that is usually
+            claimed over time instead of fully deducted in the year you buy it. 
+            An asset must be a durable good that will provide value over multiple years. Assets are subject to CCA rules and are tracked separately from regular expenses.
+          </p> 
+          <p className="text-sm text-muted-foreground">
+            *Vehicles are also assets, but these are tracked in the vehicle section*
+          </p>
         </CardContent>
       </Card>
 

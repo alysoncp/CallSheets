@@ -175,40 +175,6 @@ export const assetCcaHistory = pgTable("asset_cca_history", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Lease contracts
-export const leaseContracts = pgTable("lease_contracts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  leaseType: text("lease_type").$type<"vehicle" | "equipment">().notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  lessorName: text("lessor_name"),
-  leaseStartDate: date("lease_start_date").notNull(),
-  leaseEndDate: date("lease_end_date").notNull(),
-  monthlyPayment: numeric("monthly_payment", { precision: 12, scale: 2 }).notNull(),
-  paymentFrequency: text("payment_frequency").$type<"monthly" | "quarterly" | "annual">().default("monthly"),
-  businessUsePercentage: numeric("business_use_percentage", { precision: 5, scale: 2 }).default("100"),
-  vehicleId: uuid("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
-  assetCategory: text("asset_category"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Lease payments
-export const leasePayments = pgTable("lease_payments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  leaseContractId: uuid("lease_contract_id").notNull().references(() => leaseContracts.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  paymentDate: date("payment_date").notNull(),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  gstAmount: numeric("gst_amount", { precision: 12, scale: 2 }).default("0"),
-  pstAmount: numeric("pst_amount", { precision: 12, scale: 2 }).default("0"),
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
 // Receipts table
 export const receipts = pgTable("receipts", {
   id: uuid("id").primaryKey().defaultRandom(),

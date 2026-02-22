@@ -61,7 +61,7 @@ export default function AboutPage() {
               <li>Vehicle mileage and CCA tracking</li>
               <li>Tax calculations based on Canadian tax rules</li>
               <li>GST/HST tracking for registered businesses</li>
-              <li>Asset and lease management</li>
+              <li>Asset management</li>
               <li>Tax optimization tools for incorporated professionals</li>
             </ul>
           </CardContent>

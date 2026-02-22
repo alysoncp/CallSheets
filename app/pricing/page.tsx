@@ -87,10 +87,6 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-5 w-5 text-green-600" />
-                  <span>Lease management</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-green-600" />
                   <span>100 OCR requests/month</span>
                 </li>
               </ul>

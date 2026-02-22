@@ -74,7 +74,6 @@ export default async function SubscriptionPage() {
           "Vehicle mileage tracking",
           "Tax calculator",
           "Asset/CCA tracking",
-          "Lease management",
           `${getOcrLimit(tier)} OCR requests/month`,
         ];
       case "corporate":
@@ -200,10 +199,6 @@ export default async function SubscriptionPage() {
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-5 w-5 text-green-600" />
                     <span>Asset/CCA tracking</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <Check className="h-5 w-5 text-green-600" />
-                    <span>Lease management</span>
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-5 w-5 text-green-600" />

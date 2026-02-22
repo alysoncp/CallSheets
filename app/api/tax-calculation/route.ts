@@ -62,9 +62,6 @@ export async function GET(request: NextRequest) {
     // Calculate CCA deductions (simplified - would need proper CCA calculation)
     const ccaDeductions = 0; // TODO: Calculate from assets
 
-    // Calculate lease expenses
-    const leaseExpenses = 0; // TODO: Calculate from lease payments
-
     const grossIncome = Number(incomeResult?.total || 0);
     const totalExpenses = Number(expensesResult?.total || 0);
 
@@ -72,7 +69,6 @@ export async function GET(request: NextRequest) {
       grossIncome,
       totalExpenses,
       ccaDeductions,
-      leaseExpenses,
       province: userProfile?.province || "BC",
       isSelfEmployed: true,
     });

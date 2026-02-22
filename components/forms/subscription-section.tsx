@@ -53,7 +53,6 @@ export function SubscriptionSection({ subscriptionTier }: SubscriptionSectionPro
           "Vehicle mileage tracking",
           "Tax calculator",
           "Asset/CCA tracking",
-          "Lease management",
           `${getOcrLimit(tier)} OCR requests/month`,
         ];
       case "corporate":
