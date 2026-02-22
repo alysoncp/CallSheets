@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { getCategoriesByExpenseType, ALL_EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
+import { getCategoriesByExpenseType, ALL_EXPENSE_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -23,8 +23,15 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enabledCategories, setEnabledCategories] = useState<string[] | null>(null);
-  const [userProfile, setUserProfile] = useState<{ homeOfficePercentage?: number | null; trackPersonalExpenses?: boolean } | null>({
+  const [userProfile, setUserProfile] = useState<{
+    homeOfficePercentage?: number | null;
+    trackPersonalExpenses?: boolean;
+    trackVehicleExpenses?: boolean;
+    trackHomeOfficeExpenses?: boolean;
+  } | null>({
     trackPersonalExpenses: false,
+    trackVehicleExpenses: true,
+    trackHomeOfficeExpenses: true,
   });
 
   // Merge OCR data with initial data
@@ -54,17 +61,34 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
       .then((res) => res.json())
       .then((data) => {
         if (data && !data.error) {
+          const categories = Array.isArray(data.enabledExpenseCategories)
+            ? (data.enabledExpenseCategories as string[])
+            : null;
+
+          if (categories) {
+            setEnabledCategories(categories);
+          }
+
+          const trackVehicleExpenses = categories
+            ? EXPENSE_CATEGORIES.VEHICLE.some((cat) => categories.includes(cat))
+            : true;
+          const trackHomeOfficeExpenses = categories
+            ? EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.some((cat) => categories.includes(cat))
+            : true;
+
           if (data.enabledExpenseCategories) {
             setEnabledCategories(data.enabledExpenseCategories);
           }
           setUserProfile({
             homeOfficePercentage: data.homeOfficePercentage,
             trackPersonalExpenses: data.trackPersonalExpenses === true, // Default to false if not set
+            trackVehicleExpenses,
+            trackHomeOfficeExpenses,
           });
         }
       })
       .catch(() => {
-        // Silently fail - will show all categories
+        // Silently fail - keep defaults
       });
   }, []);
 
@@ -162,10 +186,14 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               <Label htmlFor="expenseType">Expense Type *</Label>
               <Select id="expenseType" {...register("expenseType")} required>
                 <option value="">Select type</option>
-                <option value="home_office_living">Home Office/Living</option>
-                <option value="vehicle">Vehicle</option>
+                {(userProfile?.trackHomeOfficeExpenses === true || expenseType === "home_office_living") && (
+                  <option value="home_office_living">Home Office/Living</option>
+                )}
+                {(userProfile?.trackVehicleExpenses === true || expenseType === "vehicle") && (
+                  <option value="vehicle">Vehicle</option>
+                )}
                 <option value="self_employment">Employment Expenses</option>
-                {userProfile?.trackPersonalExpenses === true && (
+                {(userProfile?.trackPersonalExpenses === true || expenseType === "personal") && (
                   <option value="personal">Personal</option>
                 )}
                 <option value="mixed">Mixed</option>

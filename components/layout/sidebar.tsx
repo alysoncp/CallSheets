@@ -32,6 +32,7 @@ import type { SubscriptionTier } from "@/lib/utils/subscription";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
 
 const allNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -91,6 +92,7 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
   const [userProfile, setUserProfile] = useState<{
     subscriptionTier?: SubscriptionTier;
     hasGstNumber?: boolean;
+    trackVehicleExpenses?: boolean;
   } | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(true);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
@@ -106,9 +108,16 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
           const newUserName = name || data.email?.split("@")[0] || null;
           setUserName(newUserName);
           setUserEmail(data.email || null);
+          const enabledCategories = Array.isArray(data.enabledExpenseCategories)
+            ? (data.enabledExpenseCategories as string[])
+            : [];
+          const trackVehicleExpenses = enabledCategories.length === 0
+            ? true
+            : EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
           setUserProfile({
             subscriptionTier: data.subscriptionTier || "basic",
             hasGstNumber: data.hasGstNumber === true,
+            trackVehicleExpenses,
           });
         }
       })
@@ -274,6 +283,12 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
       // Show GST/HST only if user has GST number
       if (item.requiresGst) {
         return userProfile?.hasGstNumber === true;
+      }
+      if (
+        (item.href === "/vehicles" || item.href === "/vehicle-mileage") &&
+        userProfile?.trackVehicleExpenses === false
+      ) {
+        return false;
       }
       // Show all other items
       return true;

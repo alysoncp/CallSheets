@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EXPENSE_CATEGORIES, ALL_EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
@@ -43,6 +44,8 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
 
   const enabledCategories = watch("enabledExpenseCategories") as string[] || ALL_EXPENSE_CATEGORIES;
   const trackPersonalExpenses = watch("trackPersonalExpenses") === true;
+  const trackVehicleExpenses = EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
+  const trackHomeOfficeExpenses = EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.some((cat) => enabledCategories.includes(cat));
 
   // Handle category checkbox changes
   const handleCategoryChange = (category: string, checked: boolean) => {
@@ -178,65 +181,102 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       {/* Mileage Logging Style */}
       <Card>
         <CardHeader>
-          <CardTitle>Mileage Logging</CardTitle>
-          <CardDescription>Choose how you want to track vehicle mileage</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                id="trip_distance"
-                value="trip_distance"
-                {...register("mileageLoggingStyle")}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="trip_distance" className="text-sm font-normal cursor-pointer">
-                Trip Distance - Track individual trips and their distances
-              </Label>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Vehicles and Mileage Logging</CardTitle>
+              {trackVehicleExpenses && (
+                <CardDescription>Choose how you want to track vehicle mileage</CardDescription>
+              )}
             </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                id="odometer"
-                value="odometer"
-                {...register("mileageLoggingStyle")}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="odometer" className="text-sm font-normal cursor-pointer">
-                Odometer Readings - Track mileage by recording odometer readings
+            <div className="flex items-center gap-5 pr-1">
+              <Label
+                htmlFor="trackVehicleExpenses"
+                className="text-sm font-medium cursor-pointer whitespace-nowrap"
+              >
+                Track vehicle expenses
               </Label>
+              <Switch
+                id="trackVehicleExpenses"
+                checked={trackVehicleExpenses}
+                onCheckedChange={(checked) => {
+                  handleGroupToggle(EXPENSE_CATEGORIES.VEHICLE, checked);
+                }}
+                className="scale-125 origin-right"
+              />
             </div>
           </div>
-          {renderCategoryGroup("Vehicle Categories", EXPENSE_CATEGORIES.VEHICLE)}
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {trackVehicleExpenses && (
+            <>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="trip_distance"
+                    value="trip_distance"
+                    {...register("mileageLoggingStyle")}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="trip_distance" className="text-sm font-normal cursor-pointer">
+                    Trip Distance - Track individual trips and their distances
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="odometer"
+                    value="odometer"
+                    {...register("mileageLoggingStyle")}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="odometer" className="text-sm font-normal cursor-pointer">
+                    Odometer Readings - Track mileage by recording odometer readings
+                  </Label>
+                </div>
+              </div>
+              {renderCategoryGroup("Vehicle Categories", EXPENSE_CATEGORIES.VEHICLE)}
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* Track Personal Expenses */}
       <Card>
         <CardHeader>
-          <CardTitle>Personal Expenses</CardTitle>
-          <CardDescription>Choose whether to track personal expenses</CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Personal Expenses</CardTitle>
+              {trackPersonalExpenses && (
+                <CardDescription>Choose whether to track personal expenses</CardDescription>
+              )}
+            </div>
+            <div className="flex items-center gap-5 pr-1">
+              <Label
+                htmlFor="trackPersonalExpenses"
+                className="text-sm font-medium cursor-pointer whitespace-nowrap"
+              >
+                Track personal expenses
+              </Label>
+              <Switch
+                id="trackPersonalExpenses"
+                checked={trackPersonalExpenses}
+                onCheckedChange={(checked) => {
+                  setValue("trackPersonalExpenses", checked);
+                  handleGroupToggle(EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL, checked);
+                  handleGroupToggle(EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL, checked);
+                }}
+                className="scale-125 origin-right"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="trackPersonalExpenses"
-              checked={watch("trackPersonalExpenses") === true}
-              onChange={(e) => setValue("trackPersonalExpenses", e.target.checked)}
-            />
-            <Label
-              htmlFor="trackPersonalExpenses"
-              className="text-sm font-normal cursor-pointer"
-            >
-              Track personal expenses
-            </Label>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            When disabled, the "Personal" expense type will be removed from the expense form.
-          </p>
           {trackPersonalExpenses && (
-            <div className="mt-6 space-y-6">
+            <div className="space-y-6">
+              <p className="text-xs text-muted-foreground">
+                When disabled, the "Personal" expense type will be removed from the expense form.
+              </p>
               {renderCategoryGroup("Tax-Deductible Personal", EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL)}
               {renderCategoryGroup("Non-Deductible Personal", EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL)}
             </div>
@@ -247,28 +287,54 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       {/* Home Office Percentage */}
       <Card>
         <CardHeader>
-          <CardTitle>Home Office</CardTitle>
-          <CardDescription>Enter the percentage of your home used for business</CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Home Office</CardTitle>
+              {trackHomeOfficeExpenses && (
+                <CardDescription>Enter the percentage of your home used for business</CardDescription>
+              )}
+            </div>
+            <div className="flex items-center gap-5 pr-1">
+              <Label
+                htmlFor="trackHomeOfficeExpenses"
+                className="text-sm font-medium cursor-pointer whitespace-nowrap"
+              >
+                Track home office expenses
+              </Label>
+              <Switch
+                id="trackHomeOfficeExpenses"
+                checked={trackHomeOfficeExpenses}
+                onCheckedChange={(checked) => {
+                  handleGroupToggle(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, checked);
+                }}
+                className="scale-125 origin-right"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="homeOfficePercentage">Home Office Percentage (%)</Label>
-            <Input
-              id="homeOfficePercentage"
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              {...register("homeOfficePercentage")}
-              placeholder="e.g., 25.5"
-            />
-            {errors.homeOfficePercentage && (
-              <p className="text-sm text-destructive">
-                {errors.homeOfficePercentage.message}
-              </p>
-            )}
-          </div>
-          {renderCategoryGroup("Home Office/Living Categories", EXPENSE_CATEGORIES.HOME_OFFICE_LIVING)}
+          {trackHomeOfficeExpenses && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="homeOfficePercentage">Home Office Percentage (%)</Label>
+                <Input
+                  id="homeOfficePercentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  {...register("homeOfficePercentage")}
+                  placeholder="e.g., 25.5"
+                />
+                {errors.homeOfficePercentage && (
+                  <p className="text-sm text-destructive">
+                    {errors.homeOfficePercentage.message}
+                  </p>
+                )}
+              </div>
+              {renderCategoryGroup("Home Office/Living Categories", EXPENSE_CATEGORIES.HOME_OFFICE_LIVING)}
+            </>
+          )}
         </CardContent>
       </Card>
 
