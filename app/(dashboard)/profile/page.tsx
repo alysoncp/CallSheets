@@ -40,6 +40,7 @@ export default async function ProfilePage({
         subscriptionTier,
         taxFilingStatus,
         province: "BC",
+        trackPersonalExpenses: false,
       })
       .returning();
 

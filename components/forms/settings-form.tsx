@@ -37,11 +37,12 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       enabledExpenseCategories: initialData?.enabledExpenseCategories || ALL_EXPENSE_CATEGORIES,
       mileageLoggingStyle: initialData?.mileageLoggingStyle || "trip_distance",
       homeOfficePercentage: initialData?.homeOfficePercentage || undefined,
-      trackPersonalExpenses: initialData?.trackPersonalExpenses !== false, // Default to true
+      trackPersonalExpenses: initialData?.trackPersonalExpenses === true, // Default to false
     },
   });
 
   const enabledCategories = watch("enabledExpenseCategories") as string[] || ALL_EXPENSE_CATEGORIES;
+  const trackPersonalExpenses = watch("trackPersonalExpenses") === true;
 
   // Handle category checkbox changes
   const handleCategoryChange = (category: string, checked: boolean) => {
@@ -64,6 +65,42 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       // Remove all categories from this group
       setValue("enabledExpenseCategories", current.filter((c) => !categories.includes(c)));
     }
+  };
+
+  const renderCategoryGroup = (title: string, categories: readonly string[]) => {
+    const allSelected = categories.every((cat) => enabledCategories.includes(cat));
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-base font-semibold">{title}</Label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => handleGroupToggle(categories, !allSelected)}
+          >
+            {allSelected ? "Deselect All" : "Select All"}
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          {categories.map((category) => (
+            <div key={category} className="flex items-center space-x-2">
+              <Checkbox
+                id={category}
+                checked={enabledCategories.includes(category)}
+                onChange={(e) => handleCategoryChange(category, e.target.checked)}
+              />
+              <Label
+                htmlFor={category}
+                className="text-sm font-normal cursor-pointer"
+              >
+                {category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const onSubmit = async (data: UserProfileFormData) => {
@@ -127,225 +164,14 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
         </div>
       )}
 
-      {/* Expense Categories Customization */}
+      {/* Employment Expense Categories Customization */}
       <Card>
         <CardHeader>
-          <CardTitle>Expense Categories</CardTitle>
-          <CardDescription>Select which expense categories you want to use</CardDescription>
+          <CardTitle>Employment Expense Categories</CardTitle>
+          <CardDescription>Select which employment expense categories you want to use</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Self-Employment Categories */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Self-Employment</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const allSelected = EXPENSE_CATEGORIES.SELF_EMPLOYMENT.every((cat) =>
-                    enabledCategories.includes(cat)
-                  );
-                  handleGroupToggle(EXPENSE_CATEGORIES.SELF_EMPLOYMENT, !allSelected);
-                }}
-              >
-                {EXPENSE_CATEGORIES.SELF_EMPLOYMENT.every((cat) =>
-                  enabledCategories.includes(cat)
-                )
-                  ? "Deselect All"
-                  : "Select All"}
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {EXPENSE_CATEGORIES.SELF_EMPLOYMENT.map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={category}
-                    checked={enabledCategories.includes(category)}
-                    onChange={(e) =>
-                      handleCategoryChange(category, e.target.checked)
-                    }
-                  />
-                  <Label
-                    htmlFor={category}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Home Office/Living Categories */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Home Office/Living</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const allSelected = EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.every((cat) =>
-                    enabledCategories.includes(cat)
-                  );
-                  handleGroupToggle(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, !allSelected);
-                }}
-              >
-                {EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.every((cat) =>
-                  enabledCategories.includes(cat)
-                )
-                  ? "Deselect All"
-                  : "Select All"}
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={category}
-                    checked={enabledCategories.includes(category)}
-                    onChange={(e) =>
-                      handleCategoryChange(category, e.target.checked)
-                    }
-                  />
-                  <Label
-                    htmlFor={category}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Vehicle Categories */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Vehicle</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const allSelected = EXPENSE_CATEGORIES.VEHICLE.every((cat) =>
-                    enabledCategories.includes(cat)
-                  );
-                  handleGroupToggle(EXPENSE_CATEGORIES.VEHICLE, !allSelected);
-                }}
-              >
-                {EXPENSE_CATEGORIES.VEHICLE.every((cat) => enabledCategories.includes(cat))
-                  ? "Deselect All"
-                  : "Select All"}
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {EXPENSE_CATEGORIES.VEHICLE.map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={category}
-                    checked={enabledCategories.includes(category)}
-                    onChange={(e) =>
-                      handleCategoryChange(category, e.target.checked)
-                    }
-                  />
-                  <Label
-                    htmlFor={category}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Tax-Deductible Personal Categories */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Tax-Deductible Personal</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const allSelected = EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL.every((cat) =>
-                    enabledCategories.includes(cat)
-                  );
-                  handleGroupToggle(EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL, !allSelected);
-                }}
-              >
-                {EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL.every((cat) =>
-                  enabledCategories.includes(cat)
-                )
-                  ? "Deselect All"
-                  : "Select All"}
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL.map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={category}
-                    checked={enabledCategories.includes(category)}
-                    onChange={(e) =>
-                      handleCategoryChange(category, e.target.checked)
-                    }
-                  />
-                  <Label
-                    htmlFor={category}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Non-Deductible Personal Categories */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Non-Deductible Personal</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const allSelected = EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL.every((cat) =>
-                    enabledCategories.includes(cat)
-                  );
-                  handleGroupToggle(EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL, !allSelected);
-                }}
-              >
-                {EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL.every((cat) =>
-                  enabledCategories.includes(cat)
-                )
-                  ? "Deselect All"
-                  : "Select All"}
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL.map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={category}
-                    checked={enabledCategories.includes(category)}
-                    onChange={(e) =>
-                      handleCategoryChange(category, e.target.checked)
-                    }
-                  />
-                  <Label
-                    htmlFor={category}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
+          {renderCategoryGroup("General Self-Employment", EXPENSE_CATEGORIES.SELF_EMPLOYMENT)}
         </CardContent>
       </Card>
 
@@ -355,7 +181,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           <CardTitle>Mileage Logging</CardTitle>
           <CardDescription>Choose how you want to track vehicle mileage</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <input
@@ -382,6 +208,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
               </Label>
             </div>
           </div>
+          {renderCategoryGroup("Vehicle Categories", EXPENSE_CATEGORIES.VEHICLE)}
         </CardContent>
       </Card>
 
@@ -395,7 +222,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           <div className="flex items-center space-x-2">
             <Checkbox
               id="trackPersonalExpenses"
-              checked={watch("trackPersonalExpenses") !== false}
+              checked={watch("trackPersonalExpenses") === true}
               onChange={(e) => setValue("trackPersonalExpenses", e.target.checked)}
             />
             <Label
@@ -408,6 +235,12 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           <p className="text-xs text-muted-foreground mt-2">
             When disabled, the "Personal" expense type will be removed from the expense form.
           </p>
+          {trackPersonalExpenses && (
+            <div className="mt-6 space-y-6">
+              {renderCategoryGroup("Tax-Deductible Personal", EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL)}
+              {renderCategoryGroup("Non-Deductible Personal", EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL)}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -417,7 +250,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           <CardTitle>Home Office</CardTitle>
           <CardDescription>Enter the percentage of your home used for business</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="homeOfficePercentage">Home Office Percentage (%)</Label>
             <Input
@@ -435,6 +268,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
               </p>
             )}
           </div>
+          {renderCategoryGroup("Home Office/Living Categories", EXPENSE_CATEGORIES.HOME_OFFICE_LIVING)}
         </CardContent>
       </Card>
 

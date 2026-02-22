@@ -58,6 +58,7 @@ export async function GET(_request: NextRequest) {
               subscriptionTier,
               taxFilingStatus,
               province: "BC",
+              trackPersonalExpenses: false,
               disclaimerVersion: DISCLAIMER_VERSION,
               disclaimerAcceptedAt: acceptedAt,
             })
@@ -171,6 +172,7 @@ export async function PATCH(request: NextRequest) {
         subscriptionTier,
         taxFilingStatus,
         province: "BC",
+        trackPersonalExpenses: false,
         disclaimerVersion: DISCLAIMER_VERSION,
         disclaimerAcceptedAt: now,
         updatedAt: now,

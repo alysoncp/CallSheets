@@ -23,7 +23,9 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enabledCategories, setEnabledCategories] = useState<string[] | null>(null);
-  const [userProfile, setUserProfile] = useState<{ homeOfficePercentage?: number | null; trackPersonalExpenses?: boolean } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ homeOfficePercentage?: number | null; trackPersonalExpenses?: boolean } | null>({
+    trackPersonalExpenses: false,
+  });
 
   // Merge OCR data with initial data
   const mergedData = ocrData ? { ...initialData, ...ocrData } : initialData;
@@ -57,7 +59,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
           }
           setUserProfile({
             homeOfficePercentage: data.homeOfficePercentage,
-            trackPersonalExpenses: data.trackPersonalExpenses !== false, // Default to true if not set
+            trackPersonalExpenses: data.trackPersonalExpenses === true, // Default to false if not set
           });
         }
       })
@@ -162,8 +164,8 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
                 <option value="">Select type</option>
                 <option value="home_office_living">Home Office/Living</option>
                 <option value="vehicle">Vehicle</option>
-                <option value="self_employment">Self-Employment</option>
-                {userProfile?.trackPersonalExpenses !== false && (
+                <option value="self_employment">Employment Expenses</option>
+                {userProfile?.trackPersonalExpenses === true && (
                   <option value="personal">Personal</option>
                 )}
                 <option value="mixed">Mixed</option>
