@@ -24,11 +24,13 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
   const [error, setError] = useState<string | null>(null);
   const [enabledCategories, setEnabledCategories] = useState<string[] | null>(null);
   const [userProfile, setUserProfile] = useState<{
+    hasHomeOffice?: boolean;
     homeOfficePercentage?: number | null;
     trackPersonalExpenses?: boolean;
     trackVehicleExpenses?: boolean;
     trackHomeOfficeExpenses?: boolean;
   } | null>({
+    hasHomeOffice: false,
     trackPersonalExpenses: false,
     trackVehicleExpenses: true,
     trackHomeOfficeExpenses: true,
@@ -80,6 +82,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
             setEnabledCategories(data.enabledExpenseCategories);
           }
           setUserProfile({
+            hasHomeOffice: data.hasHomeOffice === true,
             homeOfficePercentage: data.homeOfficePercentage,
             trackPersonalExpenses: data.trackPersonalExpenses === true, // Default to false if not set
             trackVehicleExpenses,
@@ -187,7 +190,9 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               <Select id="expenseType" {...register("expenseType")} required>
                 <option value="">Select type</option>
                 {(userProfile?.trackHomeOfficeExpenses === true || expenseType === "home_office_living") && (
-                  <option value="home_office_living">Home Office/Living</option>
+                  <option value="home_office_living">
+                    {userProfile?.hasHomeOffice === true ? "Home Office/ Home" : "Home Expenses"}
+                  </option>
                 )}
                 {(userProfile?.trackVehicleExpenses === true || expenseType === "vehicle") && (
                   <option value="vehicle">Vehicle</option>
@@ -238,7 +243,9 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
                 />
               </div>
             )}
-            {expenseType === "home_office_living" && userProfile?.homeOfficePercentage != null && (
+            {expenseType === "home_office_living" &&
+              userProfile?.hasHomeOffice === true &&
+              userProfile?.homeOfficePercentage != null && (
               <div className="space-y-2">
                 <Label htmlFor="homeOfficePercentage">Home Office Percentage</Label>
                 <div className="flex items-center gap-2">
