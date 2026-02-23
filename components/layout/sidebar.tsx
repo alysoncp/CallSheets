@@ -115,7 +115,9 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
           const trackVehicleExpenses = enabledCategories.length === 0
             ? true
             : EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
-          const trackAssets = !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
+          const trackAssets = enabledCategories.length === 0
+            ? false
+            : !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
           setUserProfile({
             subscriptionTier: data.subscriptionTier || "basic",
             hasGstNumber: data.hasGstNumber === true,

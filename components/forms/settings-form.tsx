@@ -19,6 +19,15 @@ interface SettingsFormProps {
 }
 
 const ASSETS_FEATURE_DISABLED_FLAG = "__feature_assets_disabled__";
+const DEFAULT_ENABLED_EXPENSE_CATEGORIES = [
+  ...EXPENSE_CATEGORIES.SELF_EMPLOYMENT,
+  ...EXPENSE_CATEGORIES.VEHICLE,
+  ASSETS_FEATURE_DISABLED_FLAG,
+];
+
+const unique = (items: string[]) => [...new Set(items)];
+const inGroup = (group: readonly string[], category: string) =>
+  (group as readonly string[]).includes(category);
 
 export function SettingsForm({ initialData }: SettingsFormProps) {
   const router = useRouter();
@@ -26,8 +35,26 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [successToastOpen, setSuccessToastOpen] = useState(false);
   const subscriptionTier = initialData?.subscriptionTier as SubscriptionTier | undefined;
-  const defaultEnabledExpenseCategories =
-    (initialData?.enabledExpenseCategories as string[] | undefined) ?? [ASSETS_FEATURE_DISABLED_FLAG];
+  const initialEnabledExpenseCategories = Array.isArray(initialData?.enabledExpenseCategories)
+    ? (initialData.enabledExpenseCategories as string[])
+    : [];
+  const hasStoredEnabledCategories = initialEnabledExpenseCategories.length > 0;
+  const defaultEnabledExpenseCategories = hasStoredEnabledCategories
+    ? initialEnabledExpenseCategories
+    : DEFAULT_ENABLED_EXPENSE_CATEGORIES;
+  const [lastHomeOfficeCategories, setLastHomeOfficeCategories] = useState<string[]>(
+    defaultEnabledExpenseCategories.filter((c) => inGroup(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, c))
+  );
+  const [lastPersonalCategories, setLastPersonalCategories] = useState<string[]>(
+    defaultEnabledExpenseCategories.filter(
+      (c) =>
+        inGroup(EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL, c) ||
+        inGroup(EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL, c)
+    )
+  );
+  const [lastVehicleCategories, setLastVehicleCategories] = useState<string[]>(
+    defaultEnabledExpenseCategories.filter((c) => inGroup(EXPENSE_CATEGORIES.VEHICLE, c))
+  );
 
   const {
     register,
@@ -42,8 +69,8 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       enabledExpenseCategories: defaultEnabledExpenseCategories,
       mileageLoggingStyle: initialData?.mileageLoggingStyle || "trip_distance",
       hasHomeOffice: initialData?.hasHomeOffice === true,
-      homeOfficePercentage: initialData?.homeOfficePercentage || undefined,
-      trackPersonalExpenses: initialData?.trackPersonalExpenses === true, // Default to false
+      homeOfficePercentage: initialData?.homeOfficePercentage ?? 0,
+      trackPersonalExpenses: hasStoredEnabledCategories && initialData?.trackPersonalExpenses === true,
     },
   });
 
@@ -63,6 +90,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     homeOfficePercentage !== null ? 100 - homeOfficePercentage : null;
   const trackPersonalExpenses = watch("trackPersonalExpenses") === true;
   const trackVehicleExpenses = EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
+  const trackHomeOfficeExpenses = EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.some((cat) => enabledCategories.includes(cat));
   const trackAssets = !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
 
   // Handle category checkbox changes
@@ -80,7 +108,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     const current = (enabledCategories as string[]) || [];
     if (checked) {
       // Add all categories from this group
-      const newCategories = [...new Set([...current, ...categories])];
+      const newCategories = unique([...current, ...categories]);
       setValue("enabledExpenseCategories", newCategories);
     } else {
       // Remove all categories from this group
@@ -206,70 +234,108 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       {/* Home Office Percentage */}
       <Card>
         <CardHeader>
-          <CardTitle>Home Office or Personal Home Expenses</CardTitle>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Home Office / Home Expenses</CardTitle>
+            </div>
+            <div className="flex items-center pr-1">
+              <Switch
+                id="trackHomeOfficeExpenses"
+                aria-label="Track home office or home expenses"
+                checked={trackHomeOfficeExpenses}
+                onCheckedChange={(checked) => {
+                  const current = (enabledCategories as string[]) || [];
+                  if (checked) {
+                    const categoriesToRestore =
+                      lastHomeOfficeCategories.length > 0
+                        ? lastHomeOfficeCategories
+                        : [...EXPENSE_CATEGORIES.HOME_OFFICE_LIVING];
+                    setValue("enabledExpenseCategories", unique([...current, ...categoriesToRestore]));
+                    setValue("hasHomeOffice", false);
+                    setValue("homeOfficePercentage", 0);
+                  } else {
+                    setLastHomeOfficeCategories(
+                      current.filter((c) => inGroup(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, c))
+                    );
+                    setValue(
+                      "enabledExpenseCategories",
+                      current.filter((c) => !inGroup(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, c))
+                    );
+                    setValue("hasHomeOffice", false);
+                    setValue("homeOfficePercentage", 0);
+                  }
+                }}
+                className="scale-125 origin-right"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-sm text-muted-foreground">
-            Track home-related expenses here. If part of your home is used as a home office, set the business-use percentage.
+            Track home-related expenses such as rent and utilities. If part of your home is used as a home office, set the business-use percentage to have deductible portions automatically calculated.
           </p>
-          <div className="space-y-3">
-            <Label>Do you use part of your home for a home office?</Label>
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  id="has_home_office_yes"
-                  checked={hasHomeOffice}
-                  onChange={() => {
-                    setValue("hasHomeOffice", true);
-                  }}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="has_home_office_yes" className="text-sm font-normal cursor-pointer">
-                  Yes
-                </Label>
+          {trackHomeOfficeExpenses && (
+            <>
+              <div className="space-y-3">
+                <Label>Do you use part of your home for a home office?</Label>
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="has_home_office_yes"
+                      checked={hasHomeOffice}
+                      onChange={() => {
+                        setValue("hasHomeOffice", true);
+                      }}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="has_home_office_yes" className="text-sm font-normal cursor-pointer">
+                      Yes
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="has_home_office_no"
+                      checked={!hasHomeOffice}
+                      onChange={() => {
+                        setValue("hasHomeOffice", false);
+                        setValue("homeOfficePercentage", 0);
+                      }}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="has_home_office_no" className="text-sm font-normal cursor-pointer">
+                      No
+                    </Label>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  id="has_home_office_no"
-                  checked={!hasHomeOffice}
-                  onChange={() => {
-                    setValue("hasHomeOffice", false);
-                    setValue("homeOfficePercentage", 0);
-                  }}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="has_home_office_no" className="text-sm font-normal cursor-pointer">
-                  No
-                </Label>
-              </div>
-            </div>
-          </div>
 
-          <div className={`space-y-2 ${!hasHomeOffice ? "opacity-50" : ""}`}>
-            <Label htmlFor="homeOfficePercentage">Home Office Percentage (%) used for BUSINESS</Label>
-            <Input
-              id="homeOfficePercentage"
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              {...register("homeOfficePercentage")}
-              placeholder="e.g., 25.5"
-              disabled={!hasHomeOffice}
-            />
-            {errors.homeOfficePercentage && (
-              <p className="text-sm text-destructive">
-                {errors.homeOfficePercentage.message}
-              </p>
-            )}
-          </div>
-          {renderCategoryGroup(
-            hasHomeOffice
-              ? `Home Office (${homeOfficePercentage !== null ? `${homeOfficePercentage}%` : "--"}) / Personal Home Expenses (${personalHomeExpensesPercentage !== null ? `${personalHomeExpensesPercentage}%` : "--"})`
-              : "Home Expenses",
-            EXPENSE_CATEGORIES.HOME_OFFICE_LIVING
+              <div className={`space-y-2 ${!hasHomeOffice ? "opacity-50" : ""}`}>
+                <Label htmlFor="homeOfficePercentage">Home Office Percentage (%) used for BUSINESS</Label>
+                <Input
+                  id="homeOfficePercentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  {...register("homeOfficePercentage")}
+                  placeholder="e.g., 25.5"
+                  disabled={!hasHomeOffice}
+                />
+                {errors.homeOfficePercentage && (
+                  <p className="text-sm text-destructive">
+                    {errors.homeOfficePercentage.message}
+                  </p>
+                )}
+              </div>
+              {renderCategoryGroup(
+                hasHomeOffice
+                  ? `Home Office (${homeOfficePercentage !== null ? `${homeOfficePercentage}%` : "--"}) / Personal Home Expenses (${personalHomeExpensesPercentage !== null ? `${personalHomeExpensesPercentage}%` : "--"})`
+                  : "Home Expenses",
+                EXPENSE_CATEGORIES.HOME_OFFICE_LIVING
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -287,9 +353,23 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 aria-label="Track personal expenses"
                 checked={trackPersonalExpenses}
                 onCheckedChange={(checked) => {
+                  const current = (enabledCategories as string[]) || [];
+                  const personalCategories = [
+                    ...EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL,
+                    ...EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL,
+                  ];
                   setValue("trackPersonalExpenses", checked);
-                  handleGroupToggle(EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL, checked);
-                  handleGroupToggle(EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL, checked);
+                  if (checked) {
+                    const categoriesToRestore =
+                      lastPersonalCategories.length > 0 ? lastPersonalCategories : personalCategories;
+                    setValue("enabledExpenseCategories", unique([...current, ...categoriesToRestore]));
+                  } else {
+                    setLastPersonalCategories(current.filter((c) => inGroup(personalCategories, c)));
+                    setValue(
+                      "enabledExpenseCategories",
+                      current.filter((c) => !inGroup(personalCategories, c))
+                    );
+                  }
                 }}
                 className="scale-125 origin-right"
               />
@@ -325,7 +405,20 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 aria-label="Track vehicle expenses"
                 checked={trackVehicleExpenses}
                 onCheckedChange={(checked) => {
-                  handleGroupToggle(EXPENSE_CATEGORIES.VEHICLE, checked);
+                  const current = (enabledCategories as string[]) || [];
+                  if (checked) {
+                    const categoriesToRestore =
+                      lastVehicleCategories.length > 0
+                        ? lastVehicleCategories
+                        : [...EXPENSE_CATEGORIES.VEHICLE];
+                    setValue("enabledExpenseCategories", unique([...current, ...categoriesToRestore]));
+                  } else {
+                    setLastVehicleCategories(current.filter((c) => inGroup(EXPENSE_CATEGORIES.VEHICLE, c)));
+                    setValue(
+                      "enabledExpenseCategories",
+                      current.filter((c) => !inGroup(EXPENSE_CATEGORIES.VEHICLE, c))
+                    );
+                  }
                 }}
                 className="scale-125 origin-right"
               />

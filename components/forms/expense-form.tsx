@@ -18,6 +18,11 @@ interface ExpenseFormProps {
   ocrData?: any;
 }
 
+const DEFAULT_ENABLED_EXPENSE_CATEGORIES = [
+  ...EXPENSE_CATEGORIES.SELF_EMPLOYMENT,
+  ...EXPENSE_CATEGORIES.VEHICLE,
+];
+
 export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -33,7 +38,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
     hasHomeOffice: false,
     trackPersonalExpenses: false,
     trackVehicleExpenses: true,
-    trackHomeOfficeExpenses: true,
+    trackHomeOfficeExpenses: false,
   });
 
   // Merge OCR data with initial data
@@ -63,24 +68,23 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
       .then((res) => res.json())
       .then((data) => {
         if (data && !data.error) {
-          const categories = Array.isArray(data.enabledExpenseCategories)
+          const storedCategories = Array.isArray(data.enabledExpenseCategories)
             ? (data.enabledExpenseCategories as string[])
             : null;
+          const categories =
+            storedCategories && storedCategories.length > 0
+              ? storedCategories
+              : DEFAULT_ENABLED_EXPENSE_CATEGORIES;
 
-          if (categories) {
-            setEnabledCategories(categories);
-          }
+          setEnabledCategories(categories);
 
           const trackVehicleExpenses = categories
             ? EXPENSE_CATEGORIES.VEHICLE.some((cat) => categories.includes(cat))
             : true;
           const trackHomeOfficeExpenses = categories
             ? EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.some((cat) => categories.includes(cat))
-            : true;
+            : false;
 
-          if (data.enabledExpenseCategories) {
-            setEnabledCategories(data.enabledExpenseCategories);
-          }
           setUserProfile({
             hasHomeOffice: data.hasHomeOffice === true,
             homeOfficePercentage: data.homeOfficePercentage,

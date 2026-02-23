@@ -29,7 +29,9 @@ export default async function AssetsPage() {
   const enabledCategories = Array.isArray(userProfile?.enabledExpenseCategories)
     ? userProfile.enabledExpenseCategories
     : [];
-  const trackAssets = !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
+  const trackAssets = enabledCategories.length === 0
+    ? false
+    : !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
   if (!trackAssets) {
     redirect("/dashboard");
   }

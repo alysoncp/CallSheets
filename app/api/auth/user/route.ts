@@ -5,6 +5,14 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { DISCLAIMER_VERSION } from "@/lib/constants";
 import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
+import { EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
+
+const ASSETS_FEATURE_DISABLED_FLAG = "__feature_assets_disabled__";
+const DEFAULT_ENABLED_EXPENSE_CATEGORIES = [
+  ...EXPENSE_CATEGORIES.SELF_EMPLOYMENT,
+  ...EXPENSE_CATEGORIES.VEHICLE,
+  ASSETS_FEATURE_DISABLED_FLAG,
+];
 
 export async function GET(_request: NextRequest) {
   try {
@@ -59,6 +67,10 @@ export async function GET(_request: NextRequest) {
               taxFilingStatus,
               province: "BC",
               trackPersonalExpenses: false,
+              enabledExpenseCategories: DEFAULT_ENABLED_EXPENSE_CATEGORIES,
+              hasHomeOffice: false,
+              homeOfficePercentage: "0",
+              mileageLoggingStyle: "trip_distance",
               disclaimerVersion: DISCLAIMER_VERSION,
               disclaimerAcceptedAt: acceptedAt,
             })
@@ -173,6 +185,10 @@ export async function PATCH(request: NextRequest) {
         taxFilingStatus,
         province: "BC",
         trackPersonalExpenses: false,
+        enabledExpenseCategories: DEFAULT_ENABLED_EXPENSE_CATEGORIES,
+        hasHomeOffice: false,
+        homeOfficePercentage: "0",
+        mileageLoggingStyle: "trip_distance",
         disclaimerVersion: DISCLAIMER_VERSION,
         disclaimerAcceptedAt: now,
         updatedAt: now,
