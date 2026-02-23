@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EXPENSE_CATEGORIES, getExpenseCategoryLabel } from "@/lib/validations/expense-categories";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
@@ -62,6 +62,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     formState: { errors },
     watch,
     setValue,
+    reset,
   } = useForm<UserProfileFormData>({
     resolver: zodResolver(userProfileSchema) as Resolver<UserProfileFormData>,
     defaultValues: {
@@ -152,6 +153,39 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       </div>
     );
   };
+
+  useEffect(() => {
+    const nextInitialEnabledExpenseCategories = Array.isArray(initialData?.enabledExpenseCategories)
+      ? (initialData.enabledExpenseCategories as string[])
+      : [];
+    const nextHasStoredEnabledCategories = nextInitialEnabledExpenseCategories.length > 0;
+    const nextDefaultEnabledExpenseCategories = nextHasStoredEnabledCategories
+      ? nextInitialEnabledExpenseCategories
+      : DEFAULT_ENABLED_EXPENSE_CATEGORIES;
+
+    setLastHomeOfficeCategories(
+      nextDefaultEnabledExpenseCategories.filter((c) => inGroup(EXPENSE_CATEGORIES.HOME_OFFICE_LIVING, c))
+    );
+    setLastPersonalCategories(
+      nextDefaultEnabledExpenseCategories.filter(
+        (c) =>
+          inGroup(EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL, c) ||
+          inGroup(EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL, c)
+      )
+    );
+    setLastVehicleCategories(
+      nextDefaultEnabledExpenseCategories.filter((c) => inGroup(EXPENSE_CATEGORIES.VEHICLE, c))
+    );
+
+    reset({
+      ...initialData,
+      enabledExpenseCategories: nextDefaultEnabledExpenseCategories,
+      mileageLoggingStyle: initialData?.mileageLoggingStyle || "trip_distance",
+      hasHomeOffice: initialData?.hasHomeOffice === true,
+      homeOfficePercentage: initialData?.homeOfficePercentage ?? 0,
+      trackPersonalExpenses: nextHasStoredEnabledCategories && initialData?.trackPersonalExpenses === true,
+    });
+  }, [initialData, reset]);
 
   const onSubmit = async (data: UserProfileFormData) => {
     setLoading(true);
