@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { IncomeType } from "@/lib/validations/expense-categories";
 import { compressImageIfNeeded } from "@/lib/utils/client-image-compression";
+import { getOcrLimit, type SubscriptionTier } from "@/lib/utils/subscription";
 
 type EntryMethod = "upload" | "camera" | "manual" | null;
 type DialogStep = "type" | "method" | "upload" | "form";
@@ -40,12 +41,17 @@ export function IncomeEntryDialog({
   const [ocrData, setOcrData] = useState<any>(null);
   const [uploadedPaystub, setUploadedPaystub] = useState<{ id: string; imageUrl: string } | null>(null);
   const [enableOcr, setEnableOcr] = useState(true);
+  const [ocrRequestsThisMonth, setOcrRequestsThisMonth] = useState(0);
+  const [ocrLimit, setOcrLimit] = useState<number>(0);
+  const [ocrLimitReached, setOcrLimitReached] = useState(false);
   const [userProfile, setUserProfile] = useState<{
     ubcpActraStatus?: string;
     userType?: string;
     hasAgent?: boolean;
     agentCommission?: number;
     hasGstNumber?: boolean;
+    subscriptionTier?: SubscriptionTier;
+    ocrRequestsThisMonth?: number;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +64,19 @@ export function IncomeEntryDialog({
   const pickerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasSavedIncomeRef = useRef(false);
   const cleanupInProgressRef = useRef(false);
+
+  const updateOcrEligibility = (tier: SubscriptionTier, currentRequests: number) => {
+    const limit = getOcrLimit(tier);
+    const reached = Number.isFinite(limit) && currentRequests >= limit;
+
+    setOcrLimit(limit);
+    setOcrRequestsThisMonth(currentRequests);
+    setOcrLimitReached(reached);
+
+    if (reached) {
+      setEnableOcr(false);
+    }
+  };
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -97,7 +116,7 @@ export function IncomeEntryDialog({
         setEntryMethod(null);
         setOcrData(null);
         setUploadedPaystub(null);
-        setEnableOcr(true);
+        setEnableOcr(!ocrLimitReached);
         setPickerOpen(false);
       }
       
@@ -112,20 +131,26 @@ export function IncomeEntryDialog({
               hasAgent: data.hasAgent === true,
               agentCommission: data.agentCommission != null ? Number(data.agentCommission) : 0,
               hasGstNumber: data.hasGstNumber === true,
+              subscriptionTier: (data.subscriptionTier || "basic") as SubscriptionTier,
+              ocrRequestsThisMonth: Number(data.ocrRequestsThisMonth || 0),
             });
+            updateOcrEligibility(
+              (data.subscriptionTier || "basic") as SubscriptionTier,
+              Number(data.ocrRequestsThisMonth || 0)
+            );
           }
         })
         .catch(() => {
           // Silently fail
         });
     }
-  }, [open, initialData]);
+  }, [open, initialData, ocrLimitReached]);
 
   const handleIncomeTypeSelect = (incomeType: IncomeType) => {
     setSelectedIncomeType(incomeType);
     setStep("method");
     // Reset OCR toggle based on income type
-    setEnableOcr(incomeType === "union_production");
+    setEnableOcr(incomeType === "union_production" && !ocrLimitReached);
   };
 
   const handleEntryMethodSelect = (method: EntryMethod) => {
@@ -173,6 +198,14 @@ export function IncomeEntryDialog({
         // If OCR is enabled and available, process it; otherwise clear ocrData
         if (enableOcr && data.ocrResult) {
           setOcrData(data.ocrResult);
+          if (Number.isFinite(ocrLimit)) {
+            const nextRequests = ocrRequestsThisMonth + 1;
+            setOcrRequestsThisMonth(nextRequests);
+            if (nextRequests >= ocrLimit) {
+              setOcrLimitReached(true);
+              setEnableOcr(false);
+            }
+          }
         } else {
           setOcrData(null); // Clear OCR data if disabled
         }
@@ -239,7 +272,7 @@ export function IncomeEntryDialog({
     setEntryMethod(null);
     setOcrData(null);
     setUploadedPaystub(null);
-    setEnableOcr(true);
+    setEnableOcr(!ocrLimitReached);
     setPickerOpen(false);
   };
 
@@ -433,8 +466,14 @@ export function IncomeEntryDialog({
                   id="enable-ocr"
                   checked={enableOcr}
                   onCheckedChange={setEnableOcr}
+                  disabled={ocrLimitReached}
                 />
               </div>
+            )}
+            {isUnionProduction && ocrLimitReached && (
+              <p className="text-sm text-amber-700">
+                You have reached your limit for scanned receipts and paystubs this month. Upgrade plan for more scans.
+              </p>
             )}
 
             {entryMethod === "upload" && (
