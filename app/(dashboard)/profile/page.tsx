@@ -6,6 +6,14 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
+
+const ASSETS_FEATURE_DISABLED_FLAG = "__feature_assets_disabled__";
+const DEFAULT_ENABLED_EXPENSE_CATEGORIES = [
+  ...EXPENSE_CATEGORIES.SELF_EMPLOYMENT,
+  ...EXPENSE_CATEGORIES.VEHICLE,
+  ASSETS_FEATURE_DISABLED_FLAG,
+];
 
 export default async function ProfilePage({
   searchParams,
@@ -40,6 +48,11 @@ export default async function ProfilePage({
         subscriptionTier,
         taxFilingStatus,
         province: "BC",
+        enabledExpenseCategories: DEFAULT_ENABLED_EXPENSE_CATEGORIES,
+        trackPersonalExpenses: false,
+        hasHomeOffice: false,
+        homeOfficePercentage: "0",
+        mileageLoggingStyle: "trip_distance",
       })
       .returning();
 

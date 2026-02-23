@@ -24,7 +24,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [successToastOpen, setSuccessToastOpen] = useState(false);
   const needsDisclaimerAcceptance = !initialData?.disclaimerAcceptedAt;
   const shouldForceFreshSetupChoices = isSetupMode && needsDisclaimerAcceptance;
   const [agreedToDisclaimer, setAgreedToDisclaimer] = useState(!needsDisclaimerAcceptance);
@@ -40,6 +40,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
     defaultValues: {
       ...initialData,
       province: "BC",
+      userType: "performer",
       ubcpActraStatus: initialData?.ubcpActraStatus ?? "none",
       iatseStatus: initialData?.iatseStatus ?? "none",
       hasAgent: shouldForceFreshSetupChoices ? undefined : initialData?.hasAgent,
@@ -104,18 +105,18 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
 
       const result = await response.json();
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setSuccessToastOpen(true);
+      setTimeout(() => setSuccessToastOpen(false), 3000);
       
       // Trigger sidebar refresh
       localStorage.setItem('profileLastUpdate', Date.now().toString());
       window.dispatchEvent(new CustomEvent('profileUpdated', { detail: result, bubbles: true }));
       router.refresh();
 
-      // Redirect to dashboard if in setup mode
+      // Redirect to settings if in setup mode
       if (isSetupMode) {
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/settings");
         }, 1500);
       }
     } catch (err) {
@@ -140,11 +141,15 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
           {error}
         </div>
       )}
-      {success && (
-        <div className="p-3 text-sm text-green-600 bg-green-50 rounded-md">
-          {isSetupMode 
-            ? "Profile completed successfully! Redirecting to dashboard..." 
-            : "Profile updated successfully"}
+      {successToastOpen && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed right-4 top-4 z-50 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 shadow-lg"
+        >
+          {isSetupMode
+            ? "Profile completed successfully! Redirecting to settings..."
+            : "Profile updated successfully."}
         </div>
       )}
 
@@ -208,17 +213,17 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
               <Label htmlFor="userType">
                 User Type <span className="text-destructive">*</span>
               </Label>
-              <Select id="userType" {...register("userType")} required={isSetupMode}>
-                <option value="">Select user type</option>
-                <option value="performer">Performer</option>
-                <option value="crew">Crew</option>
-                <option value="both">Both</option>
-              </Select>
-              {userType === "both" && (
-                <p className="text-sm text-muted-foreground">
-                  Support for separating benefit amounts between UBCP/IATSE coming soon
-                </p>
-              )}
+              <input type="hidden" {...register("userType")} value="performer" />
+              <Input
+                id="userType"
+                value="Performer"
+                readOnly
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <p className="text-sm text-muted-foreground">
+                Support for Crew and Production coming soon!
+              </p>
               {errors.userType && (
                 <p className="text-sm text-destructive">{errors.userType.message}</p>
               )}
@@ -234,7 +239,7 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
           <CardDescription>Your union membership status</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-1">
             <div className="space-y-2">
               <Label htmlFor="ubcpActraStatus">
                 UBCP/ACTRA Status
@@ -247,19 +252,6 @@ export function ProfileForm({ initialData, isSetupMode = false }: ProfileFormPro
               </Select>
               {errors.ubcpActraStatus && (
                 <p className="text-sm text-destructive">{errors.ubcpActraStatus.message}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="iatseStatus">
-                IATSE Union Status
-              </Label>
-              <Select id="iatseStatus" {...register("iatseStatus")}>
-                <option value="none">None</option>
-                <option value="full">Full</option>
-                <option value="permittee">Permittee</option>
-              </Select>
-              {errors.iatseStatus && (
-                <p className="text-sm text-destructive">{errors.iatseStatus.message}</p>
               )}
             </div>
           </div>

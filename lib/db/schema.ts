@@ -26,7 +26,7 @@ export const users = pgTable("users", {
   homeOfficePercentage: numeric("home_office_percentage", { precision: 5, scale: 2 }),
   enabledExpenseCategories: jsonb("enabled_expense_categories").$type<string[]>(),
   mileageLoggingStyle: text("mileage_logging_style").$type<"trip_distance" | "odometer">().default("trip_distance"),
-  trackPersonalExpenses: boolean("track_personal_expenses").default(true),
+  trackPersonalExpenses: boolean("track_personal_expenses").default(false),
   ubcpActraStatus: text("ubcp_actra_status").$type<"none" | "background" | "apprentice" | "full_member">().default("none"),
   iatseStatus: text("iatse_status").$type<"full" | "permittee" | "none">().default("none"),
   ocrRequestsThisMonth: integer("ocr_requests_this_month").default(0),
@@ -171,40 +171,6 @@ export const assetCcaHistory = pgTable("asset_cca_history", {
   dispositions: numeric("dispositions", { precision: 12, scale: 2 }).default("0"),
   ccaClaimed: numeric("cca_claimed", { precision: 12, scale: 2 }).default("0"),
   closingUcc: numeric("closing_ucc", { precision: 12, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Lease contracts
-export const leaseContracts = pgTable("lease_contracts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  leaseType: text("lease_type").$type<"vehicle" | "equipment">().notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  lessorName: text("lessor_name"),
-  leaseStartDate: date("lease_start_date").notNull(),
-  leaseEndDate: date("lease_end_date").notNull(),
-  monthlyPayment: numeric("monthly_payment", { precision: 12, scale: 2 }).notNull(),
-  paymentFrequency: text("payment_frequency").$type<"monthly" | "quarterly" | "annual">().default("monthly"),
-  businessUsePercentage: numeric("business_use_percentage", { precision: 5, scale: 2 }).default("100"),
-  vehicleId: uuid("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
-  assetCategory: text("asset_category"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Lease payments
-export const leasePayments = pgTable("lease_payments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  leaseContractId: uuid("lease_contract_id").notNull().references(() => leaseContracts.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  paymentDate: date("payment_date").notNull(),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  gstAmount: numeric("gst_amount", { precision: 12, scale: 2 }).default("0"),
-  pstAmount: numeric("pst_amount", { precision: 12, scale: 2 }).default("0"),
-  description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

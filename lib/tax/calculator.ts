@@ -8,7 +8,6 @@ export interface TaxCalculationInput {
   grossIncome: number;
   totalExpenses: number;
   ccaDeductions: number;
-  leaseExpenses: number;
   province: string;
   isSelfEmployed: boolean;
 }
@@ -28,7 +27,7 @@ export interface TaxCalculationResult {
 }
 
 export function calculateTax(input: TaxCalculationInput): TaxCalculationResult {
-  const netIncome = input.grossIncome - input.totalExpenses - input.ccaDeductions - input.leaseExpenses;
+  const netIncome = input.grossIncome - input.totalExpenses - input.ccaDeductions;
   const taxableIncome = Math.max(0, netIncome - BASIC_PERSONAL_AMOUNT);
 
   const federalTax = calculateFederalTax(taxableIncome);

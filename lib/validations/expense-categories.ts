@@ -10,6 +10,8 @@ export const EXPENSE_CATEGORIES = {
     "management_admin_fees",
     "meals_entertainment",
     "office_supplies",
+    "office_studio_lease",
+    "equipment",
     "professional_fees",
     "repairs_maintenance",
     "salaries_wages",
@@ -60,12 +62,18 @@ export const EXPENSE_CATEGORIES = {
   ],
 } as const;
 
+// Backward-compatibility for previously saved records/settings.
+export const LEGACY_EXPENSE_CATEGORIES = [
+  "office_studio_leases",
+] as const;
+
 export const ALL_EXPENSE_CATEGORIES = [
   ...EXPENSE_CATEGORIES.SELF_EMPLOYMENT,
   ...EXPENSE_CATEGORIES.HOME_OFFICE_LIVING,
   ...EXPENSE_CATEGORIES.VEHICLE,
   ...EXPENSE_CATEGORIES.TAX_DEDUCTIBLE_PERSONAL,
   ...EXPENSE_CATEGORIES.NON_DEDUCTIBLE_PERSONAL,
+  ...LEGACY_EXPENSE_CATEGORIES,
 ] as const;
 
 export type ExpenseCategory = typeof ALL_EXPENSE_CATEGORIES[number];
@@ -91,6 +99,14 @@ export const CCA_RATES: Record<CcaClass, number> = {
   "50": 55,
   "45": 45,
 };
+
+export function getExpenseCategoryLabel(category: string): string {
+  if (category === "office_studio_lease" || category === "office_studio_leases") {
+    return "Office/Studio lease";
+  }
+
+  return category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+}
 
 export function getCategoriesByExpenseType(expenseType: string): readonly string[] {
   switch (expenseType) {

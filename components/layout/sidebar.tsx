@@ -13,7 +13,6 @@ import {
   PieChart,
   Building2,
   Settings,
-  CreditCard,
   User,
   HelpCircle,
   Info,
@@ -32,6 +31,9 @@ import type { SubscriptionTier } from "@/lib/utils/subscription";
 import { useTaxYear } from "@/lib/contexts/tax-year-context";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
+
+const ASSETS_FEATURE_DISABLED_FLAG = "__feature_assets_disabled__";
 
 const allNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -42,7 +44,6 @@ const allNavigation = [
   { name: "GST/HST", href: "/gst-hst", icon: Calculator, requiresGst: true },
   { name: "Tax Calculator", href: "/tax-calculator", icon: Calculator },
   { name: "Assets", href: "/assets", icon: Building2, requiresPersonalOrCorporate: true },
-  { name: "Leases", href: "/leases", icon: CreditCard, requiresPersonalOrCorporate: true },
   { name: "Optimization", href: "/optimization", icon: PieChart, requiresCorporate: true },
   { name: "Profile", href: "/profile", icon: Settings },
   { name: "Settings", href: "/settings", icon: SlidersHorizontal },
@@ -91,6 +92,8 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
   const [userProfile, setUserProfile] = useState<{
     subscriptionTier?: SubscriptionTier;
     hasGstNumber?: boolean;
+    trackVehicleExpenses?: boolean;
+    trackAssets?: boolean;
   } | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(true);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
@@ -106,9 +109,20 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
           const newUserName = name || data.email?.split("@")[0] || null;
           setUserName(newUserName);
           setUserEmail(data.email || null);
+          const enabledCategories = Array.isArray(data.enabledExpenseCategories)
+            ? (data.enabledExpenseCategories as string[])
+            : [];
+          const trackVehicleExpenses = enabledCategories.length === 0
+            ? true
+            : EXPENSE_CATEGORIES.VEHICLE.some((cat) => enabledCategories.includes(cat));
+          const trackAssets = enabledCategories.length === 0
+            ? false
+            : !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
           setUserProfile({
             subscriptionTier: data.subscriptionTier || "basic",
             hasGstNumber: data.hasGstNumber === true,
+            trackVehicleExpenses,
+            trackAssets,
           });
         }
       })
@@ -263,11 +277,20 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
   // Filter navigation based on user profile
   const navigation = useMemo(() => {
     return allNavigation.filter((item) => {
+      if (item.href === "/assets" && userProfile?.trackAssets === false) {
+        return false;
+      }
+      if (
+        (item.href === "/vehicles" || item.href === "/vehicle-mileage") &&
+        userProfile?.trackVehicleExpenses === false
+      ) {
+        return false;
+      }
       // Show Optimization only if user has corporate subscription
       if (item.requiresCorporate) {
         return userProfile?.subscriptionTier === "corporate";
       }
-      // Show Assets and Leases only if user has personal or corporate subscription
+      // Show Assets only if user has personal or corporate subscription
       if (item.requiresPersonalOrCorporate) {
         return userProfile?.subscriptionTier === "personal" || userProfile?.subscriptionTier === "corporate";
       }

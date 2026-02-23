@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { getCategoriesByExpenseType, ALL_EXPENSE_CATEGORIES } from "@/lib/validations/expense-categories";
+import { getCategoriesByExpenseType, ALL_EXPENSE_CATEGORIES, EXPENSE_CATEGORIES, getExpenseCategoryLabel } from "@/lib/validations/expense-categories";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -18,12 +18,28 @@ interface ExpenseFormProps {
   ocrData?: any;
 }
 
+const DEFAULT_ENABLED_EXPENSE_CATEGORIES = [
+  ...EXPENSE_CATEGORIES.SELF_EMPLOYMENT,
+  ...EXPENSE_CATEGORIES.VEHICLE,
+];
+
 export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enabledCategories, setEnabledCategories] = useState<string[] | null>(null);
-  const [userProfile, setUserProfile] = useState<{ homeOfficePercentage?: number | null; trackPersonalExpenses?: boolean } | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    hasHomeOffice?: boolean;
+    homeOfficePercentage?: number | null;
+    trackPersonalExpenses?: boolean;
+    trackVehicleExpenses?: boolean;
+    trackHomeOfficeExpenses?: boolean;
+  } | null>({
+    hasHomeOffice: false,
+    trackPersonalExpenses: false,
+    trackVehicleExpenses: true,
+    trackHomeOfficeExpenses: false,
+  });
 
   // Merge OCR data with initial data
   const mergedData = ocrData ? { ...initialData, ...ocrData } : initialData;
@@ -52,17 +68,34 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
       .then((res) => res.json())
       .then((data) => {
         if (data && !data.error) {
-          if (data.enabledExpenseCategories) {
-            setEnabledCategories(data.enabledExpenseCategories);
-          }
+          const storedCategories = Array.isArray(data.enabledExpenseCategories)
+            ? (data.enabledExpenseCategories as string[])
+            : null;
+          const categories =
+            storedCategories && storedCategories.length > 0
+              ? storedCategories
+              : DEFAULT_ENABLED_EXPENSE_CATEGORIES;
+
+          setEnabledCategories(categories);
+
+          const trackVehicleExpenses = categories
+            ? EXPENSE_CATEGORIES.VEHICLE.some((cat) => categories.includes(cat))
+            : true;
+          const trackHomeOfficeExpenses = categories
+            ? EXPENSE_CATEGORIES.HOME_OFFICE_LIVING.some((cat) => categories.includes(cat))
+            : false;
+
           setUserProfile({
+            hasHomeOffice: data.hasHomeOffice === true,
             homeOfficePercentage: data.homeOfficePercentage,
-            trackPersonalExpenses: data.trackPersonalExpenses !== false, // Default to true if not set
+            trackPersonalExpenses: data.trackPersonalExpenses === true, // Default to false if not set
+            trackVehicleExpenses,
+            trackHomeOfficeExpenses,
           });
         }
       })
       .catch(() => {
-        // Silently fail - will show all categories
+        // Silently fail - keep defaults
       });
   }, []);
 
@@ -160,10 +193,16 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
               <Label htmlFor="expenseType">Expense Type *</Label>
               <Select id="expenseType" {...register("expenseType")} required>
                 <option value="">Select type</option>
-                <option value="home_office_living">Home Office/Living</option>
-                <option value="vehicle">Vehicle</option>
-                <option value="self_employment">Self-Employment</option>
-                {userProfile?.trackPersonalExpenses !== false && (
+                {(userProfile?.trackHomeOfficeExpenses === true || expenseType === "home_office_living") && (
+                  <option value="home_office_living">
+                    {userProfile?.hasHomeOffice === true ? "Home Office/ Home" : "Home Expenses"}
+                  </option>
+                )}
+                {(userProfile?.trackVehicleExpenses === true || expenseType === "vehicle") && (
+                  <option value="vehicle">Vehicle</option>
+                )}
+                <option value="self_employment">Employment Expenses</option>
+                {(userProfile?.trackPersonalExpenses === true || expenseType === "personal") && (
                   <option value="personal">Personal</option>
                 )}
                 <option value="mixed">Mixed</option>
@@ -185,7 +224,7 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
                 <option value="">{expenseType ? "Select category" : "Select expense type first"}</option>
                 {availableCategories.map((cat) => (
                   <option key={cat} value={cat}>
-                    {cat.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                    {getExpenseCategoryLabel(cat)}
                   </option>
                 ))}
               </Select>
@@ -208,7 +247,9 @@ export function ExpenseForm({ initialData, onSuccess, ocrData }: ExpenseFormProp
                 />
               </div>
             )}
-            {expenseType === "home_office_living" && userProfile?.homeOfficePercentage != null && (
+            {expenseType === "home_office_living" &&
+              userProfile?.hasHomeOffice === true &&
+              userProfile?.homeOfficePercentage != null && (
               <div className="space-y-2">
                 <Label htmlFor="homeOfficePercentage">Home Office Percentage</Label>
                 <div className="flex items-center gap-2">

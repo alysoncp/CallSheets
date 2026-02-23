@@ -189,8 +189,7 @@ export default async function Home() {
           </CardHeader>
           <CardContent className="text-center space-y-6">
             <div>
-              <p className="text-sm text-muted-foreground line-through">$9.99/month</p>
-              <p className="text-4xl font-bold">Free</p>
+              <p className="text-4xl font-bold">Free during beta</p>
               <p className="text-sm text-muted-foreground">No credit card required right now.</p>
             </div>
             <div className="flex flex-wrap justify-center gap-3">

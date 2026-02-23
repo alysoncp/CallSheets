@@ -1,9 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+
+const ASSETS_FEATURE_DISABLED_FLAG = "__feature_assets_disabled__";
 
 export default async function AssetsPage() {
   const supabase = await createClient();
@@ -13,6 +18,22 @@ export default async function AssetsPage() {
 
   if (!user) {
     redirect("/signin");
+  }
+
+  const [userProfile] = await db
+    .select({ enabledExpenseCategories: users.enabledExpenseCategories })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
+
+  const enabledCategories = Array.isArray(userProfile?.enabledExpenseCategories)
+    ? userProfile.enabledExpenseCategories
+    : [];
+  const trackAssets = enabledCategories.length === 0
+    ? false
+    : !enabledCategories.includes(ASSETS_FEATURE_DISABLED_FLAG);
+  if (!trackAssets) {
+    redirect("/dashboard");
   }
 
   return (

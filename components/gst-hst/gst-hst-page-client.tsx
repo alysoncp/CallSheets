@@ -8,7 +8,6 @@ interface GstHstData {
   gstCollected: number;
   iitcFromExpenses: number;
   iitcFromAssets: number;
-  iitcFromLeases: number;
   totalIitc: number;
   netGst: number;
 }
@@ -89,12 +88,6 @@ export function GstHstPageClient() {
                 <span>From Assets:</span>
                 <span className="font-medium">
                   ${formatCurrency(data.iitcFromAssets)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>From Leases:</span>
-                <span className="font-medium">
-                  ${formatCurrency(data.iitcFromLeases)}
                 </span>
               </div>
               <div className="flex justify-between border-t pt-2 font-bold">

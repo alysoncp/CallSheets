@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { income, expenses, assets, leasePayments } from "@/lib/db/schema";
+import { income, expenses, assets } from "@/lib/db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { format, startOfYear, endOfYear } from "date-fns";
 
@@ -65,32 +65,16 @@ export async function GET(request: NextRequest) {
         )
       );
 
-    // Calculate IITC from lease payments
-    const [iitcLeasesResult] = await db
-      .select({
-        total: sql<number>`COALESCE(SUM(${leasePayments.gstAmount}::numeric), 0)`,
-      })
-      .from(leasePayments)
-      .where(
-        and(
-          eq(leasePayments.userId, user.id),
-          gte(leasePayments.paymentDate, startDate),
-          lte(leasePayments.paymentDate, endDate)
-        )
-      );
-
     const gstCollected = Number(gstCollectedResult?.total || 0);
     const iitcFromExpenses = Number(iitcExpensesResult?.total || 0);
     const iitcFromAssets = Number(iitcAssetsResult?.total || 0);
-    const iitcFromLeases = Number(iitcLeasesResult?.total || 0);
-    const totalIitc = iitcFromExpenses + iitcFromAssets + iitcFromLeases;
+    const totalIitc = iitcFromExpenses + iitcFromAssets;
     const netGst = gstCollected - totalIitc;
 
     return NextResponse.json({
       gstCollected,
       iitcFromExpenses,
       iitcFromAssets,
-      iitcFromLeases,
       totalIitc,
       netGst,
     });

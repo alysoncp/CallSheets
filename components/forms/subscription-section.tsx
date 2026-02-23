@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { Check, ExternalLink } from "lucide-react";
 import { getOcrLimit } from "@/lib/utils/subscription";
 import type { SubscriptionTier } from "@/lib/utils/subscription";
@@ -25,18 +24,7 @@ export function SubscriptionSection({ subscriptionTier }: SubscriptionSectionPro
     }
   };
 
-  const getTierPrice = (tier: SubscriptionTier) => {
-    switch (tier) {
-      case "basic":
-        return "$0";
-      case "personal":
-        return "$9.99";
-      case "corporate":
-        return "$24.99";
-      default:
-        return "$0";
-    }
-  };
+  const getTierPrice = (_tier: SubscriptionTier) => "Free during beta";
 
   const getTierFeatures = (tier: SubscriptionTier) => {
     switch (tier) {
@@ -53,7 +41,6 @@ export function SubscriptionSection({ subscriptionTier }: SubscriptionSectionPro
           "Vehicle mileage tracking",
           "Tax calculator",
           "Asset/CCA tracking",
-          "Lease management",
           `${getOcrLimit(tier)} OCR requests/month`,
         ];
       case "corporate":
@@ -81,7 +68,6 @@ export function SubscriptionSection({ subscriptionTier }: SubscriptionSectionPro
             <h3 className="text-lg font-semibold">{getTierName(subscriptionTier)}</h3>
             <span className="text-2xl font-bold">
               {getTierPrice(subscriptionTier)}
-              <span className="text-sm font-normal text-muted-foreground">/month</span>
             </span>
           </div>
           <ul className="space-y-2 mt-4">
@@ -93,11 +79,9 @@ export function SubscriptionSection({ subscriptionTier }: SubscriptionSectionPro
             ))}
           </ul>
         </div>
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/subscription">
-            Manage Subscription
-            <ExternalLink className="ml-2 h-4 w-4" />
-          </Link>
+        <Button disabled variant="outline" className="w-full">
+          Manage Subscription (Coming Soon)
+          <ExternalLink className="ml-2 h-4 w-4" />
         </Button>
       </CardContent>
     </Card>

@@ -112,7 +112,7 @@ export default function SignUpPage() {
                 <CardDescription>Free</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-6">$0<span className="text-lg font-normal">/month</span></div>
+                <div className="text-3xl font-bold mb-6">Free during beta</div>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600" />
@@ -143,12 +143,7 @@ export default function SignUpPage() {
                 <CardDescription>Most Popular - Free during beta</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-2">
-                  <span className="line-through text-muted-foreground">$9.99</span>
-                  <span className="ml-2">Free</span>
-                  <span className="text-lg font-normal">/month</span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-6">Free during beta period</p>
+                <div className="text-3xl font-bold mb-6">Free during beta</div>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600" />
@@ -165,10 +160,6 @@ export default function SignUpPage() {
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600" />
                     <span>Asset/CCA tracking</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-5 w-5 text-green-600" />
-                    <span>Lease management</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600" />
@@ -190,7 +181,7 @@ export default function SignUpPage() {
                 <CardDescription>Coming Soon</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-6">$24.99<span className="text-lg font-normal">/month</span></div>
+                <div className="text-3xl font-bold mb-6">Free during beta</div>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600" />
@@ -231,7 +222,7 @@ export default function SignUpPage() {
             <div className="flex-1">
               <CardTitle>Sign Up</CardTitle>
               <CardDescription>
-                Create your account - {selectedPlan === "personal" ? "Personal Plan (Free during beta)" : selectedPlan}
+                Create your account - {selectedPlan} plan (Free during beta)
               </CardDescription>
             </div>
           </div>

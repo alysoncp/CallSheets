@@ -46,18 +46,7 @@ export default async function SubscriptionPage() {
     }
   };
 
-  const getTierPrice = (tier: SubscriptionTier) => {
-    switch (tier) {
-      case "basic":
-        return "$0";
-      case "personal":
-        return "$9.99";
-      case "corporate":
-        return "$24.99";
-      default:
-        return "$0";
-    }
-  };
+  const getTierPrice = (_tier: SubscriptionTier) => "Free during beta";
 
   const getTierFeatures = (tier: SubscriptionTier) => {
     switch (tier) {
@@ -74,7 +63,6 @@ export default async function SubscriptionPage() {
           "Vehicle mileage tracking",
           "Tax calculator",
           "Asset/CCA tracking",
-          "Lease management",
           `${getOcrLimit(tier)} OCR requests/month`,
         ];
       case "corporate":
@@ -115,7 +103,6 @@ export default async function SubscriptionPage() {
               <h3 className="text-2xl font-semibold">{getTierName(subscriptionTier)}</h3>
               <span className="text-3xl font-bold">
                 {getTierPrice(subscriptionTier)}
-                <span className="text-sm font-normal text-muted-foreground">/month</span>
               </span>
             </div>
             <ul className="space-y-3 mt-6">
@@ -146,7 +133,7 @@ export default async function SubscriptionPage() {
                 <CardDescription>Free</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-6">$0<span className="text-lg font-normal">/month</span></div>
+                <div className="text-3xl font-bold mb-6">Free during beta</div>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-5 w-5 text-green-600" />
@@ -178,12 +165,7 @@ export default async function SubscriptionPage() {
                 <CardDescription>Most Popular - Free during beta</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-2">
-                  <span className="line-through text-muted-foreground">$9.99</span>
-                  <span className="ml-2">Free</span>
-                  <span className="text-lg font-normal">/month</span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-6">Free during beta period</p>
+                <div className="text-3xl font-bold mb-6">Free during beta</div>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-5 w-5 text-green-600" />
@@ -200,10 +182,6 @@ export default async function SubscriptionPage() {
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-5 w-5 text-green-600" />
                     <span>Asset/CCA tracking</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <Check className="h-5 w-5 text-green-600" />
-                    <span>Lease management</span>
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-5 w-5 text-green-600" />
@@ -226,7 +204,7 @@ export default async function SubscriptionPage() {
                 <CardDescription>Coming Soon</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-6">$24.99<span className="text-lg font-normal">/month</span></div>
+                <div className="text-3xl font-bold mb-6">Free during beta</div>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-5 w-5 text-green-600" />
