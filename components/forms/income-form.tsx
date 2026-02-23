@@ -307,7 +307,7 @@ export function IncomeForm({ initialData, onSuccess, onCancel, ocrData, incomeTy
               </>
             )}
 
-            {/* Union EP: Gross Pay, GST (if hasGstNumber), Total Deductions, Net Pay */}
+            {/* Union EP: Gross Pay, GST (if hasGstNumber), Net Pay */}
             {isUnionProduction && isEP && (
               <>
                 <div className="space-y-2">
@@ -339,19 +339,6 @@ export function IncomeForm({ initialData, onSuccess, onCancel, ocrData, incomeTy
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="totalDeductions">Total Deductions *</Label>
-                  <Input
-                    id="totalDeductions"
-                    type="number"
-                    step="0.01"
-                    {...register("totalDeductions")}
-                    required
-                  />
-                  {errors.totalDeductions && (
-                    <p className="text-sm text-destructive">{errors.totalDeductions.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="amount">Net Pay *</Label>
                   <Input
                     id="amount"
@@ -367,7 +354,7 @@ export function IncomeForm({ initialData, onSuccess, onCancel, ocrData, incomeTy
               </>
             )}
 
-            {/* Union CC: Gross Pay, GST (if hasGstNumber), Deductions, Reimbursements, Net Pay */}
+            {/* Union CC: Gross Pay, GST (if hasGstNumber), Reimbursements, Net Pay */}
             {isUnionProduction && isCC && (
               <>
                 <div className="space-y-2">
@@ -399,19 +386,6 @@ export function IncomeForm({ initialData, onSuccess, onCancel, ocrData, incomeTy
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="totalDeductions">Deductions *</Label>
-                  <Input
-                    id="totalDeductions"
-                    type="number"
-                    step="0.01"
-                    {...register("totalDeductions")}
-                    required
-                  />
-                  {errors.totalDeductions && (
-                    <p className="text-sm text-destructive">{errors.totalDeductions.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="reimbursements">Reimbursements</Label>
                   <Input
                     id="reimbursements"
@@ -436,72 +410,92 @@ export function IncomeForm({ initialData, onSuccess, onCancel, ocrData, incomeTy
               </>
             )}
 
-            {/* Optional fields - Union Production: only Dues for non-full members; all four for full members */}
-            {showOnlyDues && (
-              <div className="space-y-2">
-                <Label htmlFor="dues">Dues</Label>
-                <Input
-                  id="dues"
-                  type="number"
-                  step="0.01"
-                  {...register("dues")}
-                />
-                {errors.dues && (
-                  <p className="text-sm text-destructive">{errors.dues.message}</p>
-                )}
+            {/* Union Production deductions grouped with optional breakdown */}
+            {isUnionProduction && (
+              <div className="space-y-3 rounded-md border p-4 md:col-span-2">
+                <h3 className="text-sm font-semibold">Deductions</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="totalDeductions">Total Deductions *</Label>
+                    <Input
+                      id="totalDeductions"
+                      type="number"
+                      step="0.01"
+                      {...register("totalDeductions")}
+                      required
+                    />
+                    {errors.totalDeductions && (
+                      <p className="text-sm text-destructive">{errors.totalDeductions.message}</p>
+                    )}
+                  </div>
+                  {showOnlyDues && (
+                    <div className="space-y-2">
+                      <Label htmlFor="dues">Dues</Label>
+                      <Input
+                        id="dues"
+                        type="number"
+                        step="0.01"
+                        {...register("dues")}
+                      />
+                      {errors.dues && (
+                        <p className="text-sm text-destructive">{errors.dues.message}</p>
+                      )}
+                    </div>
+                  )}
+                  {showOptionalFields && !showOnlyDues && (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="retirement">Retirement</Label>
+                        <Input
+                          id="retirement"
+                          type="number"
+                          step="0.01"
+                          {...register("retirement")}
+                        />
+                        {errors.retirement && (
+                          <p className="text-sm text-destructive">{errors.retirement.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="insurance">Insurance</Label>
+                        <Input
+                          id="insurance"
+                          type="number"
+                          step="0.01"
+                          {...register("insurance")}
+                        />
+                        {errors.insurance && (
+                          <p className="text-sm text-destructive">{errors.insurance.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pension">Pension</Label>
+                        <Input
+                          id="pension"
+                          type="number"
+                          step="0.01"
+                          {...register("pension")}
+                        />
+                        {errors.pension && (
+                          <p className="text-sm text-destructive">{errors.pension.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dues">Dues</Label>
+                        <Input
+                          id="dues"
+                          type="number"
+                          step="0.01"
+                          {...register("dues")}
+                        />
+                        {errors.dues && (
+                          <p className="text-sm text-destructive">{errors.dues.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-            {showOptionalFields && !showOnlyDues && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="retirement">Retirement</Label>
-                  <Input
-                    id="retirement"
-                    type="number"
-                    step="0.01"
-                    {...register("retirement")}
-                  />
-                  {errors.retirement && (
-                    <p className="text-sm text-destructive">{errors.retirement.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="insurance">Insurance</Label>
-                  <Input
-                    id="insurance"
-                    type="number"
-                    step="0.01"
-                    {...register("insurance")}
-                  />
-                  {errors.insurance && (
-                    <p className="text-sm text-destructive">{errors.insurance.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pension">Pension</Label>
-                  <Input
-                    id="pension"
-                    type="number"
-                    step="0.01"
-                    {...register("pension")}
-                  />
-                  {errors.pension && (
-                    <p className="text-sm text-destructive">{errors.pension.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dues">Dues</Label>
-                  <Input
-                    id="dues"
-                    type="number"
-                    step="0.01"
-                    {...register("dues")}
-                  />
-                  {errors.dues && (
-                    <p className="text-sm text-destructive">{errors.dues.message}</p>
-                  )}
-                </div>
-              </>
             )}
 
             {/* Agent Commission - when user has agent (new or edit) */}
