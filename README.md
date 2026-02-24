@@ -1,4 +1,4 @@
-# CallSheets - Financial Management for Film & TV Professionals
+# CrewBooks - Financial Management for Film & TV Professionals
 
 A comprehensive financial management web application built specifically for Canadian film and TV industry professionals using Next.js 14+, TypeScript, Supabase, and Drizzle ORM.
 
@@ -40,7 +40,7 @@ A comprehensive financial management web application built specifically for Cana
 1. **Clone the repository:**
 ```bash
 git clone <repository-url>
-cd CallSheets
+cd CrewBooks
 ```
 
 2. **Install dependencies:**
@@ -117,7 +117,7 @@ All tables have RLS policies ensuring users can only access their own data. Set 
 ## Project Structure
 
 ```
-CallSheets/
+CrewBooks/
 ├── app/                    # Next.js App Router pages
 │   ├── (auth)/            # Authentication routes
 │   ├── (dashboard)/       # Protected dashboard routes

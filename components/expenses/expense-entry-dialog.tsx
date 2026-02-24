@@ -14,6 +14,7 @@ import { Upload, Camera, FileText, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { compressImageIfNeeded } from "@/lib/utils/client-image-compression";
+import { getOcrLimit, type SubscriptionTier } from "@/lib/utils/subscription";
 
 type EntryMethod = "upload" | "camera" | "manual" | null;
 
@@ -33,12 +34,28 @@ export function ExpenseEntryDialog({
   const [ocrData, setOcrData] = useState<any>(null);
   const [uploadedReceipt, setUploadedReceipt] = useState<{ id: string; imageUrl: string } | null>(null);
   const [enableOcr, setEnableOcr] = useState(true);
+  const [ocrRequestsThisMonth, setOcrRequestsThisMonth] = useState(0);
+  const [ocrLimit, setOcrLimit] = useState<number>(0);
+  const [ocrLimitReached, setOcrLimitReached] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const filePickerOpenRef = useRef(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const uploadInProgressRef = useRef(false);
   const pickerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const updateOcrEligibility = (tier: SubscriptionTier, currentRequests: number) => {
+    const limit = getOcrLimit(tier);
+    const reached = Number.isFinite(limit) && currentRequests >= limit;
+
+    setOcrLimit(limit);
+    setOcrRequestsThisMonth(currentRequests);
+    setOcrLimitReached(reached);
+
+    if (reached) {
+      setEnableOcr(false);
+    }
+  };
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -73,10 +90,26 @@ export function ExpenseEntryDialog({
       setEntryMethod(null);
       setOcrData(null);
       setUploadedReceipt(null);
-      setEnableOcr(true);
+      setEnableOcr(!ocrLimitReached);
       setPickerOpen(false);
     }
-  }, [open, initialData?.id]);
+
+    if (open) {
+      fetch("/api/user/profile")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && !data.error) {
+            updateOcrEligibility(
+              (data.subscriptionTier || "basic") as SubscriptionTier,
+              Number(data.ocrRequestsThisMonth || 0)
+            );
+          }
+        })
+        .catch(() => {
+          // Silently fail
+        });
+    }
+  }, [open, initialData?.id, ocrLimitReached]);
 
   const handleFileSelect = async (file: File) => {
     if (uploadInProgressRef.current) return;
@@ -104,6 +137,14 @@ export function ExpenseEntryDialog({
         
         if (enableOcr && data.ocrResult) {
           setOcrData(data.ocrResult);
+          if (Number.isFinite(ocrLimit)) {
+            const nextRequests = ocrRequestsThisMonth + 1;
+            setOcrRequestsThisMonth(nextRequests);
+            if (nextRequests >= ocrLimit) {
+              setOcrLimitReached(true);
+              setEnableOcr(false);
+            }
+          }
         } else {
           setOcrData(null);
         }
@@ -147,7 +188,7 @@ export function ExpenseEntryDialog({
     setEntryMethod(null);
     setOcrData(null);
     setUploadedReceipt(null);
-    setEnableOcr(true);
+    setEnableOcr(!ocrLimitReached);
     setPickerOpen(false);
   };
 
@@ -216,8 +257,14 @@ export function ExpenseEntryDialog({
                 id="enable-ocr"
                 checked={enableOcr}
                 onCheckedChange={setEnableOcr}
+                disabled={ocrLimitReached}
               />
             </div>
+            {ocrLimitReached && (
+              <p className="text-sm text-amber-700">
+                You have reached your limit for scanned receipts and paystubs this month. Upgrade plan for more scans.
+              </p>
+            )}
 
             {entryMethod === "upload" && (
               <div className="space-y-2">

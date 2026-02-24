@@ -1,4 +1,4 @@
--- Full initial schema for remote Supabase (CallSheets) Prod and dev
+-- Full initial schema for remote Supabase (CrewBooks) Prod and dev
 -- Generated from Drizzle schema. Includes all app tables + RLS + storage policies.
 
 -- Enable UUID extension (usually already enabled on Supabase)

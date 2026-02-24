@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Financial, Tax, and Legal Disclaimer (Canada) | CallSheets",
-  description: "CallSheets disclaimer: record-keeping and organizational tool only; not tax, accounting, legal, or financial advice.",
+  title: "Financial, Tax, and Legal Disclaimer (Canada) | CrewBooks",
+  description: "CrewBooks disclaimer: record-keeping and organizational tool only; not tax, accounting, legal, or financial advice.",
 };
 
 export default function DisclaimerPage() {

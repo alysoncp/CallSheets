@@ -318,7 +318,7 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
             className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl"
           >
             <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              CallSheets
+              CrewBooks
             </span>
           </Link>
           {themeMounted && (

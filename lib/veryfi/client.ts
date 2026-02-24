@@ -124,7 +124,7 @@ export class VeryfiClient {
     // Fetch the image from the URL (User-Agent helps avoid 400 from some CDNs/storage)
     const imageResponse = await fetch(imageUrl, {
       headers: {
-        "User-Agent": "CallSheets-OCR/1.0",
+        "User-Agent": "CrewBooks-OCR/1.0",
         "Accept": "image/*,*/*",
       },
     });
@@ -145,7 +145,7 @@ export class VeryfiClient {
     // Fetch the image from the URL (User-Agent helps avoid 400 from some CDNs/storage)
     const imageResponse = await fetch(imageUrl, {
       headers: {
-        "User-Agent": "CallSheets-OCR/1.0",
+        "User-Agent": "CrewBooks-OCR/1.0",
         "Accept": "image/*,*/*",
       },
     });

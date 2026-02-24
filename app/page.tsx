@@ -184,7 +184,7 @@ export default async function Home() {
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">Simple Pricing</CardTitle>
             <CardDescription>
-              CallSheets is currently free during beta.
+              CrewBooks is currently free during beta.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-6">
@@ -208,7 +208,7 @@ export default async function Home() {
       <section className="container mx-auto px-4 py-20 text-center">
         <h2 className="text-3xl font-bold mb-6">Ready to Get Started?</h2>
         <p className="text-muted-foreground mb-8">
-          Join Canadian film and TV professionals who trust CallSheets for their financial management.
+          Join Canadian film and TV professionals who trust CrewBooks for their financial management.
         </p>
         <Button asChild size="lg">
           <Link href="/signup">Create Your Account</Link>

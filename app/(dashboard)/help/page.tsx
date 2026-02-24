@@ -15,7 +15,7 @@ export default function HelpPage() {
               <BookOpen className="h-5 w-5" />
               Getting Started
             </CardTitle>
-            <CardDescription>Learn how to use CallSheets</CardDescription>
+            <CardDescription>Learn how to use CrewBooks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -119,7 +119,7 @@ export default function HelpPage() {
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
               If you need additional assistance or have questions not covered here, please contact 
-              our support team. We're here to help you make the most of CallSheets.
+              our support team. We're here to help you make the most of CrewBooks.
             </p>
             <p className="text-sm text-muted-foreground">
               Remember: This application is designed to help you track and organize your financial 

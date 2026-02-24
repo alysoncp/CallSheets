@@ -5,21 +5,21 @@ export default function AboutPage() {
   return (
     <div className="space-y-6">
       <div className="sticky top-0 z-10 -mx-4 flex h-16 items-center justify-between border-b border-border bg-background px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6">
-        <h1 className="text-2xl font-bold sm:text-3xl">About CallSheets</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">About CrewBooks</h1>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Info className="h-5 w-5" />
-            What is CallSheets?
+            What is CrewBooks?
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">
-            CallSheets is a comprehensive financial management platform designed specifically for 
+            CrewBooks is a comprehensive financial management platform designed specifically for 
             Canadian film and television professionals. Whether you're a performer, crew member, 
-            or both, CallSheets helps you track income, manage expenses, and prepare for tax season.
+            or both, CrewBooks helps you track income, manage expenses, and prepare for tax season.
           </p>
           <p className="text-muted-foreground">
             Our platform understands the unique financial needs of entertainment industry professionals, 
@@ -94,7 +94,7 @@ export default function AboutPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              CallSheets is designed to help you organize and track your financial information. 
+              CrewBooks is designed to help you organize and track your financial information. 
               However, it is not a substitute for professional tax advice.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -112,7 +112,7 @@ export default function AboutPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            CallSheets is continuously being improved with new features and updates. We're 
+            CrewBooks is continuously being improved with new features and updates. We're 
             committed to providing you with the best possible experience for managing your 
             financial information.
           </p>
