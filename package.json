@@ -18,12 +18,9 @@
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "supabase:reset": "supabase db reset",
-  
     "db:reset": "supabase db reset",
     "db:push:dev": "supabase link --project-ref ovnmeqtablzyanpnytai && supabase db push",
     "db:push:prod": "supabase link --project-ref zurwoqrlvbcvmbxggocv && supabase db push"
-  
-    
   },
   "keywords": [],
   "author": "",
@@ -54,6 +51,8 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.71.1",
+    "react-is": "^19.2.4",
+    "react-joyride": "^2.9.3",
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^3.4.19",
@@ -62,6 +61,3 @@
     "zod": "^4.3.6"
   }
 }
-
-
-

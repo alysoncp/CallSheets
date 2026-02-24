@@ -353,6 +353,7 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
           </Label>
           <Select
             id="tax-year"
+            data-tour="tax-year"
             value={taxYear.toString()}
             onChange={(e) => {
               const newYear = parseInt(e.target.value, 10);
@@ -380,10 +381,19 @@ export function Sidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: Sidebar
         <div className="space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+            const tourTarget =
+              item.href === "/income"
+                ? "sidebar-income"
+                : item.href === "/expenses"
+                ? "sidebar-expenses"
+                : item.href === "/settings"
+                ? "sidebar-settings"
+                : undefined;
             return (
               <Link
                 key={item.name}
                 href={item.href}
+                data-tour={tourTarget}
                 onClick={handleLinkClick}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",

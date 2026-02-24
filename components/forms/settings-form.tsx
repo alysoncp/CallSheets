@@ -539,7 +539,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       </Card>
 
       <div className="flex gap-4">
-        <Button type="submit" disabled={loading}>
+        <Button data-tour="settings-save" type="submit" disabled={loading}>
           {loading ? "Saving..." : "Save Settings"}
         </Button>
       </div>
