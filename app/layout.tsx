@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CallSheets - Financial Management for Film & TV Professionals",
+  title: "CrewBooks - Financial Management for Film & TV Professionals",
   description: "Comprehensive financial management tool for Canadian film and TV industry professionals",
 };
 

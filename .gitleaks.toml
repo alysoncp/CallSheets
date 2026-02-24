@@ -1,4 +1,4 @@
-title = "CallSheets Gitleaks Config"
+title = "CrewBooks Gitleaks Config"
 
 [allowlist]
 description = "Ignore local/generated files that may contain ephemeral keys or local secrets"

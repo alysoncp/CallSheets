@@ -66,7 +66,7 @@ export default async function ProfilePage({
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Complete Your Profile</AlertTitle>
             <AlertDescription>
-              Please complete your profile to continue using CallSheets. All fields marked with an asterisk (*) are required.
+              Please complete your profile to continue using CrewBooks. All fields marked with an asterisk (*) are required.
             </AlertDescription>
           </Alert>
         )}
@@ -85,7 +85,7 @@ export default async function ProfilePage({
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Complete Your Profile</AlertTitle>
           <AlertDescription>
-            Please complete your profile to continue using CallSheets. All fields marked with an asterisk (*) are required.
+            Please complete your profile to continue using CrewBooks. All fields marked with an asterisk (*) are required.
           </AlertDescription>
         </Alert>
       )}

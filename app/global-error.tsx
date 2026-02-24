@@ -16,7 +16,7 @@ export default function GlobalError({
             <div className="space-y-2">
               <h1 className="text-2xl font-bold sm:text-3xl">Oops, technical difficulties</h1>
               <p className="text-sm text-muted-foreground sm:text-base">
-                CallSheets is temporarily unavailable. Please try again shortly.
+                CrewBooks is temporarily unavailable. Please try again shortly.
               </p>
             </div>
 

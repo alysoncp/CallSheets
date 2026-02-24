@@ -41,13 +41,13 @@ export function Header({ onToggleMobileMenu }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="truncate text-base font-semibold sm:text-lg">CallSheets</h1>
+        <h1 className="truncate text-base font-semibold sm:text-lg">CrewBooks</h1>
         <span className="lg:hidden shrink-0 rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
           {taxYear}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-4">
-        <h2 className="hidden text-sm font-bold sm:block">CallSheets</h2>
+        <h2 className="hidden text-sm font-bold sm:block">CrewBooks</h2>
         {mounted && (
           <Button
             variant="ghost"

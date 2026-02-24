@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Technical Difficulties | CallSheets",
-  description: "CallSheets is temporarily unavailable. Please try again shortly.",
+  title: "Technical Difficulties | CrewBooks",
+  description: "CrewBooks is temporarily unavailable. Please try again shortly.",
 };
 
 export default function OutagePage() {

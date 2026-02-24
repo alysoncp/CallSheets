@@ -86,7 +86,7 @@ export function DisclaimerGuard({ children }: { children: React.ReactNode }) {
         <CardHeader>
           <CardTitle>Disclaimer required</CardTitle>
           <CardDescription>
-            Please read and accept the following to continue using CallSheets.
+            Please read and accept the following to continue using CrewBooks.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
